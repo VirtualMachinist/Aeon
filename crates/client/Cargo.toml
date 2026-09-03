@@ -1,0 +1,11 @@
+[package]
+name = "aeon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Training-mode client for AEON."
+
+[dependencies]
+aeon-sim = { path = "../sim" }
+gilrs = "0.11"
+macroquad = { workspace = true }

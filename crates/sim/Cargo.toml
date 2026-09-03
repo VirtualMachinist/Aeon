@@ -1,0 +1,8 @@
+[package]
+name = "aeon-sim"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Deterministic 60Hz fighting-game simulation. No rendering, no I/O."
+
+[dependencies]

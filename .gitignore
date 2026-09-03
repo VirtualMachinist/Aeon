@@ -1,0 +1,5 @@
+/target
+/shots
+/replays
+**/*.rs.bk
+.DS_Store

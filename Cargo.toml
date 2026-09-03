@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = ["crates/sim", "crates/client"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Evan"]
+description = "AEON — grounded 2D fighter: footsies, weapon tax, and Roman Cancel."
+
+[workspace.dependencies]
+macroquad = "0.4.14"
