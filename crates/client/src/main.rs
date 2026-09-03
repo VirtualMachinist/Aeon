@@ -613,7 +613,7 @@ fn draw_training_hud(v: &View, t: &Training, pads: &Pads) {
         if !pads.announced.is_empty() {
             lines.push(format!("{}   map {}", pads.announced.join(" | "), pads.map.describe()));
         } else {
-            lines.push("no pad detected — keyboard P1".to_string());
+            lines.push("no pad detected · keyboard P1".to_string());
         }
         let h = 18.0 * lines.len() as f32 + 16.0;
         v.rect(16.0, VH - 92.0 - h - 8.0, VW - 32.0, h, Color::new(0.02, 0.02, 0.03, 0.82));
@@ -671,7 +671,7 @@ fn draw_title(v: &View, cursor: Menu, pads: &Pads, frame: u32, assets: &Assets) 
         }
         v.text_center(label, VW / 2.0, y, 32.0, if sel { LINEN } else { INK });
     }
-    let pad = if pads.count() > 0 { pads.announced.join("  |  ") } else { "no pad — keyboard P1 (WASD, Y U I / H J K)".to_string() };
+    let pad = if pads.count() > 0 { pads.announced.join("  |  ") } else { "no pad · keyboard P1 (WASD, Y U I / H J K)".to_string() };
     v.text_center(&pad, VW / 2.0, VH - 60.0, 15.0, COPPER_DIM);
     v.text_center("up/down · P or ENTER confirm · F8 remap · F12 screenshot", VW / 2.0, VH - 36.0, 15.0, COPPER_DIM);
     let sprites = format!(
@@ -688,43 +688,47 @@ fn draw_title(v: &View, cursor: Menu, pads: &Pads, frame: u32, assets: &Assets) 
 fn draw_select(v: &View, assets: &Assets, p1: CharacterId, p2: CharacterId, locked: [bool; 2], training: bool, frame: u32) {
     clear_background(BLACK);
     v.rect(0.0, 0.0, VW, VH, render::VAULT);
-    v.text_center(if training { "TRAINING — choose" } else { "VERSUS — choose" }, VW / 2.0, 60.0, 30.0, LINEN);
     let cards = [(CharacterId::Kogan, 0usize), (CharacterId::Raya, 1usize)];
-    for (i, (id, pi)) in cards.iter().enumerate() {
-        let x = 160.0 + i as f32 * 520.0;
-        let y = 110.0;
-        let w = 440.0;
-        let h = 500.0;
+    let (y, w, h) = (110.0, 440.0, 500.0);
+    let card_x = |i: usize| 160.0 + i as f32 * 520.0;
+    // Pass 1: plates, cover-fit by center-cropping the *source* rect so the
+    // draw never spills past its card (the plates are wider than the card gap).
+    for (i, (_, pi)) in cards.iter().enumerate() {
+        let x = card_x(i);
         v.rect(x, y, w, h, Color::new(0.08, 0.07, 0.09, 1.0));
         if let Some(t) = &assets.portraits[*pi] {
-            // Identity plate, shown whole (never sliced), cover-fit.
-            let ta = t.width() / t.height();
-            let (dw, dh) = if ta > w / h { (h * ta, h) } else { (w, w / ta) };
-            let px_ = x + (w - dw) / 2.0;
-            let py_ = y + (h - dh) / 2.0;
-            // Clip by drawing the plate then masking the overflow with vault.
-            draw_texture_ex(t, v.sx(px_), v.sy(py_), WHITE, DrawTextureParams { dest_size: Some(vec2(dw * v.scale, dh * v.scale)), ..Default::default() });
-            v.rect(0.0, 0.0, x, VH, render::VAULT);
-            v.rect(x + w, 0.0, VW - x - w, VH, render::VAULT);
-            v.rect(x, 0.0, w, y, render::VAULT);
-            v.rect(x, y + h, w, VH - y - h, render::VAULT);
+            let (tw, th) = (t.width(), t.height());
+            let (sw, sh) = if tw / th > w / h { (th * w / h, th) } else { (tw, tw * h / w) };
+            let src = Rect::new((tw - sw) / 2.0, (th - sh) / 2.0, sw, sh);
+            draw_texture_ex(
+                t,
+                v.sx(x),
+                v.sy(y),
+                WHITE,
+                DrawTextureParams { dest_size: Some(vec2(w * v.scale, h * v.scale)), source: Some(src), ..Default::default() },
+            );
         }
+    }
+    v.text_center(if training { "TRAINING · choose" } else { "VERSUS · choose" }, VW / 2.0, 60.0, 30.0, LINEN);
+    // Pass 2: frames and labels over every plate.
+    for (i, (id, _)) in cards.iter().enumerate() {
+        let x = card_x(i);
         let p1_here = p1 == *id;
         let p2_here = p2 == *id;
         let border = if p1_here && p2_here { LINEN } else if p1_here { CYAN } else if p2_here { COPPER } else { COPPER_DIM };
         v.rect_lines(x, y, w, h, 3.0, border);
         v.text_center(id.name(), x + w / 2.0, y + h + 40.0, 36.0, LINEN);
         let sub = match id {
-            CharacterId::Kogan => "the duelist — saber · revolver · disc",
-            CharacterId::Raya => "the officiant — voice · crystal · rite",
+            CharacterId::Kogan => "the duelist · saber · revolver · disc",
+            CharacterId::Raya => "the officiant · voice · crystal · rite",
         };
         v.text_center(sub, x + w / 2.0, y + h + 66.0, 16.0, INK);
         let pulse = 0.6 + 0.4 * (frame as f32 * 0.1).sin();
         if p1_here {
-            v.text(if locked[0] { "P1 ✓" } else { "P1" }, x + 12.0, y + 30.0, 24.0, Color { a: if locked[0] { 1.0 } else { pulse }, ..CYAN });
+            v.text(if locked[0] { "P1 LOCKED" } else { "P1" }, x + 12.0, y + 30.0, 24.0, Color { a: if locked[0] { 1.0 } else { pulse }, ..CYAN });
         }
         if p2_here {
-            v.text_right(if locked[1] { "P2 ✓" } else { if training { "DUMMY" } else { "P2" } }, x + w - 12.0, y + 30.0, 24.0, Color { a: if locked[1] { 1.0 } else { pulse }, ..COPPER });
+            v.text_right(if locked[1] { "P2 LOCKED" } else { if training { "DUMMY" } else { "P2" } }, x + w - 12.0, y + 30.0, 24.0, Color { a: if locked[1] { 1.0 } else { pulse }, ..COPPER });
         }
     }
     v.text_center("P1 left/right · P confirm · FL back        P2 arrows · P confirm", VW / 2.0, VH - 36.0, 15.0, COPPER_DIM);
