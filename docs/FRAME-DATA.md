@@ -174,14 +174,14 @@ Hurtbox standing 38×98 px, crouching 38×60 px.
 | chant II | — | 8/3/14 | 70 | 17 / 11 | +1 / -5 | Mid | moves 3 px/f for 6f; feintable; S on f8–22 → chant III |
 | chant III | — | 11/3/24 | 100 | 24 / 12 | KD / -14 | Mid | moves 4 px/f for 8f; feintable |
 | voice glyph | 236+HS | 13/1/22 | shot | 0 / 0 | — (36f total) | Mid | feintable; glyph shot: hangs 60f, dmg 70, stun 18/16, Mid |
-| crystal | 214+S | 15/1/16 | shot | 0 / 0 | — (32f total) | Mid | feintable; crystal shot: plant: arc 2/4 px/f, arms 20f after landing, armed 90f, dmg 90, stun 22/16, Mid |
+| crystal | 214+S | 15/1/16 | shot | 0 / 0 | — (32f total) | Mid | feintable; crystal shot: plant: arc 2/4 px/f, arms 20f after landing, armed 90f, dmg 90, stun 22/16, Mid, KD |
 | shatter | 214+S (crystal planted) | 6/1/12 | — | 0 / 0 | — (19f total) | Mid |  |
 | processional | 236+FL | 0/0/18 | — | 0 / 0 | — (18f total) | Mid | passes through; moves 8 px/f for 14f |
 | the rite | 63214+FL | 7/2/40 | 180 | 0 / 0 | throw | Mid | feintable; untechable, beats both blocks, loses to invuln |
 | consecrate | 214+FL | 10/1/8 | — | 0 / 0 | — (19f total) | Mid | feintable; hold FL up to 60f, +2 gauge/f |
 | ascension | 623+S/HS | 4/8/28 | 130 | 19 / 11 | KD / -24 | Mid | full invuln 2–7; launch 9; land +12f; moves 2 px/f; rises 11 px/f; feintable |
 | EX glyph | 236+S+HS | 11/1/20 | shot | 0 / 0 | — (32f total) | Mid | CRYSTAL 50; feintable; glyph shot: hangs 90f, dmg 90, stun 22/18, Mid |
-| EX crystal | 214+S+HS | 13/1/18 | shot | 0 / 0 | — (32f total) | Mid | CRYSTAL 50; feintable; crystal shot: plant: arc 5/6 px/f, arms 1f after landing, armed 120f, dmg 110, stun 22/16, Mid |
+| EX crystal | 214+S+HS | 13/1/18 | shot | 0 / 0 | — (32f total) | Mid | CRYSTAL 50; feintable; crystal shot: plant: arc 5/6 px/f, arms 1f after landing, armed 120f, dmg 110, stun 22/16, Mid, KD |
 | convergence | 236236+S | 6/6/30 | 340 | 20 / 12 | KD / -23 | Mid | full invuln 1–8; launch 6; meter 1000; moves 14 px/f |
 
 <!-- generated:end -->

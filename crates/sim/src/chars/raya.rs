@@ -559,6 +559,7 @@ fn glyph(id: MoveId, ex: bool) -> MoveDef {
 /// 214+S crystal: a low toss that lands ~60px out (on a downed body from
 /// sweep range), plants, arms after 20f, lives 90f armed. 15/1/16 — fast
 /// enough to plant and glide inside a hard knockdown.
+/// The blast itself is also a knockdown (D2 / FRAME-DATA currency).
 /// EX (50 gauge): a longer arc (~120px), arms in 1f, lives 120f, bigger blast.
 fn crystal(id: MoveId, ex: bool) -> MoveDef {
     let mut m = MoveDef::special(id);
@@ -611,7 +612,7 @@ fn crystal(id: MoveId, ex: bool) -> MoveDef {
         hitbox: LocalBox::new(px(0), px(0), px(24), px(30)),
         blast: Some(blast),
         level: HitLevel::Mid,
-        knockdown: false,
+        knockdown: true,
     });
     m.meter_on_hit = 12;
     m

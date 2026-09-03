@@ -1103,7 +1103,26 @@ fn raya_crystal_plants_arms_and_detonates_on_contact() {
         w.fighters[1].health < hp,
         "armed crystal detonates on contact"
     );
-    assert!(has_event(&w, EventKind::Hit) || w.fighters[1].action.in_hitstun());
+    assert!(
+        has_event(&w, EventKind::Knockdown)
+            || matches!(
+                w.fighters[1].action,
+                Action::Hit {
+                    knockdown: true,
+                    ..
+                } | Action::Knockdown { .. }
+            ),
+        "crystal blast is a hard knockdown, got {}",
+        w.fighters[1].action.name()
+    );
+    let downed = run_until(&mut w, 90, idle(), idle(), |w| {
+        matches!(w.fighters[1].action, Action::Knockdown { .. })
+    });
+    assert!(
+        downed.is_some(),
+        "after stun the blast leaves them down, got {}",
+        w.fighters[1].action.name()
+    );
 }
 
 #[test]
