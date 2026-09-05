@@ -61,6 +61,10 @@ fn flash_cases() -> Vec<Case> {
     normal_cases(CharacterId::Kogan, &[MoveId::StFL, MoveId::StST])
 }
 
+fn crouching_saber_cases() -> Vec<Case> {
+    normal_cases(CharacterId::Kogan, &[MoveId::CrS, MoveId::CrHS, MoveId::CrFL, MoveId::CrST])
+}
+
 fn normal_cases(body: CharacterId, moves: &[MoveId]) -> Vec<Case> {
     let mut result = Vec::new();
     for &move_id in moves {
@@ -233,7 +237,9 @@ impl Case {
         if self.reaction { 150 }
         else if self.disc || self.ground.is_some() { 90 }
         else if self.saber && self.move_id == MoveId::Rekka3 { 180 }
-        else if self.air || self.ranged || self.utility || self.saber { 150 } else { LENGTH }
+        else if self.air || self.ranged || self.utility || self.saber || self.move_id == MoveId::CrST { 150 }
+        else if matches!(self.move_id, MoveId::CrS | MoveId::CrHS | MoveId::CrFL) { 90 }
+        else { LENGTH }
     }
 
     fn label(self) -> String {
@@ -540,10 +546,12 @@ impl Case {
             let up = frame == PRESS || (!hop && (PRESS..PRESS + 7).contains(&frame));
             return [InputFrame::dir(if up { dir } else { 5 }), InputFrame::default()];
         }
-        let crouch = self.move_id == MoveId::CrK;
+        let crouch = matches!(self.move_id, MoveId::CrP | MoveId::CrK | MoveId::CrS | MoveId::CrHS | MoveId::CrFL | MoveId::CrST);
         let attacker = if frame == PRESS {
             let button = match self.move_id {
-                MoveId::StP => Btn::P, MoveId::StFL => Btn::FL, MoveId::StST => Btn::ST,
+                MoveId::StP | MoveId::CrP => Btn::P,
+                MoveId::StFL | MoveId::CrFL => Btn::FL, MoveId::StST | MoveId::CrST => Btn::ST,
+                MoveId::CrS => Btn::S, MoveId::CrHS => Btn::HS,
                 _ => Btn::K,
             };
             InputFrame::dir_press(if crouch { 2 } else { 5 }, button)
@@ -573,7 +581,10 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let mut all = if args.iter().any(|a| a == "--kit-flash") {
+    let mut all = if args.iter().any(|a| a == "--kit-crouch") {
+        assert!(body == CharacterId::Kogan, "crouching saber cases currently cover Kogan");
+        crouching_saber_cases()
+    } else if args.iter().any(|a| a == "--kit-flash") {
         assert!(body == CharacterId::Kogan, "flash cases currently cover Kogan");
         flash_cases()
     } else if args.iter().any(|a| a == "--kit-air") {
@@ -1237,6 +1248,36 @@ mod tests {
             for phase in 0..4 {
                 assert!(drawings.contains(&crate::sprites::Cell::Ranged(base + phase)), "{case:?} phase {phase}");
             }
+        }
+    }
+
+    #[test]
+    fn crouching_saber_preview_preserves_low_guard_rules_and_supported_recovery() {
+        let cases = crouching_saber_cases();
+        assert_eq!(cases.len(), 80);
+        for case in cases {
+            let mut world = case.world();
+            let mut started = false;
+            let (mut hits, mut blocks, mut knockdown) = (0, 0, false);
+            for tick in 0..case.duration() {
+                let [a, b] = case.inputs_for_world(tick, &world);
+                world.tick(a, b);
+                started |= world.fighters[0].action.attacking()
+                    .is_some_and(|(id, _, _)| id == case.move_id);
+                hits += world.events.iter().filter(|e| matches!(e.kind, EventKind::Hit | EventKind::Knockdown)).count();
+                blocks += world.events.iter().filter(|e| e.kind == EventKind::Block).count();
+                knockdown |= matches!(world.fighters[1].action, Action::Hit { knockdown: true, .. } | Action::Knockdown { .. });
+            }
+            assert!(started, "{case:?}: recognized through legal crouching input");
+            let expected = match case.response {
+                Response::Whiff => (0, 0), Response::CrouchBlock => (0, 1),
+                Response::StandBlock if case.move_id != MoveId::CrST => (0, 1),
+                _ => (1, 0),
+            };
+            assert_eq!((hits, blocks), expected, "{case:?}");
+            assert_eq!(knockdown, case.move_id == MoveId::CrST && expected.0 == 1, "{case:?}");
+            assert!(matches!(world.fighters[0].action, Action::Crouch), "{case:?}: supported crouched return");
+            assert!(world.fighters.iter().all(|f| !f.airborne && f.action.actionable()), "{case:?}: full defender recovery");
         }
     }
 
