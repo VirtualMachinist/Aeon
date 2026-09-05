@@ -267,3 +267,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART25 | Canceled equipment withdraws into ready and respects legal landing | Reviewed art reused for all eleven feintable moves. All 88 before/final cases / 176s each and focused 20s viewed at 1× in 1280×720. Selected weapon/guard phases and corrected late-uppercut Jump/landing stepped in both facings at center/corners. |
 
 155 tests (89 sim + 66 client), clippy with warnings denied and locked/offline release pass. All 10,560 final, 1,200 focused and 2,100 integration ticks equal baseline; complete new 35s integration viewed. Eight smoke PNGs retained: four equal prior inspected throw evidence, four changed pairs directly reviewed as wall-clock/menu sampling differences. Exact changes, phase ticks and archived rejected Uppercut transition are in the full-kit report. The eight-frame feint and legal two-tick landings remain unchanged. G2/S2/G1 refraction supplies withdrawal and gathered descent; the cited excerpts are not feint demonstrations. Remaining kits and physical stick play stay open.
+
+## September 5 Kogan victory review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART26 | Complete equipment and coherent supported entry into winner hold | Four new V1 drawings; all 16 before/final legal KO cases / 64s each viewed at 1× in 1280×720. Standing/airborne/crouched finishes, next round and rematch, both facings at center/corners. Corrected two-tick crouch rise and full gun phases stepped. |
+
+159 tests (89 sim + 70 client), clippy with warnings denied and locked/offline release pass. All 3,840 final and 2,100 integration ticks equal baseline; full new 35s integration viewed. Eight smoke PNGs retained, four identical and four changed pairs directly reviewed as wall-clock/menu sampling. Final rise correction was recaptured in all four relevant cases; the retained integration and Raya-winner smoke do not enter that branch. S2/G2/A1 informs supported weapon return, not a claim of commercial victory behavior. This accepts Kogan's winner gesture; defeated-body idle/getup remains open and is the next presentation correction. Remaining kits and physical play stay open.

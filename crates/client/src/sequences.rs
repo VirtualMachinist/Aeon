@@ -96,6 +96,17 @@ pub const KOGAN_REACTIONS: [Spec; 12] = [
     ([0, 700, 365, 1086], 220, 311), ([365, 700, 720, 1086], 565, 311),
     ([720, 700, 1075, 1086], 901, 311), ([1075, 700, 1448, 1086], 1228, 319),
 ];
+// Quiet revolver draw/raise/settle, with the saber continuously lowered.
+pub const KOGAN_VICTORY: [Spec; 4] = [
+    ([0, 0, 760, 510], 425, 480), ([760, 0, 1536, 510], 1083, 480),
+    ([0, 508, 760, 1024], 425, 480), ([760, 508, 1536, 1024], 1083, 480),
+];
+
+pub fn victory_cell(f: &Fighter, age: u32) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan || !crate::anim::victory_at_rest(f) { return None; }
+    Some(Cell::Victory(match age { 0..=7 => 0, 8..=15 => 1, 16..=23 => 2, _ => 3 }))
+}
+
 /// A canceled startup withdraws its own equipment, then regains ready.
 /// The existing eight-frame state owns the clock; landing/new actions take over.
 pub fn feint_cell(f: &Fighter) -> Option<Cell> {
@@ -645,6 +656,7 @@ mod tests {
             ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
             ("kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH[..]),
+            ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
             ("kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW[..]),
             ("kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER[..]),

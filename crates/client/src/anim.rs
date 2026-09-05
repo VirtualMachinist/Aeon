@@ -52,6 +52,42 @@ pub struct Snapshot {
     ground: crate::sequences::GroundContext,
 }
 
+/// Winner drawing time starts only after the body has recovered. It advances
+/// with the world, freezes at MatchOver and clears at the next round/rematch.
+#[derive(Default)]
+pub struct VictoryClock {
+    winner: Option<usize>,
+    last_frame: u32,
+    age: u32,
+}
+
+impl VictoryClock {
+    pub fn update(&mut self, w: &World, phase: aeon_sim::Phase) {
+        use aeon_sim::{Phase, RoundOutcome};
+        let winner = match phase {
+            Phase::RoundEnd { outcome: RoundOutcome::Winner(i), frame: 30.. } => Some(i),
+            Phase::MatchOver { winner } => Some(winner),
+            _ => None,
+        }.filter(|&i| victory_at_rest(&w.fighters[i]));
+        let Some(winner) = winner else { *self = Self::default(); return; };
+        if self.winner == Some(winner) && w.frame >= self.last_frame {
+            self.age = self.age.saturating_add(w.frame - self.last_frame);
+        } else {
+            // A direct loaded end screen has no preceding gesture to play.
+            self.age = if matches!(phase, Phase::MatchOver { .. }) { 70 } else { 0 };
+        }
+        self.winner = Some(winner);
+        self.last_frame = w.frame;
+    }
+
+    pub fn age(&self, i: usize) -> Option<u32> { (self.winner == Some(i)).then_some(self.age) }
+    pub fn winner(&self) -> Option<usize> { self.winner }
+}
+
+pub fn victory_at_rest(f: &Fighter) -> bool {
+    !f.airborne && matches!(f.action, Action::Stand | Action::Crouch | Action::Walk { .. })
+}
+
 /// What each body showed over the last few simulation frames.
 #[derive(Default)]
 pub struct History {
@@ -59,6 +95,16 @@ pub struct History {
 }
 
 impl History {
+
+    fn victory_ready(&self, w: &World, i: usize) -> bool {
+        let f = &w.fighters[i];
+        if !victory_at_rest(f) { return false; }
+        let c = self.ground_context(w,i);
+        !(f.id == CharacterId::Kogan && matches!(f.action,Action::Stand)
+            && c.from == crate::sequences::GroundState::Crouch && c.age < 2)
+    }
+
+
     /// Keep the attacking gesture in front. At equal grounded height, a
     /// crouching body must remain visible below the opponent's standing torso.
     /// Its two-frame rise keeps that order until the standing drawing returns.
@@ -216,8 +262,8 @@ pub struct Layer {
 }
 
 pub struct LayerOpts {
-    /// Draw the win pose when the body is at rest (round end).
-    pub win: bool,
+    /// Elapsed winner drawing ticks, present only after the body has recovered.
+    pub win: Option<u32>,
     /// Body flash from the effects layer: strength and colour.
     pub flash: (f32, Color),
 }
@@ -264,11 +310,9 @@ pub fn layers(
 ) -> Vec<Layer> {
     let f = &w.fighters[i];
     let mut cell = history.cell_for(w, i, sprites);
-    if opts.win
-        && !f.airborne
-        && matches!(f.action, Action::Stand | Action::Crouch | Action::Walk { .. })
-    {
-        cell = Cell::Pose(Pose::Win);
+    if let Some(age) = opts.win.filter(|_| history.victory_ready(w, i)) {
+        cell = crate::sequences::victory_cell(f, age)
+            .filter(|&cell| sprites.frame(cell).is_some()).unwrap_or(Cell::Pose(Pose::Win));
     }
     let mut m = motion(f, w);
     respect_authored_drawing(f.id, cell, &mut m);
@@ -371,7 +415,7 @@ pub fn layers(
 /// Dedicated drawings already contain the bend/tumble. Rotating them again
 /// around their feet puts the body below the floor and distorts sword arcs.
 fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
-    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(_) | Cell::Recoil(_) | Cell::Floor(_) | Cell::Judgment(_) | Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::Overhead(_) | Cell::ThrowTech(_))
+    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(_) | Cell::Recoil(_) | Cell::Floor(_) | Cell::Judgment(_) | Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::Overhead(_) | Cell::ThrowTech(_) | Cell::Victory(_))
 }
 
 fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
@@ -380,7 +424,7 @@ fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
 }
 
 fn respect_authored_drawing(id: CharacterId, cell: Cell, m: &mut Motion) {
-    if id == CharacterId::Kogan && matches!(cell, Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::Overhead(_) | Cell::ThrowTech(_)) {
+    if id == CharacterId::Kogan && matches!(cell, Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::Overhead(_) | Cell::ThrowTech(_) | Cell::Victory(_)) {
         // Commitment is drawn; extra shifts detach the weapon from its contact line.
         m.dx = 0.0;
         m.dy = 0.0;
@@ -662,7 +706,7 @@ mod tests {
             let sprites = set(id);
             let history = History::default();
             let opts = LayerOpts {
-                win: false,
+                win: None,
                 flash: (0.0, WHITE),
             };
             for move_id in MoveId::ALL {
@@ -733,7 +777,7 @@ mod tests {
             0,
             &set(CharacterId::Kogan),
             &History::default(),
-            &LayerOpts { win: false, flash: (0.0, WHITE) },
+            &LayerOpts { win: None, flash: (0.0, WHITE) },
         );
         assert!(out.last().unwrap().rot <= -1.25);
     }
@@ -743,7 +787,7 @@ mod tests {
         let sprites = set(CharacterId::Kogan);
         let mut history = History::default();
         let mut w = World::new(CharacterId::Kogan, CharacterId::Kogan);
-        let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
+        let opts = LayerOpts { win: None, flash: (0.0, WHITE) };
         w.fighters[0].action = Action::Run;
         for _ in 0..6 {
             w.frame += 1;
@@ -768,7 +812,7 @@ mod tests {
         let sprites = set(CharacterId::Raya);
         let mut history = History::default();
         let mut w = World::new(CharacterId::Raya, CharacterId::Raya);
-        let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
+        let opts = LayerOpts { win: None, flash: (0.0, WHITE) };
         history.record(&w, [Cell::Pose(Pose::Idle); 2]);
         w.frame += 1;
         w.fighters[0].action = Action::Attack {
@@ -797,7 +841,7 @@ mod tests {
         history.record(&w, [Cell::Movement(6), Cell::Pose(Pose::Idle)]);
         w.frame += 1;
         w.fighters[0].action = Action::Landing { frame: 1, total: 2 };
-        let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
+        let opts = LayerOpts { win: None, flash: (0.0, WHITE) };
         let out = layers(&w, 0, &sprites, &history, &opts);
         assert_eq!(out.len(), 1, "landing must not overlay an airborne body");
         assert!(!matches!(out[0].cell, Cell::Movement(_)));
@@ -975,8 +1019,8 @@ mod tests {
     #[test]
     fn authored_kogan_return_has_one_body_and_no_extra_blade_rotation() {
         let sprites = set(CharacterId::Kogan);
-        let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
-        for previous in [Cell::ThrowTech(0), Cell::ThrowTech(1), Cell::Utility(0), Cell::Utility(1), Cell::Utility(2), Cell::Utility(3), Cell::Overhead(0), Cell::Overhead(1), Cell::Overhead(2), Cell::Overhead(3), Cell::CrouchSaber(8), Cell::CrouchSaber(9), Cell::CrouchSaber(10), Cell::CrouchSaber(11), Cell::CrouchSaber(12), Cell::CrouchSaber(13), Cell::CrouchSaber(14), Cell::CrouchSaber(15), Cell::CrouchSaber(0), Cell::CrouchSaber(1), Cell::CrouchSaber(2), Cell::CrouchSaber(3), Cell::CrouchSaber(4), Cell::CrouchSaber(5), Cell::CrouchSaber(6), Cell::CrouchSaber(7), Cell::Flash(0), Cell::Flash(1), Cell::Flash(2), Cell::Flash(3), Cell::Flash(4), Cell::Flash(5), Cell::Flash(6), Cell::Flash(7), Cell::AirLights(0), Cell::AirLights(1), Cell::AirLights(2), Cell::AirLights(3), Cell::AirLights(4), Cell::AirLights(5), Cell::AirSaber(0), Cell::AirSaber(1), Cell::AirSaber(2), Cell::AirSaber(3), Cell::AirSaber(4), Cell::AirSaber(5), Cell::AirShot(0), Cell::AirShot(1), Cell::AirShot(2), Cell::AirShot(3), Cell::Judgment(0), Cell::Judgment(1), Cell::Judgment(2), Cell::Judgment(3), Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
+        let opts = LayerOpts { win: None, flash: (0.0, WHITE) };
+        for previous in [Cell::Victory(0), Cell::Victory(1), Cell::Victory(2), Cell::Victory(3), Cell::ThrowTech(0), Cell::ThrowTech(1), Cell::Utility(0), Cell::Utility(1), Cell::Utility(2), Cell::Utility(3), Cell::Overhead(0), Cell::Overhead(1), Cell::Overhead(2), Cell::Overhead(3), Cell::CrouchSaber(8), Cell::CrouchSaber(9), Cell::CrouchSaber(10), Cell::CrouchSaber(11), Cell::CrouchSaber(12), Cell::CrouchSaber(13), Cell::CrouchSaber(14), Cell::CrouchSaber(15), Cell::CrouchSaber(0), Cell::CrouchSaber(1), Cell::CrouchSaber(2), Cell::CrouchSaber(3), Cell::CrouchSaber(4), Cell::CrouchSaber(5), Cell::CrouchSaber(6), Cell::CrouchSaber(7), Cell::Flash(0), Cell::Flash(1), Cell::Flash(2), Cell::Flash(3), Cell::Flash(4), Cell::Flash(5), Cell::Flash(6), Cell::Flash(7), Cell::AirLights(0), Cell::AirLights(1), Cell::AirLights(2), Cell::AirLights(3), Cell::AirLights(4), Cell::AirLights(5), Cell::AirSaber(0), Cell::AirSaber(1), Cell::AirSaber(2), Cell::AirSaber(3), Cell::AirSaber(4), Cell::AirSaber(5), Cell::AirShot(0), Cell::AirShot(1), Cell::AirShot(2), Cell::AirShot(3), Cell::Judgment(0), Cell::Judgment(1), Cell::Judgment(2), Cell::Judgment(3), Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
             let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
             let mut history = History::default();
             history.record(&w, [previous, Cell::Pose(Pose::Idle)]);
@@ -1041,13 +1085,63 @@ mod tests {
     }
 
     #[test]
+    fn victory_clock_waits_for_recovery_freezes_and_resets() {
+        use aeon_sim::{Phase, RoundOutcome};
+        let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
+        let mut clock = VictoryClock::default();
+        let end = |frame| Phase::RoundEnd { outcome: RoundOutcome::Winner(0), frame };
+        w.frame = 50; clock.update(&w, end(29)); assert_eq!(clock.age(0), None);
+        w.fighters[0].airborne = true;
+        w.frame += 1; clock.update(&w, end(30)); assert_eq!(clock.age(0), None);
+        w.fighters[0].airborne = false;
+        w.fighters[0].action = Action::Landing { frame: 1, total: 2 };
+        w.frame += 1; clock.update(&w, end(31)); assert_eq!(clock.age(0), None);
+        w.fighters[0].action = Action::Stand;
+        w.frame += 1; clock.update(&w, end(32)); assert_eq!(clock.age(0), Some(0));
+        assert_eq!(clock.age(1), None);
+        clock.update(&w, end(32)); assert_eq!(clock.age(0), Some(0));
+        w.frame += 8; clock.update(&w, end(40)); assert_eq!(clock.age(0), Some(8));
+        clock.update(&w, Phase::MatchOver { winner: 0 });
+        clock.update(&w, Phase::MatchOver { winner: 0 });assert_eq!(clock.age(0),Some(8));
+        w = World::new(CharacterId::Kogan,CharacterId::Raya);
+        clock.update(&w,Phase::Intro { frame:0 });assert_eq!(clock.age(0),None);
+        clock.update(&w,Phase::MatchOver { winner:0 });assert_eq!(clock.age(0),Some(70));
+        clock.update(&w,Phase::RoundEnd { outcome:RoundOutcome::Draw,frame:50 });assert_eq!(clock.winner(),None);
+        for action in [Action::Hit { stun:3,knockdown:false },Action::Knockdown { frame:3 },Action::ThrowTech { frame:3 }] {
+            w.fighters[0].action=action;clock.update(&w,end(50));assert_eq!(clock.winner(),None);
+        }
+    }
+
+    #[test]
     fn win_pose_only_replaces_a_body_at_rest() {
         let sprites = set(CharacterId::Kogan);
         let history = History::default();
-        let opts = LayerOpts { win: true, flash: (0.0, WHITE) };
+        let opts = LayerOpts { win: Some(0), flash: (0.0, WHITE) };
         let mut w = World::new(CharacterId::Kogan, CharacterId::Kogan);
         assert_eq!(layers(&w, 0, &sprites, &history, &opts)[0].cell, Cell::Pose(Pose::Win));
         w.fighters[0].action = Action::Knockdown { frame: 3 };
         assert_eq!(layers(&w, 0, &sprites, &history, &opts)[0].cell, Cell::Pose(Pose::Down));
     }
+    #[test]
+    fn winner_gesture_keeps_the_existing_two_tick_crouch_rise() {
+        let mut w=World::new(CharacterId::Kogan,CharacterId::Raya);
+        let mut history=History::default();
+        w.frame=51;
+        w.fighters[0].action=Action::Attack { move_id:MoveId::CrHS,frame:28,connected:aeon_sim::Connect::Hit };
+        history.record(&w,[Cell::CrouchSaber(7),Cell::Pose(Pose::Idle)]);
+        w.fighters[0].action=Action::Stand;
+        for tick in [52,53] {
+            w.frame=tick;
+            assert!(!history.victory_ready(&w,0),"the legal standing state still draws its short rise");
+            assert_eq!(crate::sequences::ground_cell(&w.fighters[0],history.ground_context(&w,0)),Some(Cell::Ground(2)));
+            history.record(&w,[Cell::Ground(2),Cell::Pose(Pose::Idle)]);
+            assert!(!history.victory_ready(&w,0),"freeze holds the rise");
+        }
+        w.frame=54;assert!(history.victory_ready(&w,0));
+        w.fighters[0].action=Action::Jump { air_ok:true,hop:false };
+        assert!(!history.victory_ready(&w,0),"new actions retain their drawing");
+        history.reset();w.fighters[0].action=Action::Stand;
+        assert!(history.victory_ready(&w,0),"no stale rise after reset");
+    }
+
 }
