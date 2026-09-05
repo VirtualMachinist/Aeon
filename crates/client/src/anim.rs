@@ -179,7 +179,7 @@ pub fn layers(
         cell = Cell::Pose(Pose::Win);
     }
     let mut m = motion(f, w);
-    respect_authored_drawing(cell, &mut m);
+    respect_authored_drawing(f.id, cell, &mut m);
 
     // Hitstop: the struck body shudders in place, the striker leans on
     // the hit. Amplitude follows the weight of the contact.
@@ -205,7 +205,7 @@ pub fn layers(
             };
             // A changing step silhouette must not trail an old stance or
             // put a previous leaning head ahead of the braking body.
-            if matches!(cell, Cell::Utility(_)) && snap.cell != cell { continue; }
+            if (matches!(cell, Cell::Utility(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
             // A body that has not moved leaves no trail.
             if (snap.x - sub(f.pos.x)).abs() + (snap.y - sub(f.pos.y)).abs() < 1.0 {
                 continue;
@@ -215,7 +215,7 @@ pub fn layers(
                 x: snap.x,
                 y: snap.y,
                 facing_right: snap.facing_right,
-                rot: if matches!(snap.cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_)) { 0.0 } else { m.rot * 0.5 },
+                rot: if authored_drawing(f.id, snap.cell) { 0.0 } else { m.rot * 0.5 },
                 sx: 1.0,
                 sy: 1.0,
                 alpha: 0.17 * (1.0 - (k - 1) as f32 / count as f32),
@@ -240,6 +240,7 @@ pub fn layers(
     if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
         !cuts && !matches!(cell, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_))
             && !matches!(prev.cell, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_))
+            && !kogan_combat_cell(f.id, cell) && !kogan_combat_cell(f.id, prev.cell)
     }) {
         let age = w.frame.saturating_sub(prev.frame);
         if (1..=CROSSFADE).contains(&age) {
@@ -277,8 +278,17 @@ pub fn layers(
 
 /// Dedicated drawings already contain the bend/tumble. Rotating them again
 /// around their feet puts the body below the floor and distorts sword arcs.
-fn respect_authored_drawing(cell: Cell, m: &mut Motion) {
-    if matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_)) {
+fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
+    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(4..=15) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(8..=11))
+}
+
+fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
+    matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_))
+        || kogan_combat_cell(id, cell)
+}
+
+fn respect_authored_drawing(id: CharacterId, cell: Cell, m: &mut Motion) {
+    if authored_drawing(id, cell) {
         m.rot = 0.0;
         m.sx = 1.0;
         m.sy = 1.0;
@@ -603,12 +613,12 @@ mod tests {
         w.fighters[0].action = Action::Hit { stun: 4, knockdown: true };
         let mut m = motion(&w.fighters[0], &w);
         assert!(m.rot < -1.0);
-        respect_authored_drawing(Cell::Reaction(3), &mut m);
+        respect_authored_drawing(CharacterId::Kogan, Cell::Reaction(3), &mut m);
         assert_eq!((m.rot, m.sx, m.sy), (0.0, 1.0, 1.0));
         w.fighters[0].start_move(MoveId::Uppercut);
         w.fighters[0].vel.y = px(6);
         let mut m = motion(&w.fighters[0], &w);
-        respect_authored_drawing(Cell::Uppercut(1), &mut m);
+        respect_authored_drawing(CharacterId::Kogan, Cell::Uppercut(1), &mut m);
         assert_eq!((m.rot, m.sx, m.sy), (0.0, 1.0, 1.0));
     }
 
@@ -692,6 +702,26 @@ mod tests {
         let out = layers(&w, 0, &sprites, &history, &opts);
         assert_eq!(out.len(), 1, "landing must not overlay an airborne body");
         assert!(!matches!(out[0].cell, Cell::Movement(_)));
+    }
+
+    #[test]
+    fn authored_saber_return_has_one_body_and_no_extra_blade_rotation() {
+        let sprites = set(CharacterId::Kogan);
+        let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
+        for previous in [Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
+            let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
+            let mut history = History::default();
+            history.record(&w, [previous, Cell::Pose(Pose::Idle)]);
+            w.frame += 1;
+            let out = layers(&w, 0, &sprites, &history, &opts);
+            assert_eq!(out.len(), 1, "withdrawal cannot retain a second saber: {previous:?}");
+            let mut m = Motion::REST;
+            m.rot = 0.1; m.sx = 1.06; m.sy = 0.96;
+            respect_authored_drawing(CharacterId::Kogan, previous, &mut m);
+            assert_eq!((m.rot, m.sx, m.sy), (0.0, 1.0, 1.0));
+        }
+        assert!(!kogan_combat_cell(CharacterId::Kogan, Cell::Atlas(0)), "walking remains separate");
+        assert!(!kogan_combat_cell(CharacterId::Raya, Cell::Atlas(6)), "Raya has separate review coverage");
     }
 
     #[test]

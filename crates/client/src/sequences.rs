@@ -104,11 +104,58 @@ pub const RAYA_REACTIONS: [Spec; 12] = [
     ([0, 688, 365, 1086], 213, 342), ([365, 688, 700, 1086], 510, 334),
     ([700, 688, 1065, 1086], 920, 340), ([1065, 688, 1448, 1086], 1237, 350),
 ];
+// The old cut rows are not an equal grid. Their neighboring capes
+// cross nominal boundaries; measured green gaps preserve each full drawing.
+pub const KOGAN_CUTS: [Spec; 8] = [
+    ([0, 320, 313, 615], 172, 273), ([313, 320, 630, 615], 457, 273),
+    ([630, 320, 916, 615], 752, 273), ([916, 320, 1254, 615], 1049, 273),
+    ([0, 615, 313, 940], 155, 273), ([313, 615, 606, 940], 445, 273),
+    ([606, 615, 907, 940], 734, 273), ([907, 615, 1254, 940], 1051, 273),
+];
+pub const KOGAN_POKE: [Spec; 4] = [
+    ([0, 0, 768, 500], 305, 400), ([768, 0, 1536, 500], 1100, 400),
+    ([0, 500, 768, 1024], 309, 400), ([768, 500, 1536, 1024], 1050, 400),
+];
+
+pub fn poke_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    let Action::Attack { move_id: MoveId::StS, frame, .. } = f.action else { return None; };
+    let mv = f.data().move_def(MoveId::StS)?;
+    let phase = if frame < mv.first_active() { 0 }
+        else if frame == mv.first_active() { 1 }
+        else if frame <= mv.last_active() + u16::from(mv.recovery) / 3 { 2 }
+        else { 3 };
+    Some(Cell::Poke(phase))
+}
+
 pub const KOGAN_COIL: [Spec; 1] = [([0, 0, 1254, 1254], 705, 1030)];
 pub const KOGAN_UPPERCUT: [Spec; 4] = [
     ([0, 0, 627, 535], 305, 355), ([627, 0, 1254, 535], 890, 350),
     ([0, 535, 627, 1254], 350, 315), ([627, 535, 1254, 1254], 913, 330),
 ];
+pub const KOGAN_UPPERCUT_COMPACT: [Spec; 2] = [
+    ([0, 0, 705, 1024], 450, 600), ([705, 0, 1536, 1024], 1110, 600),
+];
+
+/// Complete the upward blade line during the early rise, then gather the
+/// body near the apex. The previous tall pose at maximum height hid the HUD.
+pub fn compact_uppercut_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    match f.action {
+        Action::Attack { move_id: MoveId::Uppercut, frame, .. } => {
+            let first = f.data().move_def(MoveId::Uppercut)?.first_active();
+            if frame < first + 2 { None }
+            else if frame < first + 6 { Some(Cell::UppercutCompact(0)) }
+            else if f.airborne && (f.vel.y >= 0 || f.pos.y > aeon_sim::px(100)) {
+                Some(Cell::UppercutCompact(1))
+            } else { None }
+        }
+        Action::Jump { air_ok: false, .. } if f.last_move == Some(MoveId::Uppercut)
+            && f.airborne && f.pos.y > aeon_sim::px(100) => Some(Cell::UppercutCompact(1)),
+        _ => None,
+    }
+}
+
 pub const RAYA_UPPERCUT: [Spec; 4] = [
     ([0, 0, 627, 580], 346, 430), ([627, 0, 1254, 580], 866, 444),
     ([0, 580, 627, 1254], 334, 455), ([627, 580, 1254, 1254], 888, 432),
@@ -244,6 +291,9 @@ mod tests {
     #[test]
     fn authored_regions_preserve_complete_silhouettes_and_effects() {
         for (name, reference, specs) in [
+            ("kogan-standing-poke-v1-green.png", (1536, 1024), &KOGAN_POKE[..]),
+            ("kogan-v1-green.png", (1254, 1254), &KOGAN_CUTS[..]),
+            ("kogan-uppercut-compact-v1-green.png", (1536, 1024), &KOGAN_UPPERCUT_COMPACT[..]),
             ("kogan-cape-step-v3-green.png", (1448, 1086), &KOGAN_UTILITY[..]),
             ("kogan-ranged-v5-green.png", (1448, 1086), &KOGAN_RANGED[..]),
             ("kogan-movement-v2-green.png", (1672, 941), &KOGAN_MOVEMENT[..]),

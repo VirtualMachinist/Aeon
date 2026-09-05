@@ -57,3 +57,8 @@ Row layout convention for the selector: row 0 = the four phases used for a singl
 ## Reaction iteration (2026-09-05)
 
 The priority-one reaction/uppercut families above now have an initial authored implementation, with floor/getup and landing cells. See [full prompts, corrections and selection](REACTIONS-2026-09-05.md). Five selected PNG assets provide 32 consumed drawings. Most of the remaining family list is still open; one-cell grounded recoil and a few uppercut keys do not complete full-kit animation.
+
+
+## Saber refinement (2026-09-05)
+
+Four short high-poke drawings and two compact uppercut phases are integrated and reviewed. Exact prompts, original IDs and acceptance: [standing poke](KOGAN-STANDING-POKE-2026-09-05.md) and [compact reversal](KOGAN-UPPERCUT-COMPACT-2026-09-05.md). The existing cut/backcut regions were measured again to preserve complete capes. Full 128-case motion review and remaining coverage are recorded in the full-kit report.
