@@ -8,6 +8,9 @@ use aeon_sim::{px, Btn, Buttons, CharacterId, InputFrame, MoveId, World, STAGE_W
 use macroquad::prelude::*;
 use std::io::Write;
 
+#[path = "victory_preview.rs"]
+mod victory;
+
 const LENGTH: u32 = 60;
 const PRESS: u32 = 12;
 const MOVES: [MoveId; 3] = [MoveId::StP, MoveId::StK, MoveId::CrK];
@@ -665,6 +668,7 @@ impl Case {
 
 pub async fn run(assets: &Assets) {
     let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--kit-victory") { return victory::run(assets, &args).await; }
     let capture = args.iter().any(|a| a == "--capture");
     let body = if args.iter().any(|a| a == "--kit-raya") {
         CharacterId::Raya

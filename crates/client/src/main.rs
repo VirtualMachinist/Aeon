@@ -13,7 +13,7 @@ mod sequences;
 mod timing;
 
 use aeon_sim::input::{Btn, Chord};
-use aeon_sim::{Action, CharacterId, EventKind, InputFrame, Match, Phase, RoundOutcome, World};
+use aeon_sim::{Action, CharacterId, EventKind, InputFrame, Match, Phase, World};
 use macroquad::prelude::*;
 
 use anim::{History, LayerOpts};
@@ -106,14 +106,14 @@ struct Assets {
 struct Presentation {
     history: History,
     effects: Effects,
-    win: Option<usize>,
+    victory: anim::VictoryClock,
 }
 
 impl Presentation {
     fn reset(&mut self) {
         self.history.reset();
         self.effects.reset();
-        self.win = None;
+        self.victory = anim::VictoryClock::default();
     }
 
     /// Once after every simulation tick, frozen ticks included.
@@ -128,7 +128,8 @@ impl Presentation {
 
     fn draw(&self, view: &View, assets: &Assets, w: &World, boxes: bool) {
         self.effects.draw_behind(view, w);
-        let order = self.history.draw_order(w);
+        let order = self.victory.winner().filter(|&i| w.fighters[i].id == CharacterId::Kogan)
+            .map(|i| [1-i,i]).unwrap_or_else(|| self.history.draw_order(w));
         for i in order {
             let sprites = assets.sprites(w.fighters[i].id);
             let layers = anim::layers(
@@ -137,7 +138,7 @@ impl Presentation {
                 sprites,
                 &self.history,
                 &LayerOpts {
-                    win: self.win == Some(i),
+                    win: self.victory.age(i),
                     flash: self.effects.flash(i),
                 },
             );
@@ -346,14 +347,13 @@ async fn main() {
                             inputs[1].take(m.world.fighters[1].facing_right),
                         ),
                     };
+                    let prior = m.world.frame;
                     m.tick(p1, p2);
+                    if m.world.frame < prior { pres.reset(); }
+                    pres.victory.update(&m.world, m.phase);
                     pres.after_tick(&assets, &m.world);
                 }
-                pres.win = match m.phase {
-                    Phase::RoundEnd { outcome: RoundOutcome::Winner(i), frame } if frame >= 30 => Some(i),
-                    Phase::MatchOver { winner } => Some(winner),
-                    _ => None,
-                };
+                pres.victory.update(&m.world, m.phase);
                 view.follow(&m.world);
                 assets.stage.draw(&view, m.world.frame);
                 pres.draw(&view, &assets, &m.world, false);
@@ -362,6 +362,7 @@ async fn main() {
                 if let Phase::MatchOver { .. } = m.phase {
                     if edges.confirm || is_key_pressed(KeyCode::Enter) {
                         m.rematch();
+                        pres.reset();
                     } else if edges.back || is_key_pressed(KeyCode::Escape) {
                         let (a, b) = (m.world.p1_char, m.world.p2_char);
                         mode = Mode::Select { for_training: false, p1: a, p2: b, locked: [false, false] };
