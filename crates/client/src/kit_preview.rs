@@ -40,6 +40,7 @@ struct Case {
     jump: Option<(u8, bool)>,
     ranged: bool,
     utility: bool,
+    saber: bool,
 }
 
 fn cases(body: CharacterId) -> Vec<Case> {
@@ -48,7 +49,7 @@ fn cases(body: CharacterId) -> Vec<Case> {
         for response in RESPONSES {
             for corner in [false, true] {
                 for right in [true, false] {
-                    result.push(Case { body, move_id, response, right, corner, jump: None, ranged: false, utility: false });
+                    result.push(Case { body, move_id, response, right, corner, jump: None, ranged: false, utility: false, saber: false });
                 }
             }
         }
@@ -63,7 +64,7 @@ fn movement_cases(body: CharacterId) -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body, move_id: MoveId::StP,
-                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), ranged: false, utility: false });
+                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), ranged: false, utility: false, saber: false });
                 }
             }
         }
@@ -78,7 +79,7 @@ fn ranged_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: true, utility: false });
+                        right, corner, jump: None, ranged: true, utility: false, saber: false });
                 }
             }
         }
@@ -96,7 +97,23 @@ fn utility_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: false, utility: true });
+                        right, corner, jump: None, ranged: false, utility: true, saber: false });
+                }
+            }
+        }
+    }
+    result
+}
+
+fn saber_cases() -> Vec<Case> {
+    let mut result = Vec::new();
+    for move_id in [MoveId::StS, MoveId::StHS, MoveId::StHSClose, MoveId::Rekka1,
+        MoveId::Rekka2, MoveId::Rekka3, MoveId::ExA, MoveId::Uppercut] {
+        for response in [Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff] {
+            for corner in [false, true] {
+                for right in [true, false] {
+                    result.push(Case { body: CharacterId::Kogan, move_id, response,
+                        right, corner, jump: None, ranged: false, utility: false, saber: true });
                 }
             }
         }
@@ -105,7 +122,10 @@ fn utility_cases() -> Vec<Case> {
 }
 
 impl Case {
-    fn duration(self) -> u32 { if self.ranged || self.utility { 150 } else { LENGTH } }
+    fn duration(self) -> u32 {
+        if self.saber && self.move_id == MoveId::Rekka3 { 180 }
+        else if self.ranged || self.utility || self.saber { 150 } else { LENGTH }
+    }
 
     fn label(self) -> String {
         if self.utility && self.move_id == MoveId::CommandDash {
@@ -139,7 +159,13 @@ impl Case {
         let gap = if self.response == Response::Whiff { 150 } else { 40 };
         let defender = if self.corner { 740 } else { 340 };
         let attacker = defender - gap;
-        let (attacker, defender) = if self.utility {
+        let (attacker, defender) = if self.saber {
+            let distance = if self.move_id == MoveId::StHSClose { 40 }
+                else if self.response == Response::Whiff { 360 }
+                else if self.move_id == MoveId::StHS { 80 } else { 40 };
+            let defender = if self.corner { 740 } else { 500 };
+            (defender - distance, defender)
+        } else if self.utility {
             let distance = if self.move_id == MoveId::CommandDash {
                 if self.response == Response::Whiff { 200 } else { 70 }
             } else if self.response == Response::Whiff { 160 } else { 40 };
@@ -158,7 +184,55 @@ impl Case {
         world
     }
 
+    // Follow-ups are driven by the legal window after active frames, so hitstop
+    // cannot make a fixed wall-clock script skip the later rekka actions.
+    fn inputs_for_world(self, frame: u32, world: &World) -> [InputFrame; 2] {
+        let mut inputs = self.inputs(frame);
+        if self.saber && world.hitstop == 0 {
+            if let aeon_sim::Action::Attack { move_id, frame: action_frame, .. } = world.fighters[0].action {
+                let follow = move_id == MoveId::Rekka1 && matches!(self.move_id, MoveId::Rekka2 | MoveId::Rekka3)
+                    || move_id == MoveId::Rekka2 && self.move_id == MoveId::Rekka3;
+                let mv = world.fighters[0].data().move_def(move_id).unwrap();
+                if follow && action_frame == mv.last_active() + 1 {
+                    inputs[0] = InputFrame::press(Btn::S);
+                }
+            }
+        }
+        inputs
+    }
+
     fn inputs(self, frame: u32) -> [InputFrame; 2] {
+        if self.saber {
+            let special = matches!(self.move_id, MoveId::Rekka1 | MoveId::Rekka2 | MoveId::Rekka3 | MoveId::ExA);
+            let dp = self.move_id == MoveId::Uppercut;
+            let dir = if special || dp {
+                match frame {
+                    n if n == PRESS - 3 => if dp { 6 } else { 2 },
+                    n if n == PRESS - 2 => if dp { 2 } else { 3 },
+                    n if n == PRESS - 1 || n == PRESS => if dp { 3 } else { 6 },
+                    _ => 5,
+                }
+            } else { 5 };
+            let mut attacker = InputFrame::dir(dir);
+            if frame == PRESS {
+                attacker.buttons = match self.move_id {
+                    MoveId::StHS | MoveId::StHSClose => Buttons::one(Btn::HS),
+                    MoveId::ExA => Buttons::two(Btn::S, Btn::HS),
+                    _ => Buttons::one(Btn::S),
+                };
+            }
+            // A far-away HS becomes far HS. Evade the close variant by jumping
+            // while remaining inside its range selector, preserving legal input.
+            let close_evade = self.move_id == MoveId::StHSClose && self.response == Response::Whiff;
+            let defender = match self.response {
+                Response::StandBlock if frame >= PRESS => 4,
+                Response::CrouchBlock => 1,
+                _ if close_evade && (PRESS - 8..PRESS - 1).contains(&frame) => 8,
+                _ => 5,
+            };
+            return [attacker, InputFrame::dir(defender)];
+        }
+
         if self.utility {
             let grab = self.move_id == MoveId::CommandGrab;
             let direction = if grab {
@@ -248,7 +322,10 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let all = if args.iter().any(|a| a == "--kit-utility") {
+    let mut all = if args.iter().any(|a| a == "--kit-saber") {
+        assert!(body == CharacterId::Kogan, "saber cases currently cover Kogan");
+        saber_cases()
+    } else if args.iter().any(|a| a == "--kit-utility") {
         assert!(body == CharacterId::Kogan, "utility cases currently cover Kogan");
         utility_cases()
     } else if args.iter().any(|a| a == "--kit-ranged") {
@@ -257,6 +334,10 @@ pub async fn run(assets: &Assets) {
     } else if args.iter().any(|a| a == "--kit-movement") {
         movement_cases(body)
     } else { cases(body) };
+    if let Some(name) = args.iter().find_map(|a| a.strip_prefix("--kit-move=")) {
+        all.retain(|case| format!("{:?}", case.move_id) == name);
+        assert!(!all.is_empty(), "--kit-move must name a move in the selected family");
+    }
     assert!(selected.is_none_or(|n| n < all.len()), "--kit-case out of range");
     let mut trace = if capture {
         std::fs::create_dir_all("shots/kit").expect("kit preview directory");
@@ -303,7 +384,7 @@ pub async fn run(assets: &Assets) {
                 clock.advance(get_frame_time() as f64)
             };
             for _ in 0..ticks.min((duration - frame) as usize) {
-                let [p1, p2] = case.inputs(frame);
+                let [p1, p2] = case.inputs_for_world(frame, &world);
                 world.tick(p1, p2);
                 frame += 1;
                 pres.after_tick(assets, &world);
@@ -353,7 +434,7 @@ mod tests {
                 let mut landing_ticks = 0;
                 let mut drawings = std::collections::HashSet::new();
                 for frame in 0..LENGTH {
-                    let [p1, p2] = case.inputs(frame);
+                    let [p1, p2] = case.inputs_for_world(frame, &world);
                     world.tick(p1, p2);
                     let f = &world.fighters[0];
                     if let Action::Jump { hop, .. } = f.action {
@@ -383,6 +464,144 @@ mod tests {
     }
 
     #[test]
+    fn kogan_reversal_keeps_complete_drawings_below_the_gameplay_hud() {
+        use crate::sequences::{KOGAN_COIL, KOGAN_UPPERCUT, KOGAN_UPPERCUT_COMPACT};
+        use crate::sprites::{key_green, Cell};
+        let mut extents = std::collections::HashMap::new();
+        for (file, specs, cells) in [
+            ("kogan-uppercut-coil-v1-green.png", &KOGAN_COIL[..], vec![Cell::Uppercut(0)]),
+            ("kogan-uppercut-v1-green.png", &KOGAN_UPPERCUT[..], (0..4).map(Cell::Uppercut).collect()),
+            ("kogan-uppercut-compact-v1-green.png", &KOGAN_UPPERCUT_COMPACT[..], (0..2).map(Cell::UppercutCompact).collect()),
+        ] {
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/animation").join(file);
+            let bytes = std::fs::read(path).unwrap();
+            let mut image = Image::from_file_with_format(&bytes, None).unwrap();
+            key_green(&mut image);
+            for (&(r, _, anatomical), cell) in specs.iter().zip(cells) {
+                // The standalone coil supersedes the older sheet coil.
+                if file == "kogan-uppercut-v1-green.png" && cell == Cell::Uppercut(0) { continue; }
+                let mut top = r[3];
+                let mut bottom = r[1];
+                for y in r[1] + 2..r[3] - 2 {
+                    for x in r[0] + 2..r[2] - 2 {
+                        if image.bytes[(y as usize * image.width as usize + x as usize) * 4 + 3] >= 24 {
+                            top = top.min(y); bottom = bottom.max(y + 1);
+                        }
+                    }
+                }
+                assert!(bottom > top);
+                extents.insert(cell, (bottom - top) as f32 / anatomical as f32);
+            }
+        }
+        let mut seen = std::collections::HashSet::new();
+        for case in saber_cases().into_iter().filter(|c| c.move_id == MoveId::Uppercut) {
+            let mut world = case.world();
+            for frame in 0..case.duration() {
+                let [p1, p2] = case.inputs_for_world(frame, &world);
+                world.tick(p1, p2);
+                let f = &world.fighters[0];
+                let cell = crate::sequences::compact_uppercut_cell(f).or_else(|| crate::sequences::cell_for(f));
+                let Some(cell) = cell.filter(|c| matches!(c, Cell::Uppercut(_) | Cell::UppercutCompact(_))) else { continue; };
+                seen.insert(cell);
+                let visible_height = extents[&cell] * 1.20 * crate::render::sub_to_px(f.data().stand_h) * crate::render::WS;
+                let top = crate::render::GROUND - crate::render::sub_to_px(f.pos.y) * crate::render::WS - visible_height;
+                assert!(top >= 120.0, "{case:?} tick {frame} {cell:?} top {top}: timer/round-label clearance");
+            }
+        }
+        for c in [Cell::Uppercut(0), Cell::Uppercut(1), Cell::UppercutCompact(0), Cell::UppercutCompact(1), Cell::Uppercut(3)] {
+            assert!(seen.contains(&c), "complete frontward cut and descent: {c:?}");
+        }
+    }
+
+    #[test]
+    fn kogan_thrust_keeps_the_complete_blade_inside_both_corners() {
+        use crate::render::{sub_to_px, WS};
+        use crate::sprites::{animation_cell, key_green, thrust_layout};
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("assets/animation/kogan-thrust-v2-green.png");
+        let mut image = Image::from_file_with_format(&std::fs::read(path).unwrap(), None).unwrap();
+        key_green(&mut image);
+        let extents: Vec<_> = (0..4).map(|cell| {
+            let (r, anchor, height) = thrust_layout(cell);
+            let (x0, x1) = ((r.x * image.width as f32).round() as usize,
+                ((r.x + r.w) * image.width as f32).round() as usize);
+            let (y0, y1) = ((r.y * image.height as f32).round() as usize,
+                ((r.y + r.h) * image.height as f32).round() as usize);
+            let mut left = x1; let mut right = x0;
+            for y in y0..y1 { for x in x0..x1 {
+                if image.bytes[(y * image.width as usize + x) * 4 + 3] >= 24 {
+                    left = left.min(x); right = right.max(x + 1);
+                }
+            }}
+            let scale = height / (y1 - y0) as f32;
+            let root = x0 as f32 + anchor.x * (x1 - x0) as f32;
+            ((left as f32 - root) * scale, (right as f32 - root) * scale)
+        }).collect();
+        for case in saber_cases().into_iter().filter(|c| c.move_id == MoveId::Rekka3) {
+            let mut world = case.world();
+            for frame in 0..case.duration() {
+                let [p1, p2] = case.inputs_for_world(frame, &world);
+                world.tick(p1, p2);
+                let f = &world.fighters[0];
+                if !matches!(f.action, Action::Attack { move_id: MoveId::Rekka3, .. }) { continue; }
+                let cell = animation_cell(f, world.frame).unwrap() % 4;
+                let (left, right) = extents[cell];
+                let mut view = View { scale: 1.0, ox: 0.0, oy: 0.0, cam_x: 0.0 };
+                view.follow(&world);
+                let root = view.world(sub_to_px(f.pos.x), 0.0).x;
+                let scale = sub_to_px(f.data().stand_h) * WS;
+                let (left, right) = if f.facing_right { (root + left * scale, root + right * scale) }
+                    else { (root - right * scale, root - left * scale) };
+                // Reserve 3 world pixels for the authored contact lean plus hitstop impulse.
+                let impulse = 3.0 * WS;
+                assert!(left - impulse >= 8.0 && right + impulse <= VW - 8.0,
+                    "{case:?} tick {frame} thrust {cell}: full silhouette {left}..{right}");
+            }
+        }
+    }
+
+    #[test]
+    fn saber_preview_reaches_normals_rekka_followups_ex_and_reversal_legally() {
+        for case in saber_cases() {
+            let mut world = case.world();
+            let mut started = std::collections::HashSet::new();
+            let mut hits = 0;
+            let mut blocks = 0;
+            let mut target_contact = false;
+            let mut air = false;
+            let mut landing = false;
+            for frame in 0..case.duration() {
+                let [p1, p2] = case.inputs_for_world(frame, &world);
+                world.tick(p1, p2);
+                if let Some((id, _, connected)) = world.fighters[0].action.attacking() {
+                    started.insert(id);
+                    target_contact |= id == case.move_id && connected != aeon_sim::Connect::None;
+                }
+                air |= world.fighters[0].airborne;
+                landing |= matches!(world.fighters[0].action, Action::Landing { total: 12, .. });
+                for e in &world.events {
+                    hits += usize::from(matches!(e.kind, EventKind::Hit | EventKind::Knockdown | EventKind::Punish));
+                    blocks += usize::from(e.kind == EventKind::Block);
+                }
+            }
+            assert!(started.contains(&case.move_id), "{case:?} legal target: {started:?}");
+            if case.move_id == MoveId::Rekka3 {
+                assert!(started.contains(&MoveId::Rekka1) && started.contains(&MoveId::Rekka2));
+            }
+            if case.response == Response::Whiff
+                || matches!(case.move_id, MoveId::StS | MoveId::Uppercut) && case.response == Response::CrouchBlock {
+                assert_eq!((hits, blocks), (0, 0), "{case:?}");
+            } else {
+                assert!(target_contact, "{case:?} target contact");
+                if case.response == Response::Hit { assert!(hits > 0 && blocks == 0, "{case:?}"); }
+                else { assert!(blocks > 0 && hits == 0, "{case:?}"); }
+            }
+            if case.move_id == MoveId::Uppercut { assert!(air && landing, "{case:?} reversal landing"); }
+            assert!(world.fighters.iter().all(|f| f.action.actionable()), "{case:?} full recovery");
+        }
+    }
+
+    #[test]
     fn utility_preview_exercises_snare_evasion_and_step_without_new_mechanics() {
         for case in utility_cases() {
             let mut world = case.world();
@@ -394,7 +613,7 @@ mod tests {
             let mut drawings = std::collections::HashSet::new();
             for frame in 0..case.duration() {
                 let x = world.fighters[0].pos.x;
-                let [p1, p2] = case.inputs(frame);
+                let [p1, p2] = case.inputs_for_world(frame, &world);
                 world.tick(p1, p2);
                 started |= world.fighters[0].action.attacking()
                     .is_some_and(|(id, _, _)| id == case.move_id);
@@ -431,7 +650,7 @@ mod tests {
             let mut blocks = 0;
             let mut drawings = std::collections::HashSet::new();
             for frame in 0..case.duration() {
-                let [p1, p2] = case.inputs(frame);
+                let [p1, p2] = case.inputs_for_world(frame, &world);
                 world.tick(p1, p2);
                 started |= world.fighters[0].action.attacking()
                     .is_some_and(|(id, _, _)| id == case.move_id);
@@ -466,7 +685,7 @@ mod tests {
                 let mut blocks = 0;
                 let mut crouched_hit = false;
                 for frame in 0..LENGTH {
-                    let [p1, p2] = case.inputs(frame);
+                    let [p1, p2] = case.inputs_for_world(frame, &world);
                     world.tick(p1, p2);
                     started |= world.fighters[0].action.attacking()
                         .is_some_and(|(id, _, _)| id == case.move_id);

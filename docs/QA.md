@@ -156,3 +156,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART12 | Kogan cape capture/release and grounded step phases | Eight V3 drawings; `utility_preview_exercises_snare_evasion_and_step_without_new_mechanics` exercises 28 legal-input cases, guard capture, miss/jump escape, recovery and authored step travel. Entire 70-second final viewed at 1×, both facings and center/corners. Grab release/ready and step launch/brake/settle frame-stepped; old-cell trail and backward ending saber corrected. |
 
 121 tests pass (89 sim + 32 client), clippy and locked/offline release pass. Full 4,200-tick utility and retained 2,100-tick polish traces match their baselines. A1/G2/S2 and G1 refraction, before/after footage and final diagnostics are recorded in the full-kit pass. This accepts two Kogan actions; Raya's older reaction/landing/getup crossfades, other families and physical stick play remain open.
+
+## September 5 saber / rekka / reversal checks
+
+| ID | Gate | Evidence |
+|---|---|---|
+| ART13 | Kogan saber phases, complete silhouettes and clean recovery | Four short-poke and two compact reversal drawings; measured cut regions and matching-cell trails. `saber_preview_reaches_normals_rekka_followups_ex_and_reversal_legally` verifies 128 cases. Complete final 328s viewed at 1×; selected poke, corner thrust and reversal phase boundaries stepped. Keyed-art tests protect source regions, HUD and corner clearance. |
+
+125 tests pass (89 sim + 36 client), clippy and locked/offline release pass. All 19,680 final saber ticks and 2,100 retained polish ticks match baseline traces. The complete 35s integration preview and eight fresh smoke screenshots were inspected after fixed framing changed. S2/A1/G2 and S1/A2/K1 refraction, before/after defects and corrections are in `docs/FULL-KIT-2026-09-05.md` and the vault full-kit pass. Remaining Kogan/Raya families and physical stick play remain open.

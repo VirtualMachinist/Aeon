@@ -172,6 +172,9 @@ pub struct SpriteSet {
     thrust: Option<Texture2D>,
     reactions: Option<crate::sequences::Atlas>,
     uppercut: Option<crate::sequences::Atlas>,
+    compact_uppercut: Option<crate::sequences::Atlas>,
+    cuts: Option<crate::sequences::Atlas>,
+    poke: Option<crate::sequences::Atlas>,
     coil: Option<crate::sequences::Atlas>,
     movement: Option<crate::sequences::Atlas>,
     ranged: Option<crate::sequences::Atlas>,
@@ -196,9 +199,26 @@ pub enum Cell {
     Thrust(usize),
     Reaction(usize),
     Uppercut(usize),
+    UppercutCompact(usize),
+    Poke(usize),
     Movement(usize),
     Ranged(usize),
     Utility(usize),
+}
+
+/// Shared normalized layout lets framing checks measure the same complete
+/// source region and projected root used by the renderer.
+pub fn thrust_layout(cell: usize) -> (Rect, Vec2, f32) {
+    // The lower thrust extends beyond the nominal half-width.
+    let regions = [
+        (0.0, 0.0, 0.5, 0.5), (0.5, 0.0, 0.5, 0.5),
+        (0.0, 0.5, 845.0 / 1536.0, 0.5),
+        (845.0 / 1536.0, 0.5, 691.0 / 1536.0, 0.5),
+    ];
+    let anchors = [(0.3809, 0.8359), (0.3262, 0.8340), (0.3385, 0.7754), (0.2829, 0.7910)];
+    let (x, y, w, h) = regions[cell % 4];
+    let (ax, ay) = anchors[cell % 4];
+    (Rect::new(x, y, w, h), vec2(ax, ay), 1.20 / 0.72)
 }
 
 // Foot anchors measured from the generated sheets, including their uneven
@@ -351,7 +371,17 @@ impl SpriteSet {
             Atlas::load("assets/animation/kogan-cape-step-v3-green.png",
                 (1448, 1086), &KOGAN_UTILITY).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, coil, movement, ranged, utility }
+        let compact_uppercut = if body == CharacterId::Kogan {
+            Atlas::load("assets/animation/kogan-uppercut-compact-v1-green.png",
+                (1536, 1024), &KOGAN_UPPERCUT_COMPACT).await
+        } else { None };
+        let cuts = if body == CharacterId::Kogan {
+            Atlas::load("assets/animation/kogan-v1-green.png", (1254, 1254), &KOGAN_CUTS).await
+        } else { None };
+        let poke = if body == CharacterId::Kogan {
+            Atlas::load("assets/animation/kogan-standing-poke-v1-green.png", (1536, 1024), &KOGAN_POKE).await
+        } else { None };
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -364,6 +394,9 @@ impl SpriteSet {
             thrust: None,
             reactions: None,
             uppercut: None,
+            compact_uppercut: None,
+            cuts: None,
+            poke: None,
             coil: None,
             movement: None,
             ranged: None,
@@ -392,6 +425,9 @@ impl SpriteSet {
 
     /// The picture for this fighter on this simulation tick.
     pub fn cell_for(&self, fighter: &Fighter, tick: u32) -> Cell {
+        if self.poke.is_some() {
+            if let Some(cell) = crate::sequences::poke_cell(fighter) { return cell; }
+        }
         if self.utility.is_some() {
             if let Some(cell) = crate::sequences::utility_cell(fighter) { return cell; }
         }
@@ -404,6 +440,9 @@ impl SpriteSet {
             if let Some(cell) = crate::sequences::movement_cell(fighter) {
                 return cell;
             }
+        }
+        if self.compact_uppercut.is_some() {
+            if let Some(cell) = crate::sequences::compact_uppercut_cell(fighter) { return cell; }
         }
         if let Some(cell) = crate::sequences::cell_for(fighter) {
             if matches!(cell, Cell::Reaction(_)) && self.reactions.is_some()
@@ -436,38 +475,22 @@ impl SpriteSet {
             Cell::Ranged(cell) => self.ranged.as_ref()?.frame(cell),
             Cell::Utility(cell) => self.utility.as_ref()?.frame(cell),
             Cell::Reaction(cell) => self.reactions.as_ref()?.frame(cell),
+            Cell::Poke(cell) => self.poke.as_ref()?.frame(cell),
+            Cell::UppercutCompact(cell) => self.compact_uppercut.as_ref()?.frame(cell),
             Cell::Uppercut(0) if self.coil.is_some() => self.coil.as_ref()?.frame(0),
             Cell::Uppercut(cell) => self.uppercut.as_ref()?.frame(cell),
             Cell::Thrust(cell) => {
                 let texture = self.thrust.as_ref()?;
-                let cell = cell % 4;
-                // The lower thrust extends past the nominal half-width.
-                // Its dedicated source region retains the complete saber.
-                let regions = [
-                    (0.0, 0.0, 0.5, 0.5),
-                    (0.5, 0.0, 0.5, 0.5),
-                    (0.0, 0.5, 845.0 / 1536.0, 0.5),
-                    (845.0 / 1536.0, 0.5, 691.0 / 1536.0, 0.5),
-                ];
-                let anchors = [
-                    (0.3809, 0.8359),
-                    (0.3262, 0.8340),
-                    (0.3385, 0.7754),
-                    (0.2829, 0.7910),
-                ];
-                let (x, y, w, h) = regions[cell];
+                let (region, anchor, height) = thrust_layout(cell);
                 Some(SpriteFrame {
                     texture,
-                    source: Some(Rect::new(
-                        x * texture.width(),
-                        y * texture.height(),
-                        w * texture.width(),
-                        h * texture.height(),
-                    )),
-                    anchor: vec2(anchors[cell].0, anchors[cell].1),
-                    height: 1.20 / 0.72,
+                    source: Some(Rect::new(region.x * texture.width(), region.y * texture.height(),
+                        region.w * texture.width(), region.h * texture.height())),
+                    anchor,
+                    height,
                 })
             }
+            Cell::Atlas(cell @ 4..=11) if self.cuts.is_some() => self.cuts.as_ref()?.frame(cell - 4),
             Cell::Atlas(cell) => {
                 let texture = self.atlas.as_ref()?;
                 let cell = cell % 16;
@@ -508,7 +531,7 @@ impl SpriteSet {
 
 /// Animation contact coincides with the move's active frames. Hitstop and
 /// pause naturally freeze these samples because the sim frame stays still.
-fn animation_cell(f: &Fighter, tick: u32) -> Option<usize> {
+pub(crate) fn animation_cell(f: &Fighter, tick: u32) -> Option<usize> {
     match f.action {
         Action::Walk { forward } => {
             let cell = (tick / 6 % 4) as usize;

@@ -21,7 +21,7 @@ pub const GROUND: f32 = 640.0;
 pub const WS: f32 = 2.2;
 /// Fixed framing allowance outside each stage wall for complete silhouettes.
 /// This changes neither collision walls nor camera scale/effects.
-const WALL_MARGIN: f32 = 96.0;
+const WALL_MARGIN: f32 = 128.0;
 
 pub const COPPER: Color = Color::new(0.722, 0.451, 0.200, 1.0);
 pub const COPPER_DIM: Color = Color::new(0.45, 0.28, 0.13, 1.0);
