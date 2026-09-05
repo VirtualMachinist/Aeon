@@ -215,3 +215,12 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART19 | Distinct short/long/steep contact, withdrawal and legal landing | Six V2 drawings; all 120 final cases / 300s viewed at 1×, both facings at center/corners, hit/high guard/defeated low guard/miss and early recovery. Final JS 55–59, JHS 44/49/54/57 and JST 45/50/55/56/57 stepped. Recent history keeps the saber in front through the existing landing without affecting later jumps. Active-only selection, freeze, source regions, attack expiry, reset and clean transitions tested. |
 
 140 tests pass (89 sim + 51 client), clippy and locked/offline release pass. All 18,000 final, 1,800 focused and 2,100 integration ticks match baseline. Complete new 35s integration playback reviewed; eight smoke hashes match preceding inspected AirShot evidence. S1/S2/A2/G1 refraction, exact baseline-review limits, prompts and archive paths are in the full-kit report. Kogan JP/JK/JFL, remaining grounded normals/throws/tech/feint/victory/air juggles and Raya stay open.
+
+
+## September 5 Kogan airborne fist, boot and knee review
+
+| ID | Check | Evidence |
+|---|---|---|
+| ART20 | Distinct downward fist/boot/bent-knee contact, gathered withdrawal and legal landing | Six selected V1/V4 drawings; all 120 corrected final cases / 300s viewed at 1×, both facings at center/corners, hop/full, hit/high guard/defeated low guard/miss and early recovery. Full early JP 39/43/51/55, JK 43/51 and JFL 39/44/49/55 stepped; focused JFL 56/64/65/67 verifies contact freeze and landing. V1 contacts rejected after actual contact review; lower V4 limbs meet both defender heights. Active-only selection, freeze, source regions, expiry/new-state isolation and clean transitions tested. |
+
+142 tests pass (89 sim + 53 client), clippy and locked/offline release pass. All 18,000 corrected final, 900 focused contact and 2,100 integration ticks match baseline. Complete new 35s integration playback reviewed; eight smoke PNGs match preceding inspected airborne-saber evidence. K2/G2/G1 refraction, exact baseline and rejected-candidate review limits, prompts and archive paths are in the full-kit report. Remaining Kogan grounded normals/throws/tech/feint/victory/air juggles and Raya stay open; the original blocked grounded-light request remains un-retried.

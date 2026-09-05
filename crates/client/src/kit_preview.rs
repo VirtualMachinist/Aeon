@@ -729,6 +729,43 @@ mod tests {
     }
 
     #[test]
+    fn air_lights_preview_preserves_contact_freeze_and_landing_with_complete_early_recovery() {
+        use crate::{sequences::air_lights_cell, sprites::Cell};
+        for case in air_cases().into_iter().chain(early_air_cases())
+            .filter(|c| matches!(c.move_id, MoveId::JP | MoveId::JK | MoveId::JFL)) {
+            let mut world = case.world();
+            let hp = world.fighters[1].health;
+            let mut seen = std::collections::HashSet::new();
+            let mut frozen = None;
+            for tick in 0..case.duration() {
+                let [a, b] = case.inputs_for_world(tick, &world);
+                world.tick(a, b);
+                let f = &world.fighters[0];
+                let cell = air_lights_cell(f);
+                if let Some(cell) = cell { seen.insert(cell); }
+                if let Some((frame, previous)) = frozen {
+                    if world.frame == frame { assert_eq!(cell, previous, "hitstop holds the selected phase"); }
+                }
+                frozen = Some((world.frame, cell));
+                if let Action::Attack { move_id, frame, .. } = f.action {
+                    let mv = f.data().move_def(move_id).unwrap();
+                    let contact = match move_id { MoveId::JP => 1, MoveId::JK => 2, _ => 3 };
+                    assert_eq!(cell == Some(Cell::AirLights(contact)), mv.is_active(frame));
+                }
+                if !f.airborne { assert_eq!(cell, None, "landing immediately owns the body"); }
+            }
+            if case.response == Response::EarlyWhiff {
+                assert_eq!(hp, world.fighters[1].health, "early fixture remains a spaced miss");
+                if !case.jump.unwrap().1 {
+                    assert_eq!(seen.len(), 4, "{}: gather/contact/withdraw/ready", case.label());
+                    assert!(seen.contains(&Cell::AirLights(4)) && seen.contains(&Cell::AirLights(5)));
+                }
+            }
+            assert!(world.fighters.iter().all(|f| !f.airborne && f.action.actionable()));
+        }
+    }
+
+    #[test]
     fn air_preview_recognizes_every_loaded_and_empty_cylinder_move() {
         use aeon_sim::Action;
         for case in air_cases() {
