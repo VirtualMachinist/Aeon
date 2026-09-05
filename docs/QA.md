@@ -242,3 +242,12 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART22 | Four crouching weapon paths, supported withdrawal and clean low return | Sixteen V1/V3 drawings. All80 before/final cases/140s each reviewed at1× in1280×720, both facings at center/corners, hit/high and low guard/crouched hit/miss. Focused phase and contact steps, final mirrored/corner guards and sweep floor/getup steps. Legal move/outcome, active-only contact, source boundaries, new-state isolation, clean transitions and low-return history regressions pass. |
 
 147 tests (89sim+58client), clippy with warnings denied and locked/offline release pass. All8,400 final,840 accepted focused and2,100 integration ticks match baseline; full new35s integration viewed. Accepted repeat smoke `crouch-smoke2/` has eight PNGs identical to preceding inspected Flash/Style evidence. Incomplete first smoke omitted versus-poke and is retained; three incidental low-focused clips from the preceding binary are labeled unaccepted. Exact S2/A1/G2 refraction, phase steps, prompt provenance, checks and archive paths are in the full-kit report. All sim values remain unchanged. Remaining Kogan families, CrHS airborne targets/air juggles, Raya and physical stick play remain open.
+
+
+## September 5 Kogan overhead review
+
+| ID | Check | Evidence |
+|---|---|---|
+| ART23 | Complete standing cut/withdrawal and falling saber/landing | Four new standing drawings and reviewed air-saber/landing reuse. All 40 before/final cases / 80s each viewed at 1× in 1280×720, both facings at center/corners, all five responses. Focused phases and final mirrored/corner contacts, eight landing ticks and defender getup stepped. Legal outcomes, active-only contact, freeze, state isolation, source boundaries and clean transitions pass. |
+
+149 tests (89 sim + 60 client), clippy with warnings denied and locked/offline release pass. All 4,800 final, 480 focused and 2,100 integration ticks equal baseline; complete new 35s integration viewed. Accepted repeat smoke has all eight PNGs identical to the preceding inspected crouching-saber evidence. The incomplete first six-PNG smoke remains archived separately. Standing 22/3/16, falling 18/4/14, eight landing ticks and all simulation values are unchanged. Exact S2/A1/S1/A2/G1 refraction, review steps, prompts and archive paths are in the full-kit report. Remaining Kogan families, Raya and physical stick play stay open.

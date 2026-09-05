@@ -96,6 +96,23 @@ pub const KOGAN_REACTIONS: [Spec; 12] = [
     ([0, 700, 365, 1086], 220, 311), ([365, 700, 720, 1086], 565, 311),
     ([720, 700, 1075, 1086], 901, 311), ([1075, 700, 1448, 1086], 1228, 319),
 ];
+// Standing overhead keeps a complete raised blade, forward cut and two returns.
+// Anatomy is shared rather than fitting the extra height of the raised arms.
+pub const KOGAN_OVERHEAD: [Spec; 4] = [
+    ([0, 0, 520, 625], 330, 450), ([520, 0, 1254, 625], 900, 450),
+    ([0, 625, 615, 1254], 315, 450), ([615, 625, 1254, 1254], 905, 450),
+];
+
+pub fn overhead_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan || f.airborne { return None; }
+    let Action::Attack { move_id: MoveId::Overhead, frame, .. } = f.action else { return None; };
+    let mv = f.data().move_def(MoveId::Overhead)?;
+    Some(Cell::Overhead(if frame < mv.first_active() { 0 }
+        else if mv.is_active(frame) { 1 }
+        else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+        else { 3 }))
+}
+
 // Crouching forward and rising saber paths retain grounded support and common anatomy.
 pub const KOGAN_CROUCH_SABER: [Spec; 8] = [
     ([0, 0, 480, 410], 285, 370), ([480, 0, 1024, 410], 750, 370),
@@ -196,7 +213,7 @@ pub fn air_saber_cell(f: &Fighter) -> Option<Cell> {
         return Some(Cell::AirSaber(5));
     }
     if let Action::Attack { move_id, frame, .. } = f.action {
-        let contact = match move_id { MoveId::JS => 1, MoveId::JHS => 2, MoveId::JST => 3, _ => return None };
+        let contact = match move_id { MoveId::JS => 1, MoveId::JHS => 2, MoveId::JST | MoveId::SpecialOverhead => 3, _ => return None };
         let mv = f.data().move_def(move_id)?;
         return Some(Cell::AirSaber(if frame < mv.first_active() { 0 }
             else if mv.is_active(frame) { contact }
@@ -586,6 +603,7 @@ mod tests {
             ("kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL[..]),
             ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
+            ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
             ("kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW[..]),
             ("kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER[..]),
             ("kogan-flash-v2-green.png", (1024, 1536), &KOGAN_FLASH[..]),
@@ -652,6 +670,24 @@ mod tests {
         raya.airborne = true;
         raya.action = Action::Attack { move_id: MoveId::JS, frame: 6, connected: Connect::None };
         assert_eq!(air_saber_cell(&raya), None);
+    }
+
+    #[test]
+    fn overhead_art_yields_to_landing_and_never_leaks_into_a_later_jump() {
+        for id in [CharacterId::Kogan, CharacterId::Raya] {
+            let mut f = Fighter::spawn(id, px(200), true);
+            f.last_move = Some(MoveId::SpecialOverhead);
+            for action in [Action::Jump { air_ok: false, hop: false },
+                Action::Jump { air_ok: true, hop: false }, Action::Stand,
+                Action::Landing { frame: 0, total: 8 }, Action::Hit { stun: 8, knockdown: false }] {
+                f.action = action;
+                for airborne in [false, true] {
+                    f.airborne = airborne;
+                    assert_eq!(air_saber_cell(&f), None);
+                    assert_eq!(overhead_cell(&f), None);
+                }
+            }
+        }
     }
 
     #[test]

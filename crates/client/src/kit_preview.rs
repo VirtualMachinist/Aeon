@@ -61,6 +61,10 @@ fn flash_cases() -> Vec<Case> {
     normal_cases(CharacterId::Kogan, &[MoveId::StFL, MoveId::StST])
 }
 
+fn overhead_cases() -> Vec<Case> {
+    normal_cases(CharacterId::Kogan, &[MoveId::Overhead, MoveId::SpecialOverhead])
+}
+
 fn crouching_saber_cases() -> Vec<Case> {
     normal_cases(CharacterId::Kogan, &[MoveId::CrS, MoveId::CrHS, MoveId::CrFL, MoveId::CrST])
 }
@@ -237,8 +241,8 @@ impl Case {
         if self.reaction { 150 }
         else if self.disc || self.ground.is_some() { 90 }
         else if self.saber && self.move_id == MoveId::Rekka3 { 180 }
-        else if self.air || self.ranged || self.utility || self.saber || self.move_id == MoveId::CrST { 150 }
-        else if matches!(self.move_id, MoveId::CrS | MoveId::CrHS | MoveId::CrFL) { 90 }
+        else if self.air || self.ranged || self.utility || self.saber || matches!(self.move_id, MoveId::CrST | MoveId::SpecialOverhead) { 150 }
+        else if matches!(self.move_id, MoveId::CrS | MoveId::CrHS | MoveId::CrFL | MoveId::Overhead) { 90 }
         else { LENGTH }
     }
 
@@ -292,7 +296,11 @@ impl Case {
         let gap = if self.response == Response::Whiff { 150 } else { 40 };
         let defender = if self.corner { 740 } else { 340 };
         let attacker = defender - gap;
-        let (attacker, defender) = if self.air {
+        let (attacker, defender) = if self.move_id == MoveId::SpecialOverhead {
+            let defender = if self.corner { 740 } else { 500 };
+            let gap = if self.response == Response::Whiff { 300 } else { 100 };
+            (defender - gap, defender)
+        } else if self.air {
             let defender = if self.corner { 740 } else { 500 };
             let gap = if matches!(self.response, Response::Whiff | Response::EarlyWhiff) { 360 }
                 else if self.move_id == MoveId::AirShot { if self.jump.unwrap().1 { 100 } else { 140 } } else { 35 };
@@ -375,6 +383,26 @@ impl Case {
     }
 
     fn inputs(self, frame: u32) -> [InputFrame; 2] {
+        if matches!(self.move_id, MoveId::Overhead | MoveId::SpecialOverhead) {
+            let leaping = self.move_id == MoveId::SpecialOverhead;
+            let dir = if leaping {
+                match frame {
+                    n if n == PRESS - 3 => 2, n if n == PRESS - 2 => 3,
+                    n if n == PRESS - 1 || n == PRESS => 6, _ => 5,
+                }
+            } else { 5 };
+            let mut attacker = InputFrame::dir(dir);
+            if frame == PRESS {
+                attacker.buttons = if leaping { Buttons::one(Btn::ST) }
+                    else { Buttons::two(Btn::HS, Btn::ST) };
+            }
+            let guard_start = PRESS + if leaping { 16 } else { 20 };
+            let defender = InputFrame::dir(match self.response {
+                Response::StandBlock if frame >= guard_start => 4,
+                Response::CrouchBlock => 1, Response::CrouchHit => 2, _ => 5,
+            });
+            return [attacker, defender];
+        }
         if self.reaction {
             let crouch = matches!(self.move_id, MoveId::CrK | MoveId::CrST);
             let dir = if self.move_id == MoveId::CommandGrab {
@@ -581,7 +609,10 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let mut all = if args.iter().any(|a| a == "--kit-crouch") {
+    let mut all = if args.iter().any(|a| a == "--kit-overhead") {
+        assert!(body == CharacterId::Kogan, "overhead cases currently cover Kogan");
+        overhead_cases()
+    } else if args.iter().any(|a| a == "--kit-crouch") {
         assert!(body == CharacterId::Kogan, "crouching saber cases currently cover Kogan");
         crouching_saber_cases()
     } else if args.iter().any(|a| a == "--kit-flash") {
@@ -1248,6 +1279,60 @@ mod tests {
             for phase in 0..4 {
                 assert!(drawings.contains(&crate::sprites::Cell::Ranged(base + phase)), "{case:?} phase {phase}");
             }
+        }
+    }
+
+    #[test]
+    fn overhead_preview_uses_legal_chord_and_motion_with_high_guard_and_landing() {
+        use crate::{sequences::{air_saber_cell, overhead_cell, cell_for}, sprites::Cell};
+        let cases = overhead_cases();
+        assert_eq!(cases.len(), 40);
+        for case in cases {
+            let mut world = case.world();
+            let (mut started, mut airborne, mut knocked_down) = (false, false, false);
+            let (mut hits, mut blocks) = (0, 0);
+            let mut landing = Vec::new();
+            let mut seen = std::collections::HashSet::new();
+            let mut frozen = None;
+            for tick in 0..case.duration() {
+                let [a, b] = case.inputs_for_world(tick, &world);
+                world.tick(a, b);
+                let f = &world.fighters[0];
+                let cell = overhead_cell(f).or_else(|| air_saber_cell(f)).or_else(|| cell_for(f));
+                if let Some(cell) = cell { seen.insert(cell); }
+                if let Some((frame, previous)) = frozen {
+                    if world.frame == frame { assert_eq!(cell, previous, "freeze holds the drawing"); }
+                }
+                frozen = Some((world.frame, cell));
+                if let Action::Attack { move_id, frame, .. } = f.action {
+                    let mv = f.data().move_def(move_id).unwrap();
+                    let contact = if move_id == MoveId::Overhead { Cell::Overhead(1) } else { Cell::AirSaber(3) };
+                    assert_eq!(cell == Some(contact), mv.is_active(frame), "{case:?}: active-only commitment");
+                }
+                if !f.airborne { assert_eq!(air_saber_cell(f), None); }
+                started |= f.action.attacking().is_some_and(|(id, _, _)| id == case.move_id);
+                airborne |= f.airborne;
+                if let Action::Landing { frame, total } = f.action {
+                    let remaining = total - frame;
+                    if landing.last() != Some(&remaining) { landing.push(remaining); }
+                }
+                hits += world.events.iter().filter(|e| matches!(e.kind, EventKind::Hit | EventKind::Knockdown)).count();
+                blocks += world.events.iter().filter(|e| e.kind == EventKind::Block).count();
+                knocked_down |= matches!(world.fighters[1].action, Action::Hit { knockdown: true, .. } | Action::Knockdown { .. });
+            }
+            assert!(started, "{case:?}: legal recognition");
+            let expected = match case.response { Response::Whiff => (0, 0), Response::StandBlock => (0, 1), _ => (1, 0) };
+            assert_eq!((hits, blocks), expected, "{case:?}");
+            let leaping = case.move_id == MoveId::SpecialOverhead;
+            assert_eq!(airborne, leaping, "{case:?}: original lift");
+            assert_eq!(knocked_down, leaping && expected.0 == 1, "{case:?}");
+            if leaping { assert_eq!(landing, vec![8,7,6,5,4,3,2,1], "{case:?}: authored landing tax"); }
+            if leaping {
+                for c in 8..12 { assert!(seen.contains(&Cell::Reaction(c)), "{case:?}: full landing sequence"); }
+            } else {
+                for c in 0..4 { assert!(seen.contains(&Cell::Overhead(c)), "{case:?}: complete grounded gesture"); }
+            }
+            assert!(world.fighters.iter().all(|f| !f.airborne && f.action.actionable()), "{case:?}: complete recovery");
         }
     }
 
