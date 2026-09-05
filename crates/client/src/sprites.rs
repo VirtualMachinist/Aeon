@@ -174,6 +174,7 @@ pub struct SpriteSet {
     uppercut: Option<crate::sequences::Atlas>,
     coil: Option<crate::sequences::Atlas>,
     movement: Option<crate::sequences::Atlas>,
+    ranged: Option<crate::sequences::Atlas>,
 }
 
 /// A source rectangle and its foot anchor. Geometry stays in the sim.
@@ -195,6 +196,7 @@ pub enum Cell {
     Reaction(usize),
     Uppercut(usize),
     Movement(usize),
+    Ranged(usize),
 }
 
 // Foot anchors measured from the generated sheets, including their uneven
@@ -337,7 +339,12 @@ impl SpriteSet {
             Atlas::load_with_roots("assets/animation/kogan-movement-v2-green.png",
                 (1672, 941), &KOGAN_MOVEMENT, &KOGAN_MOVEMENT_ROOT_Y).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, coil, movement }
+        let ranged = if body == CharacterId::Kogan
+            && !std::env::args().any(|a| a == "--kit-legacy-ranged") {
+            Atlas::load("assets/animation/kogan-ranged-v5-green.png",
+                (1448, 1086), &KOGAN_RANGED).await
+        } else { None };
+        Self { textures, body, atlas, thrust, reactions, uppercut, coil, movement, ranged }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -352,6 +359,7 @@ impl SpriteSet {
             uppercut: None,
             coil: None,
             movement: None,
+            ranged: None,
         }
     }
 
@@ -376,6 +384,11 @@ impl SpriteSet {
 
     /// The picture for this fighter on this simulation tick.
     pub fn cell_for(&self, fighter: &Fighter, tick: u32) -> Cell {
+        if self.ranged.is_some() {
+            if let Some(cell) = crate::sequences::ranged_cell(fighter) {
+                return cell;
+            }
+        }
         if self.movement.is_some() {
             if let Some(cell) = crate::sequences::movement_cell(fighter) {
                 return cell;
@@ -409,6 +422,7 @@ impl SpriteSet {
     pub fn frame(&self, cell: Cell) -> Option<SpriteFrame<'_>> {
         match cell {
             Cell::Movement(cell) => self.movement.as_ref()?.frame(cell),
+            Cell::Ranged(cell) => self.ranged.as_ref()?.frame(cell),
             Cell::Reaction(cell) => self.reactions.as_ref()?.frame(cell),
             Cell::Uppercut(0) if self.coil.is_some() => self.coil.as_ref()?.frame(0),
             Cell::Uppercut(cell) => self.uppercut.as_ref()?.frame(cell),

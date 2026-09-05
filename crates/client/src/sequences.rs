@@ -146,6 +146,35 @@ pub fn movement_cell(f: &Fighter) -> Option<Cell> {
     }
 }
 
+// Grounded revolver and wave phases; green gutters measured per row.
+pub const KOGAN_RANGED: [Spec; 8] = [
+    ([0, 0, 350, 535], 211, 400), ([350, 0, 720, 535], 530, 400),
+    ([720, 0, 1065, 535], 912, 400), ([1065, 0, 1448, 535], 1253, 400),
+    ([0, 535, 342, 1086], 210, 400), ([342, 535, 715, 1086], 522, 400),
+    ([715, 535, 1050, 1086], 875, 400), ([1050, 535, 1448, 1086], 1250, 400),
+];
+
+pub fn ranged_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan {
+        return None;
+    }
+    let Action::Attack { move_id, frame, .. } = f.action else { return None };
+    let base = match move_id {
+        MoveId::ShotA | MoveId::ExB => 0,
+        MoveId::ShotB => 4,
+        _ => return None,
+    };
+    let mv = f.data().move_def(move_id)?;
+    // The gun finishes aiming just before discharge. The wave's cut is
+    // aligned to release; its low drawing holds briefly before withdrawal.
+    let commit = mv.first_active().saturating_sub(if base == 0 { 2 } else { 0 });
+    let phase = if frame < commit { 0 }
+        else if frame <= mv.last_active() + 2 { 1 }
+        else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+        else { 3 };
+    Some(Cell::Ranged(base + phase))
+}
+
 /// Selection reads authored move phases and actual vertical velocity. Render
 /// frequency, hitstop and facing cannot advance the drawing.
 pub fn cell_for(f: &Fighter) -> Option<Cell> {
@@ -181,6 +210,7 @@ mod tests {
     #[test]
     fn authored_regions_preserve_complete_silhouettes_and_effects() {
         for (name, reference, specs) in [
+            ("kogan-ranged-v5-green.png", (1448, 1086), &KOGAN_RANGED[..]),
             ("kogan-movement-v2-green.png", (1672, 941), &KOGAN_MOVEMENT[..]),
             ("kogan-reactions-v1-green.png", (1448, 1086), &KOGAN_REACTIONS[..]),
             ("raya-reactions-v1-green.png", (1448, 1086), &RAYA_REACTIONS[..]),
