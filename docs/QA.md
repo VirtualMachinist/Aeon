@@ -190,3 +190,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART16 | Grounded impact/guard release, launches and supported floor recovery | All 36 before/final cases / 90s each viewed at 1×, both facings and center/corners; standing/crouched hit/guard and corner getup boundaries stepped. Eight recoil V2 and four floor V1 drawings retain scale/equipment, remove old-body ghosts and preserve immediate legal control. `reaction_preview_covers_grounded_guard_recoil_launch_and_floor_recovery` and `recoil_release_uses_four_remaining_frames_and_yields_to_legal_control` verify consequences, freeze, full recovery and four visible release ticks. |
 
 131 tests pass (89 sim + 42 client), clippy and locked/offline release pass. All 5,400 reaction and 2,100 integration ticks match baseline. Full new 35s integration playback inspected; eight fresh smoke images match preceding inspected evidence byte for byte. G2/S2/A1/S1/A2 refraction, prompts and exact paused ticks are in the full-kit report. Air-normal juggles, tech, remaining Kogan attacks/feint/victory and Raya remain open.
+
+## September 5 Kogan Judgment review
+
+| ID | Check | Evidence |
+|---|---|---|
+| ART17 | Dual-weapon gather, commitment, withdrawal and reholster | Four V3 drawings; complete baseline/candidate/corrected 16-case matrices at 1× (40s each), both facings at center/corners. Standing and crouching guard plus holster boundaries stepped. Full weapons/cape, separated faces and clean legal return. `judgment_preview_uses_legal_metered_input_and_covers_hit_guard_and_miss` and `judgment_keeps_a_crouched_receiver_visible_for_either_player` verify legal input, consequences, active-only extension, freeze, recovery and ordering. |
+
+133 tests pass (89 sim + 44 client), clippy and locked/offline release pass. All 2,400 final and 2,100 integration ticks match baseline. Complete new 35s integration playback reviewed; repeat smoke supplies all eight images, byte-identical to prior inspected evidence. S2/A2 refraction, rejected holster edits, exact paused ticks and archive paths are in the full-kit report. Remaining Kogan attacks/air/tech/feint/victory and Raya remain open.

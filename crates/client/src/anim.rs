@@ -63,6 +63,18 @@ impl History {
     /// crouching body must remain visible below the opponent's standing torso.
     /// Its two-frame rise keeps that order until the standing drawing returns.
     pub fn draw_order(&self, w: &World) -> [usize; 2] {
+        // Judgment's low forward arm crosses a crouched receiver's face.
+        // Keep that receiver visible while the full blade remains on either side.
+        for attacker in [0, 1] {
+            let defender = 1 - attacker;
+            let a = &w.fighters[attacker];
+            let d = &w.fighters[defender];
+            if a.id == CharacterId::Kogan && !a.airborne && !d.airborne
+                && matches!(a.action, Action::Attack { move_id: MoveId::Super, .. })
+                && matches!(d.action, Action::Crouch | Action::Block { crouching: true, .. }) {
+                return [attacker, defender];
+            }
+        }
         let attacking = w.fighters.each_ref().map(|f| f.action.attacking().is_some());
         match attacking {
             [true, false] => return [1, 0],
@@ -323,7 +335,7 @@ pub fn layers(
 /// Dedicated drawings already contain the bend/tumble. Rotating them again
 /// around their feet puts the body below the floor and distorts sword arcs.
 fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
-    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(_) | Cell::Recoil(_) | Cell::Floor(_))
+    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(_) | Cell::Recoil(_) | Cell::Floor(_) | Cell::Judgment(_))
 }
 
 fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
@@ -813,7 +825,7 @@ mod tests {
     fn authored_kogan_return_has_one_body_and_no_extra_blade_rotation() {
         let sprites = set(CharacterId::Kogan);
         let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
-        for previous in [Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
+        for previous in [Cell::Judgment(0), Cell::Judgment(1), Cell::Judgment(2), Cell::Judgment(3), Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
             let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
             let mut history = History::default();
             history.record(&w, [previous, Cell::Pose(Pose::Idle)]);
@@ -826,6 +838,26 @@ mod tests {
             assert_eq!((m.rot, m.sx, m.sy), (0.0, 1.0, 1.0));
         }
         assert!(!kogan_combat_cell(CharacterId::Raya, Cell::Atlas(6)), "Raya has separate review coverage");
+    }
+
+    #[test]
+    fn judgment_keeps_a_crouched_receiver_visible_for_either_player() {
+        for attacker in [0, 1] {
+            let mut w = if attacker == 0 { World::new(CharacterId::Kogan, CharacterId::Raya) }
+                else { World::new(CharacterId::Raya, CharacterId::Kogan) };
+            let defender = 1 - attacker;
+            let history = History::default();
+            w.fighters[attacker].start_move(MoveId::Super);
+            for action in [Action::Crouch, Action::Block { crouching: true, stun: 8 }] {
+                w.fighters[defender].action = action;
+                assert_eq!(history.draw_order(&w), [attacker, defender]);
+            }
+            w.fighters[defender].action = Action::Block { crouching: false, stun: 8 };
+            assert_eq!(history.draw_order(&w), [defender, attacker], "standing guard leaves the weapon in front");
+            w.fighters[defender].action = Action::Crouch;
+            w.fighters[attacker].start_move(MoveId::StS);
+            assert_eq!(history.draw_order(&w), [defender, attacker], "other reviewed attacks retain their ordering");
+        }
     }
 
     #[test]
