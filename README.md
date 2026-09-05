@@ -33,6 +33,7 @@ cargo run --release -p aeon -- --polish-preview  # repeatable 35-second movement
 cargo run --release -p aeon -- --polish-preview --capture # 30 fps PNGs + trace in shots/polish
 cargo run --release -p aeon -- --kit-preview --kit-movement # 24 isolated hop/jump cases
 cargo run --release -p aeon -- --kit-preview --kit-ranged # 48 gun/wave/EX hit, guard and miss cases
+cargo run --release -p aeon -- --kit-preview --kit-utility # 28 cape-snare / threshold-step cases
 cargo run --release -p aeon -- --kit-preview --capture # 60 fps lights cases + trace in shots/kit
 cargo clippy --workspace --all-targets -- -D warnings
 ```

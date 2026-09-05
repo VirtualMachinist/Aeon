@@ -18,6 +18,7 @@ enum Response {
     StandBlock,
     CrouchBlock,
     CrouchHit,
+    AirEvade,
     Whiff,
 }
 
@@ -38,6 +39,7 @@ struct Case {
     corner: bool,
     jump: Option<(u8, bool)>,
     ranged: bool,
+    utility: bool,
 }
 
 fn cases(body: CharacterId) -> Vec<Case> {
@@ -46,7 +48,7 @@ fn cases(body: CharacterId) -> Vec<Case> {
         for response in RESPONSES {
             for corner in [false, true] {
                 for right in [true, false] {
-                    result.push(Case { body, move_id, response, right, corner, jump: None, ranged: false });
+                    result.push(Case { body, move_id, response, right, corner, jump: None, ranged: false, utility: false });
                 }
             }
         }
@@ -61,7 +63,7 @@ fn movement_cases(body: CharacterId) -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body, move_id: MoveId::StP,
-                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), ranged: false });
+                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), ranged: false, utility: false });
                 }
             }
         }
@@ -76,7 +78,25 @@ fn ranged_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: true });
+                        right, corner, jump: None, ranged: true, utility: false });
+                }
+            }
+        }
+    }
+    result
+}
+
+fn utility_cases() -> Vec<Case> {
+    let mut result = Vec::new();
+    for move_id in [MoveId::CommandGrab, MoveId::CommandDash] {
+        let responses = if move_id == MoveId::CommandGrab {
+            &[Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff, Response::AirEvade][..]
+        } else { &[Response::Hit, Response::Whiff][..] };
+        for &response in responses {
+            for corner in [false, true] {
+                for right in [true, false] {
+                    result.push(Case { body: CharacterId::Kogan, move_id, response,
+                        right, corner, jump: None, ranged: false, utility: true });
                 }
             }
         }
@@ -85,9 +105,15 @@ fn ranged_cases() -> Vec<Case> {
 }
 
 impl Case {
-    fn duration(self) -> u32 { if self.ranged { 150 } else { LENGTH } }
+    fn duration(self) -> u32 { if self.ranged || self.utility { 150 } else { LENGTH } }
 
     fn label(self) -> String {
+        if self.utility && self.move_id == MoveId::CommandDash {
+            return format!("KOGAN threshold-step · {} · {} · {}",
+                if self.response == Response::Whiff { "free travel" } else { "near opponent" },
+                if self.right { "right" } else { "left" },
+                if self.corner { "corner" } else { "center" });
+        }
         if let Some((dir, hop)) = self.jump {
             return format!("{} {} dir {} · {} · {}", self.body.name(),
                 if hop { "hop" } else { "jump" }, dir,
@@ -113,7 +139,13 @@ impl Case {
         let gap = if self.response == Response::Whiff { 150 } else { 40 };
         let defender = if self.corner { 740 } else { 340 };
         let attacker = defender - gap;
-        let (attacker, defender) = if self.ranged {
+        let (attacker, defender) = if self.utility {
+            let distance = if self.move_id == MoveId::CommandDash {
+                if self.response == Response::Whiff { 200 } else { 70 }
+            } else if self.response == Response::Whiff { 160 } else { 40 };
+            let defender = if self.corner { 740 } else { 400 };
+            (defender - distance, defender)
+        } else if self.ranged {
             let distance = if self.response == Response::Whiff && self.move_id == MoveId::ShotB { 340 } else { 140 };
             let defender = if self.corner { 740 } else { 480 };
             (defender - distance, defender)
@@ -127,6 +159,35 @@ impl Case {
     }
 
     fn inputs(self, frame: u32) -> [InputFrame; 2] {
+        if self.utility {
+            let grab = self.move_id == MoveId::CommandGrab;
+            let direction = if grab {
+                match frame {
+                    n if n == PRESS - 5 => 6,
+                    n if n == PRESS - 4 => 3,
+                    n if n == PRESS - 3 => 2,
+                    n if n == PRESS - 2 => 1,
+                    n if n == PRESS - 1 || n == PRESS => 4,
+                    _ => 5,
+                }
+            } else {
+                match frame {
+                    n if n == PRESS - 3 => 2,
+                    n if n == PRESS - 2 => 3,
+                    n if n == PRESS - 1 || n == PRESS => 6,
+                    _ => 5,
+                }
+            };
+            let attacker = if frame == PRESS { InputFrame::dir_press(direction, Btn::FL) }
+                else { InputFrame::dir(direction) };
+            let defender = InputFrame::dir(match self.response {
+                Response::StandBlock if frame >= PRESS => 4,
+                Response::CrouchBlock => 1,
+                Response::AirEvade if (PRESS - 6..PRESS + 1).contains(&frame) => 8,
+                _ => 5,
+            });
+            return [attacker, defender];
+        }
         if self.ranged {
             let wave = self.move_id == MoveId::ShotB;
             let direction = match frame {
@@ -187,7 +248,10 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let all = if args.iter().any(|a| a == "--kit-ranged") {
+    let all = if args.iter().any(|a| a == "--kit-utility") {
+        assert!(body == CharacterId::Kogan, "utility cases currently cover Kogan");
+        utility_cases()
+    } else if args.iter().any(|a| a == "--kit-ranged") {
         assert!(body == CharacterId::Kogan, "ranged cases currently cover Kogan");
         ranged_cases()
     } else if args.iter().any(|a| a == "--kit-movement") {
@@ -314,6 +378,46 @@ mod tests {
                         assert!(drawings.contains(&crate::sprites::Cell::Movement(cell)), "{case:?} cell {cell}");
                     }
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn utility_preview_exercises_snare_evasion_and_step_without_new_mechanics() {
+        for case in utility_cases() {
+            let mut world = case.world();
+            let mut started = false;
+            let mut grabs = 0;
+            let mut throws = 0;
+            let mut blocks = 0;
+            let mut travel = 0;
+            let mut drawings = std::collections::HashSet::new();
+            for frame in 0..case.duration() {
+                let x = world.fighters[0].pos.x;
+                let [p1, p2] = case.inputs(frame);
+                world.tick(p1, p2);
+                started |= world.fighters[0].action.attacking()
+                    .is_some_and(|(id, _, _)| id == case.move_id);
+                if frame >= PRESS { travel += (world.fighters[0].pos.x - x).abs(); }
+                if let Some(cell) = crate::sequences::utility_cell(&world.fighters[0]) { drawings.insert(cell); }
+                for event in &world.events {
+                    grabs += usize::from(event.kind == EventKind::Grab);
+                    throws += usize::from(event.kind == EventKind::Throw);
+                    blocks += usize::from(event.kind == EventKind::Block);
+                }
+            }
+            assert!(started, "{case:?} must start legally");
+            let connects = case.move_id == MoveId::CommandGrab
+                && !matches!(case.response, Response::Whiff | Response::AirEvade);
+            assert_eq!((grabs, throws, blocks), if connects { (1, 1, 0) } else { (0, 0, 0) }, "{case:?}");
+            assert!(world.fighters.iter().all(|f| f.action.actionable()), "{case:?} complete recovery");
+            let base = if case.move_id == MoveId::CommandDash { 4 } else { 0 };
+            for phase in 0..4 {
+                assert!(drawings.contains(&crate::sprites::Cell::Utility(base + phase)), "{case:?} phase {phase}");
+            }
+            if case.move_id == MoveId::CommandDash {
+                assert!(travel > 0 && travel <= px(60), "{case:?} authored travel");
+                if case.response == Response::Whiff { assert_eq!(travel, px(60), "{case:?}"); }
             }
         }
     }

@@ -148,3 +148,11 @@ Each trial is a headless test in `crates/sim/tests/trials.rs` **and** a thing yo
 6. A feel-target violation (weapon-heavies plus on block, normal chains, cape in the hurtbox, Raya as a fullscreen zoner, hop indistinguishable from jump) is a **blocker**, not a tune.
 
 Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/INFRA]] · [[Aeon/notes/2026-09-02-fable-pass]] · [[Aeon/notes/2026-09-03-grok-qa]]
+
+## September 5 cape-snare / threshold-step checks
+
+| ID | Check | Evidence |
+|---|---|---|
+| ART12 | Kogan cape capture/release and grounded step phases | Eight V3 drawings; `utility_preview_exercises_snare_evasion_and_step_without_new_mechanics` exercises 28 legal-input cases, guard capture, miss/jump escape, recovery and authored step travel. Entire 70-second final viewed at 1×, both facings and center/corners. Grab release/ready and step launch/brake/settle frame-stepped; old-cell trail and backward ending saber corrected. |
+
+121 tests pass (89 sim + 32 client), clippy and locked/offline release pass. Full 4,200-tick utility and retained 2,100-tick polish traces match their baselines. A1/G2/S2 and G1 refraction, before/after footage and final diagnostics are recorded in the full-kit pass. This accepts two Kogan actions; Raya's older reaction/landing/getup crossfades, other families and physical stick play remain open.
