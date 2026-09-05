@@ -146,6 +146,40 @@ pub fn movement_cell(f: &Fighter) -> Option<Cell> {
     }
 }
 
+// Cape reach and threshold-step share grounded anatomical scale, not a leg cycle.
+pub const KOGAN_UTILITY: [Spec; 8] = [
+    ([0, 0, 330, 550], 196, 400), ([330, 0, 745, 550], 542, 400),
+    ([745, 0, 1090, 550], 935, 400), ([1090, 0, 1448, 550], 1274, 400),
+    ([0, 550, 318, 1086], 190, 400), ([318, 550, 732, 1086], 545, 400),
+    ([732, 550, 1075, 1086], 936, 400), ([1075, 550, 1448, 1086], 1274, 400),
+];
+
+pub fn utility_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    let Action::Attack { move_id, frame, connected } = f.action else { return None; };
+    let mv = f.data().move_def(move_id)?;
+    let cell = match move_id {
+        MoveId::CommandGrab => {
+            let release = if connected == aeon_sim::Connect::Hit {
+                mv.first_active() + u16::from(aeon_sim::fighter::COMMAND_GRAB_HOLD)
+            } else { mv.last_active() + 1 };
+            if frame < mv.first_active() { 0 }
+            else if frame < release { 1 }
+            else if frame < mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+            else { 3 }
+        }
+        MoveId::CommandDash => {
+            let travel = u16::from(mv.vel_frames);
+            if frame < travel / 4 { 4 }
+            else if frame < travel * 2 / 3 { 5 }
+            else if frame < travel { 6 }
+            else { 7 }
+        }
+        _ => return None,
+    };
+    Some(Cell::Utility(cell))
+}
+
 // Grounded revolver and wave phases; green gutters measured per row.
 pub const KOGAN_RANGED: [Spec; 8] = [
     ([0, 0, 350, 535], 211, 400), ([350, 0, 720, 535], 530, 400),
@@ -210,6 +244,7 @@ mod tests {
     #[test]
     fn authored_regions_preserve_complete_silhouettes_and_effects() {
         for (name, reference, specs) in [
+            ("kogan-cape-step-v3-green.png", (1448, 1086), &KOGAN_UTILITY[..]),
             ("kogan-ranged-v5-green.png", (1448, 1086), &KOGAN_RANGED[..]),
             ("kogan-movement-v2-green.png", (1672, 941), &KOGAN_MOVEMENT[..]),
             ("kogan-reactions-v1-green.png", (1448, 1086), &KOGAN_REACTIONS[..]),

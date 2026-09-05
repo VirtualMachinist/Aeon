@@ -203,6 +203,9 @@ pub fn layers(
             let Some(snap) = history.at(i, w.frame.saturating_sub(k * spacing)) else {
                 continue;
             };
+            // A changing step silhouette must not trail an old stance or
+            // put a previous leaning head ahead of the braking body.
+            if matches!(cell, Cell::Utility(_)) && snap.cell != cell { continue; }
             // A body that has not moved leaves no trail.
             if (snap.x - sub(f.pos.x)).abs() + (snap.y - sub(f.pos.y)).abs() < 1.0 {
                 continue;
@@ -212,7 +215,7 @@ pub fn layers(
                 x: snap.x,
                 y: snap.y,
                 facing_right: snap.facing_right,
-                rot: if matches!(snap.cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_) | Cell::Ranged(_)) { 0.0 } else { m.rot * 0.5 },
+                rot: if matches!(snap.cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_)) { 0.0 } else { m.rot * 0.5 },
                 sx: 1.0,
                 sy: 1.0,
                 alpha: 0.17 * (1.0 - (k - 1) as f32 / count as f32),
@@ -235,8 +238,8 @@ pub fn layers(
     // Authored movement/weapon phases already describe the transition. Overlaying
     // old silhouettes creates duplicate limbs and weapons through these cuts.
     if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
-        !cuts && !matches!(cell, Cell::Movement(_) | Cell::Ranged(_))
-            && !matches!(prev.cell, Cell::Movement(_) | Cell::Ranged(_))
+        !cuts && !matches!(cell, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_))
+            && !matches!(prev.cell, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_))
     }) {
         let age = w.frame.saturating_sub(prev.frame);
         if (1..=CROSSFADE).contains(&age) {
@@ -275,7 +278,7 @@ pub fn layers(
 /// Dedicated drawings already contain the bend/tumble. Rotating them again
 /// around their feet puts the body below the floor and distorts sword arcs.
 fn respect_authored_drawing(cell: Cell, m: &mut Motion) {
-    if matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_) | Cell::Ranged(_)) {
+    if matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_)) {
         m.rot = 0.0;
         m.sx = 1.0;
         m.sy = 1.0;
