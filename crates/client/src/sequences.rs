@@ -96,6 +96,23 @@ pub const KOGAN_REACTIONS: [Spec; 12] = [
     ([0, 700, 365, 1086], 220, 311), ([365, 700, 720, 1086], 565, 311),
     ([720, 700, 1075, 1086], 901, 311), ([1075, 700, 1448, 1086], 1228, 319),
 ];
+// Judgment gathers, extends and withdraws its two weapons during the existing rush.
+pub const KOGAN_JUDGMENT: [Spec; 4] = [
+    ([0, 0, 670, 480], 340, 445), ([670, 0, 1536, 480], 1000, 445),
+    ([0, 480, 736, 1024], 420, 445), ([736, 480, 1536, 1024], 1040, 445),
+];
+
+pub fn judgment_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    if let Action::Attack { move_id: MoveId::Super, frame, .. } = f.action {
+        let mv = f.data().move_def(MoveId::Super)?;
+        return Some(Cell::Judgment(if frame < mv.first_active() { 0 }
+            else if mv.is_active(frame) { 1 }
+            else if frame < mv.total_frames().saturating_sub(8) { 2 } else { 3 }));
+    }
+    None
+}
+
 // Prone, seated hand support, kneel and half rise share anatomical scale.
 pub const KOGAN_FLOOR: [Spec; 4] = [
     ([0, 0, 773, 449], 400, 530), ([773, 0, 1536, 449], 1090, 530),
@@ -432,6 +449,7 @@ mod tests {
     #[test]
     fn authored_regions_preserve_complete_silhouettes_and_effects() {
         for (name, reference, specs) in [
+            ("kogan-judgment-v3-green.png", (1536, 1024), &KOGAN_JUDGMENT[..]),
             ("kogan-floor-v1-green.png", (1536, 1024), &KOGAN_FLOOR[..]),
             ("kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL[..]),
             ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND[..]),

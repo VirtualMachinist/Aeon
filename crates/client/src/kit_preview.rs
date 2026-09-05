@@ -131,6 +131,20 @@ fn saber_cases() -> Vec<Case> {
     result
 }
 
+fn judgment_cases() -> Vec<Case> {
+    let mut result = Vec::new();
+    for response in [Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff] {
+        for corner in [false, true] {
+            for right in [true, false] {
+                result.push(Case { body: CharacterId::Kogan, move_id: MoveId::Super, response,
+                    right, corner, jump: None, ranged: false, utility: false, saber: true,
+                    disc: false, reaction: false, ground: None });
+            }
+        }
+    }
+    result
+}
+
 fn disc_cases() -> Vec<Case> {
     let mut result = Vec::new();
     for response in [Response::Hit, Response::StandBlock, Response::CrouchBlock,
@@ -229,6 +243,7 @@ impl Case {
             CharacterId::Raya => CharacterId::Kogan,
         };
         let mut world = World::new(self.body, opponent);
+        if self.move_id == MoveId::Super { world.fighters[0].meter = 1000; }
         let gap = if self.response == Response::Whiff { 150 } else { 40 };
         let defender = if self.corner { 740 } else { 340 };
         let attacker = defender - gap;
@@ -365,7 +380,14 @@ impl Case {
         if self.saber {
             let special = matches!(self.move_id, MoveId::Rekka1 | MoveId::Rekka2 | MoveId::Rekka3 | MoveId::ExA);
             let dp = self.move_id == MoveId::Uppercut;
-            let dir = if special || dp {
+            let dir = if self.move_id == MoveId::Super {
+                match frame {
+                    n if n == PRESS - 6 || n == PRESS - 3 => 2,
+                    n if n == PRESS - 5 || n == PRESS - 2 => 3,
+                    n if n == PRESS - 4 || n == PRESS - 1 || n == PRESS => 6,
+                    _ => 5,
+                }
+            } else if special || dp {
                 match frame {
                     n if n == PRESS - 3 => if dp { 6 } else { 2 },
                     n if n == PRESS - 2 => if dp { 2 } else { 3 },
@@ -484,6 +506,9 @@ pub async fn run(assets: &Assets) {
     });
     let mut all = if args.iter().any(|a| a == "--kit-reaction") {
         reaction_cases(body)
+    } else if args.iter().any(|a| a == "--kit-super") {
+        assert!(body == CharacterId::Kogan, "judgment cases cover Kogan");
+        judgment_cases()
     } else if args.iter().any(|a| a == "--kit-ground") {
         ground_cases(body)
     } else if args.iter().any(|a| a == "--kit-disc") {
@@ -597,6 +622,51 @@ pub async fn run(assets: &Assets) {
 mod tests {
     use super::*;
     use aeon_sim::{Action, EventKind};
+
+    #[test]
+    fn judgment_preview_uses_legal_metered_input_and_covers_hit_guard_and_miss() {
+        for case in judgment_cases() {
+            let mut w = case.world();
+            let initial_x = w.fighters[0].pos.x;
+            let hp = w.fighters[1].health;
+            let mut super_started = false;
+            let mut drawings = std::collections::HashSet::new();
+            let mut frozen = None;
+            let mut block = false;
+            let mut down = false;
+            for frame in 0..case.duration() {
+                let [a, b] = case.inputs_for_world(frame, &w); w.tick(a, b);
+                let f = &w.fighters[0];
+                let cell = crate::sequences::judgment_cell(f);
+                if let Some(cell) = cell { drawings.insert(cell); }
+                if let Some((world_frame, previous)) = frozen {
+                    if w.frame == world_frame { assert_eq!(cell, previous, "hitstop freezes judgment"); }
+                }
+                frozen = Some((w.frame, cell));
+                if let Action::Attack { move_id: MoveId::Super, frame: action_frame, .. } = f.action {
+                    let mv = f.data().move_def(MoveId::Super).unwrap();
+                    assert_eq!(cell == Some(crate::sprites::Cell::Judgment(1)), mv.is_active(action_frame), "extended drawing only during active frames");
+                }
+                if matches!(w.fighters[0].action, Action::Attack { move_id: MoveId::Super, .. }) {
+                    super_started = true;
+                    assert!(w.fighters[0].meter < 1000, "super spends the prepared bar");
+                }
+                block |= matches!(w.fighters[1].action, Action::Block { .. });
+                down |= matches!(w.fighters[1].action, Action::Knockdown { .. });
+            }
+            assert!(super_started, "{case:?}: double quarter-circle starts judgment");
+            assert_eq!(drawings.len(), 4, "{case:?}: all four drawings");
+            assert_eq!(crate::sequences::judgment_cell(&w.fighters[0]), None, "no art recovery delays control");
+            match case.response {
+                Response::Hit => assert!(down && hp - w.fighters[1].health == 280, "{case:?}"),
+                Response::StandBlock | Response::CrouchBlock => assert!(block && !down && hp - w.fighters[1].health == 24, "{case:?}"),
+                Response::Whiff => assert!(w.fighters[1].health == hp && !down && !block, "{case:?}"),
+                _ => unreachable!(),
+            }
+            assert!(w.fighters[0].pos.x != initial_x, "rush advances at authored velocity");
+            assert!(w.fighters.iter().all(|f| f.action.actionable()), "{case:?}: both recover");
+        }
+    }
 
     #[test]
     fn movement_preview_preserves_hop_and_jump_landings() {

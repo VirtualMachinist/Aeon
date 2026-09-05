@@ -76,3 +76,7 @@ Eight reviewed Kogan V4 drawings cover cloth-changing glide, half/low crouch and
 ## Kogan recoil and floor recovery — reviewed
 
 Selected `kogan-recoil-v2-green.png` (8 drawings) and `kogan-floor-v1-green.png` (4 drawings). Exact built-in imagegen prompts, original IDs, corrections and measured roots/scales: [recoil](KOGAN-RECOIL-2026-09-05.md), [floor](KOGAN-FLOOR-2026-09-05.md). V1 recoil remains in the vault as rejected source; only V2 is loaded. Full 36-case/90s final and 35s integration playback reviewed at 1×, with impact/release/corner-getup frame steps. 131 tests pass and full traces are unchanged.
+
+## Kogan Judgment — reviewed
+
+Four V3 gather/dual-rush/withdrawal/reholster drawings. [Exact prompts and corrections](KOGAN-JUDGMENT-2026-09-05.md) retain the V1 dangling gun, rejected V2 grip error, V3 source and final root measurements. Complete corrected 16-case/40s and 35s integration playback reviewed at 1×; 133 tests pass and traces remain unchanged.
