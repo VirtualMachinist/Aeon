@@ -96,6 +96,34 @@ pub const KOGAN_REACTIONS: [Spec; 12] = [
     ([0, 700, 365, 1086], 220, 311), ([365, 700, 720, 1086], 565, 311),
     ([720, 700, 1075, 1086], 901, 311), ([1075, 700, 1448, 1086], 1228, 319),
 ];
+// Crouching forward and rising saber paths retain grounded support and common anatomy.
+pub const KOGAN_CROUCH_SABER: [Spec; 8] = [
+    ([0, 0, 480, 410], 285, 370), ([480, 0, 1024, 410], 750, 370),
+    ([0, 410, 480, 750], 285, 370), ([480, 410, 1024, 750], 750, 370),
+    ([0, 750, 480, 1140], 270, 370), ([480, 750, 1024, 1140], 740, 370),
+    ([0, 1140, 480, 1536], 275, 370), ([480, 1140, 1024, 1536], 735, 370),
+];
+
+// Lower trap and sweep: full blades above measured boot/palm support.
+pub const KOGAN_CROUCH_LOW: [Spec; 8] = [
+    ([0, 0, 500, 430], 275, 350), ([500, 0, 1024, 430], 730, 350),
+    ([0, 430, 500, 770], 275, 350), ([500, 430, 1024, 770], 740, 350),
+    ([0, 770, 475, 1110], 255, 350), ([475, 770, 1024, 1110], 685, 350),
+    ([0, 1110, 500, 1536], 275, 350), ([500, 1110, 1024, 1536], 735, 350),
+];
+
+pub fn crouch_saber_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan || f.airborne { return None; }
+    let Action::Attack { move_id, frame, .. } = f.action else { return None; };
+    let base = match move_id { MoveId::CrS => 0, MoveId::CrHS => 4, MoveId::CrFL => 8, MoveId::CrST => 12, _ => return None };
+    let mv = f.data().move_def(move_id)?;
+    let phase = if frame < mv.first_active() { 0 }
+        else if mv.is_active(frame) { 1 }
+        else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+        else { 3 };
+    Some(Cell::CrouchSaber(base + phase))
+}
+
 // Standing Flash's short pommel and Style's waist-level saber each have four phases.
 // Grounded roots and shared anatomy preserve support; both gestures share the sound withdrawal.
 pub const KOGAN_FLASH: [Spec; 8] = [
@@ -558,6 +586,8 @@ mod tests {
             ("kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL[..]),
             ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
+            ("kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW[..]),
+            ("kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER[..]),
             ("kogan-flash-v2-green.png", (1024, 1536), &KOGAN_FLASH[..]),
             ("kogan-air-lights-v1-green.png", (1024, 1536), &KOGAN_AIR_LIGHTS[..]),
             ("kogan-air-lights-v4-green.png", (1024, 1536), &KOGAN_AIR_LIGHTS_CONTACT[..]),
@@ -622,6 +652,33 @@ mod tests {
         raya.airborne = true;
         raya.action = Action::Attack { move_id: MoveId::JS, frame: 6, connected: Connect::None };
         assert_eq!(air_saber_cell(&raya), None);
+    }
+
+    #[test]
+    fn crouching_saber_commitment_is_active_only_and_every_new_action_owns_its_drawing() {
+        for id in [CharacterId::Kogan, CharacterId::Raya] {
+            for facing in [false, true] {
+                for (move_id, base) in [(MoveId::CrS, 0), (MoveId::CrHS, 4), (MoveId::CrFL, 8), (MoveId::CrST, 12)] {
+                    let mut f = Fighter::spawn(id, px(200), facing);
+                    let mv = f.data().move_def(move_id).unwrap();
+                    for frame in 0..mv.total_frames() {
+                        f.action = Action::Attack { move_id, frame, connected: Connect::None };
+                        let cell = crouch_saber_cell(&f);
+                        if id == CharacterId::Raya { assert_eq!(cell, None); continue; }
+                        assert_eq!(cell == Some(Cell::CrouchSaber(base + 1)), mv.is_active(frame));
+                        if frame == 0 { assert_eq!(cell, Some(Cell::CrouchSaber(base))); }
+                        if frame == mv.last_active() + 1 { assert_eq!(cell, Some(Cell::CrouchSaber(base + 2))); }
+                        if frame == mv.total_frames() - 1 { assert_eq!(cell, Some(Cell::CrouchSaber(base + 3))); }
+                    }
+                    f.last_move = Some(move_id);
+                    for action in [Action::Stand, Action::Crouch, Action::Hit { stun: 8, knockdown: false },
+                        Action::Jump { air_ok: false, hop: true }] {
+                        f.action = action;
+                        assert_eq!(crouch_saber_cell(&f), None);
+                    }
+                }
+            }
+        }
     }
 
     #[test]
