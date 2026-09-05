@@ -164,3 +164,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART13 | Kogan saber phases, complete silhouettes and clean recovery | Four short-poke and two compact reversal drawings; measured cut regions and matching-cell trails. `saber_preview_reaches_normals_rekka_followups_ex_and_reversal_legally` verifies 128 cases. Complete final 328s viewed at 1×; selected poke, corner thrust and reversal phase boundaries stepped. Keyed-art tests protect source regions, HUD and corner clearance. |
 
 125 tests pass (89 sim + 36 client), clippy and locked/offline release pass. All 19,680 final saber ticks and 2,100 retained polish ticks match baseline traces. The complete 35s integration preview and eight fresh smoke screenshots were inspected after fixed framing changed. S2/A1/G2 and S1/A2/K1 refraction, before/after defects and corrections are in `docs/FULL-KIT-2026-09-05.md` and the vault full-kit pass. Remaining Kogan/Raya families and physical stick play remain open.
+
+## September 5 disc-shield checks
+
+| ID | Gate | Evidence |
+|---|---|---|
+| ART14 | Kogan disc phases, open visibility and clean return | Four V2 drawings; `disc_preview_covers_close_contact_and_legal_projectile_absorption` exercises 20 legal cases and all phases. Complete before/final 30s viewed at 1×, both facings and center/corners; selected glyph absorption, recovery and crouch-block frames stepped. Source boundary and clean combat-transition regressions include disc cells. |
+
+126 tests pass (89 sim + 37 client), clippy and locked/offline release pass. All 1,800 disc and 2,100 retained polish ticks match baseline. Complete polish video and eight fresh smoke images are byte-identical to the preceding fully inspected saber evidence. S2/A2 refraction and exact before/after review are in the full-kit report. Crouch-entry and Raya reaction/glyph ghosts, remaining families and physical stick play stay open.
