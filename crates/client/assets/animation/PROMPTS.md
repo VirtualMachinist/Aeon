@@ -62,3 +62,7 @@ The priority-one reaction/uppercut families above now have an initial authored i
 ## Saber refinement (2026-09-05)
 
 Four short high-poke drawings and two compact uppercut phases are integrated and reviewed. Exact prompts, original IDs and acceptance: [standing poke](KOGAN-STANDING-POKE-2026-09-05.md) and [compact reversal](KOGAN-UPPERCUT-COMPACT-2026-09-05.md). The existing cut/backcut regions were measured again to preserve complete capes. Full 128-case motion review and remaining coverage are recorded in the full-kit report.
+
+## Disc-shield (2026-09-05)
+
+Four reviewed Kogan phases use open copper linework and shared standing anatomy. Exact creation/edit prompts, originals, blade correction and measurements: [disc provenance](KOGAN-DISC-2026-09-05.md). The full 20-case review and remaining coverage are in the full-kit report.

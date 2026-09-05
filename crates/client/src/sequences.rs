@@ -128,6 +128,26 @@ pub fn poke_cell(f: &Fighter) -> Option<Cell> {
     Some(Cell::Poke(phase))
 }
 
+// Shared standing anatomy keeps the kneeling head/body at the ready scale.
+// Both kneeling blades remain above the measured boot/knee floor anchor.
+pub const KOGAN_DISC: [Spec; 4] = [
+    ([0, 0, 768, 470], 365, 435), ([768, 0, 1536, 470], 1095, 435),
+    ([0, 470, 768, 1024], 375, 435), ([768, 470, 1536, 1024], 1095, 435),
+];
+
+/// The full disc exists only during the authored active brace. Dismissal
+/// and rising settle fit the existing recovery; no guard frames are added.
+pub fn disc_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    let Action::Attack { move_id: MoveId::Guard, frame, .. } = f.action else { return None; };
+    let mv = f.data().move_def(MoveId::Guard)?;
+    let phase = if frame < mv.first_active() { 0 }
+        else if frame <= mv.last_active() { 1 }
+        else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+        else { 3 };
+    Some(Cell::Disc(phase))
+}
+
 pub const KOGAN_COIL: [Spec; 1] = [([0, 0, 1254, 1254], 705, 1030)];
 pub const KOGAN_UPPERCUT: [Spec; 4] = [
     ([0, 0, 627, 535], 305, 355), ([627, 0, 1254, 535], 890, 350),
@@ -291,6 +311,7 @@ mod tests {
     #[test]
     fn authored_regions_preserve_complete_silhouettes_and_effects() {
         for (name, reference, specs) in [
+            ("kogan-disc-v2-green.png", (1536, 1024), &KOGAN_DISC[..]),
             ("kogan-standing-poke-v1-green.png", (1536, 1024), &KOGAN_POKE[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_CUTS[..]),
             ("kogan-uppercut-compact-v1-green.png", (1536, 1024), &KOGAN_UPPERCUT_COMPACT[..]),

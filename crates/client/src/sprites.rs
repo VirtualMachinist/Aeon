@@ -175,6 +175,7 @@ pub struct SpriteSet {
     compact_uppercut: Option<crate::sequences::Atlas>,
     cuts: Option<crate::sequences::Atlas>,
     poke: Option<crate::sequences::Atlas>,
+    disc: Option<crate::sequences::Atlas>,
     coil: Option<crate::sequences::Atlas>,
     movement: Option<crate::sequences::Atlas>,
     ranged: Option<crate::sequences::Atlas>,
@@ -201,6 +202,7 @@ pub enum Cell {
     Uppercut(usize),
     UppercutCompact(usize),
     Poke(usize),
+    Disc(usize),
     Movement(usize),
     Ranged(usize),
     Utility(usize),
@@ -381,7 +383,10 @@ impl SpriteSet {
         let poke = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-standing-poke-v1-green.png", (1536, 1024), &KOGAN_POKE).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, coil, movement, ranged, utility }
+        let disc = if body == CharacterId::Kogan {
+            Atlas::load("assets/animation/kogan-disc-v2-green.png", (1536, 1024), &KOGAN_DISC).await
+        } else { None };
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -397,6 +402,7 @@ impl SpriteSet {
             compact_uppercut: None,
             cuts: None,
             poke: None,
+            disc: None,
             coil: None,
             movement: None,
             ranged: None,
@@ -425,6 +431,9 @@ impl SpriteSet {
 
     /// The picture for this fighter on this simulation tick.
     pub fn cell_for(&self, fighter: &Fighter, tick: u32) -> Cell {
+        if self.disc.is_some() {
+            if let Some(cell) = crate::sequences::disc_cell(fighter) { return cell; }
+        }
         if self.poke.is_some() {
             if let Some(cell) = crate::sequences::poke_cell(fighter) { return cell; }
         }
@@ -476,6 +485,7 @@ impl SpriteSet {
             Cell::Utility(cell) => self.utility.as_ref()?.frame(cell),
             Cell::Reaction(cell) => self.reactions.as_ref()?.frame(cell),
             Cell::Poke(cell) => self.poke.as_ref()?.frame(cell),
+            Cell::Disc(cell) => self.disc.as_ref()?.frame(cell),
             Cell::UppercutCompact(cell) => self.compact_uppercut.as_ref()?.frame(cell),
             Cell::Uppercut(0) if self.coil.is_some() => self.coil.as_ref()?.frame(0),
             Cell::Uppercut(cell) => self.uppercut.as_ref()?.frame(cell),

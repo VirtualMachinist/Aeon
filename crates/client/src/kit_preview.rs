@@ -19,6 +19,7 @@ enum Response {
     CrouchBlock,
     CrouchHit,
     AirEvade,
+    Projectile,
     Whiff,
 }
 
@@ -41,6 +42,7 @@ struct Case {
     ranged: bool,
     utility: bool,
     saber: bool,
+    disc: bool,
 }
 
 fn cases(body: CharacterId) -> Vec<Case> {
@@ -49,7 +51,7 @@ fn cases(body: CharacterId) -> Vec<Case> {
         for response in RESPONSES {
             for corner in [false, true] {
                 for right in [true, false] {
-                    result.push(Case { body, move_id, response, right, corner, jump: None, ranged: false, utility: false, saber: false });
+                    result.push(Case { body, move_id, response, right, corner, jump: None, ranged: false, utility: false, saber: false, disc: false });
                 }
             }
         }
@@ -64,7 +66,7 @@ fn movement_cases(body: CharacterId) -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body, move_id: MoveId::StP,
-                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), ranged: false, utility: false, saber: false });
+                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), ranged: false, utility: false, saber: false, disc: false });
                 }
             }
         }
@@ -79,7 +81,7 @@ fn ranged_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: true, utility: false, saber: false });
+                        right, corner, jump: None, ranged: true, utility: false, saber: false, disc: false });
                 }
             }
         }
@@ -97,7 +99,7 @@ fn utility_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: false, utility: true, saber: false });
+                        right, corner, jump: None, ranged: false, utility: true, saber: false, disc: false });
                 }
             }
         }
@@ -113,8 +115,23 @@ fn saber_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: false, utility: false, saber: true });
+                        right, corner, jump: None, ranged: false, utility: false, saber: true, disc: false });
                 }
+            }
+        }
+    }
+    result
+}
+
+fn disc_cases() -> Vec<Case> {
+    let mut result = Vec::new();
+    for response in [Response::Hit, Response::StandBlock, Response::CrouchBlock,
+        Response::Whiff, Response::Projectile] {
+        for corner in [false, true] {
+            for right in [true, false] {
+                result.push(Case { body: CharacterId::Kogan, move_id: MoveId::Guard,
+                    response, right, corner, jump: None, ranged: false, utility: false,
+                    saber: false, disc: true });
             }
         }
     }
@@ -123,7 +140,8 @@ fn saber_cases() -> Vec<Case> {
 
 impl Case {
     fn duration(self) -> u32 {
-        if self.saber && self.move_id == MoveId::Rekka3 { 180 }
+        if self.disc { 90 }
+        else if self.saber && self.move_id == MoveId::Rekka3 { 180 }
         else if self.ranged || self.utility || self.saber { 150 } else { LENGTH }
     }
 
@@ -159,7 +177,13 @@ impl Case {
         let gap = if self.response == Response::Whiff { 150 } else { 40 };
         let defender = if self.corner { 740 } else { 340 };
         let attacker = defender - gap;
-        let (attacker, defender) = if self.saber {
+        let (attacker, defender) = if self.disc {
+            let distance = match self.response {
+                Response::Whiff => 200, Response::Projectile => 150, _ => 40,
+            };
+            let defender = if self.corner { 740 } else { 500 };
+            (defender - distance, defender)
+        } else if self.saber {
             let distance = if self.move_id == MoveId::StHSClose { 40 }
                 else if self.response == Response::Whiff { 360 }
                 else if self.move_id == MoveId::StHS { 80 } else { 40 };
@@ -202,6 +226,33 @@ impl Case {
     }
 
     fn inputs(self, frame: u32) -> [InputFrame; 2] {
+        if self.disc {
+            let mut attacker = InputFrame::dir(match frame {
+                n if n == PRESS - 2 => 2,
+                n if n == PRESS - 1 => 1,
+                n if n == PRESS => 4,
+                _ => 5,
+            });
+            if frame == PRESS { attacker.buttons = Buttons::one(Btn::HS); }
+            let defender = if self.response == Response::Projectile {
+                // The established disc-vs-voice trial: answer the cast eight ticks later.
+                let mut input = InputFrame::dir(match frame {
+                    n if n == PRESS - 10 => 2,
+                    n if n == PRESS - 9 => 3,
+                    n if n == PRESS - 8 => 6,
+                    _ => 5,
+                });
+                if frame == PRESS - 8 { input.buttons = Buttons::one(Btn::HS); }
+                input
+            } else {
+                InputFrame::dir(match self.response {
+                    Response::StandBlock if frame >= PRESS => 4,
+                    Response::CrouchBlock => 1,
+                    _ => 5,
+                })
+            };
+            return [attacker, defender];
+        }
         if self.saber {
             let special = matches!(self.move_id, MoveId::Rekka1 | MoveId::Rekka2 | MoveId::Rekka3 | MoveId::ExA);
             let dp = self.move_id == MoveId::Uppercut;
@@ -322,7 +373,10 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let mut all = if args.iter().any(|a| a == "--kit-saber") {
+    let mut all = if args.iter().any(|a| a == "--kit-disc") {
+        assert!(body == CharacterId::Kogan, "disc cases cover Kogan");
+        disc_cases()
+    } else if args.iter().any(|a| a == "--kit-saber") {
         assert!(body == CharacterId::Kogan, "saber cases currently cover Kogan");
         saber_cases()
     } else if args.iter().any(|a| a == "--kit-utility") {
@@ -460,6 +514,41 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+
+    #[test]
+    fn disc_preview_covers_close_contact_and_legal_projectile_absorption() {
+        for case in disc_cases() {
+            let mut world = case.world();
+            let mut started = false;
+            let mut drawings = std::collections::HashSet::new();
+            let mut hits = 0; let mut blocks = 0; let mut absorbed = 0;
+            for frame in 0..case.duration() {
+                let [p1, p2] = case.inputs_for_world(frame, &world);
+                world.tick(p1, p2);
+                if let Some(cell) = crate::sequences::disc_cell(&world.fighters[0]) { drawings.insert(cell); }
+                started |= world.fighters[0].action.attacking().is_some_and(|(id, _, _)| id == MoveId::Guard);
+                for e in &world.events {
+                    hits += usize::from(matches!(e.kind, EventKind::Hit | EventKind::Punish | EventKind::Knockdown));
+                    blocks += usize::from(e.kind == EventKind::Block);
+                    absorbed += usize::from(e.kind == EventKind::ProjectileGuard);
+                }
+            }
+            assert_eq!(drawings.len(), 4, "{case:?}: all disc phases");
+            assert!(started, "{case:?}: legal disc input");
+            match case.response {
+                Response::Hit => assert!(hits > 0 && blocks == 0 && absorbed == 0, "{case:?}"),
+                Response::StandBlock | Response::CrouchBlock => assert!(hits == 0 && blocks > 0 && absorbed == 0, "{case:?}"),
+                Response::Whiff => assert_eq!((hits, blocks, absorbed), (0, 0, 0), "{case:?}"),
+                Response::Projectile => {
+                    assert_eq!((hits, blocks, absorbed), (0, 0, 1), "{case:?}: glyph absorbed");
+                    assert_eq!(world.fighters[0].health, world.fighters[0].data().max_health);
+                    assert!(world.projectiles.is_empty());
+                }
+                _ => unreachable!(),
+            }
+            assert!(world.fighters.iter().all(|f| f.action.actionable()), "{case:?}: full recovery");
         }
     }
 
