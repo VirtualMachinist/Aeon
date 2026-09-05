@@ -96,6 +96,27 @@ pub const KOGAN_REACTIONS: [Spec; 12] = [
     ([0, 700, 365, 1086], 220, 311), ([365, 700, 720, 1086], 565, 311),
     ([720, 700, 1075, 1086], 901, 311), ([1075, 700, 1448, 1086], 1228, 319),
 ];
+// Shared unfolded anatomy and projected air roots keep tucked feet from
+// moving the body origin. Aim aligns with the existing downward projectile.
+pub const KOGAN_AIR_SHOT: [Spec; 4] = [
+    ([0, 0, 627, 560], 430, 530), ([627, 0, 1254, 560], 940, 530),
+    ([0, 560, 627, 1254], 390, 530), ([627, 560, 1254, 1254], 930, 530),
+];
+pub const KOGAN_AIR_SHOT_ROOT_Y: [Option<u16>; 4] = [
+    Some(610), Some(656), Some(1190), Some(1170),
+];
+
+pub fn air_shot_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan || !f.airborne { return None; }
+    if let Action::Attack { move_id: MoveId::AirShot, frame, .. } = f.action {
+        let first = f.data().move_def(MoveId::AirShot)?.first_active();
+        return Some(Cell::AirShot(if frame < first / 2 { 0 }
+            else if frame <= first { 1 }
+            else if frame < first + 3 { 2 } else { 3 }));
+    }
+    None
+}
+
 // Judgment gathers, extends and withdraws its two weapons during the existing rush.
 pub const KOGAN_JUDGMENT: [Spec; 4] = [
     ([0, 0, 670, 480], 340, 445), ([670, 0, 1536, 480], 1000, 445),
@@ -449,6 +470,8 @@ mod tests {
     #[test]
     fn authored_regions_preserve_complete_silhouettes_and_effects() {
         for (name, reference, specs) in [
+            ("kogan-air-shot-v3-green.png", (1254, 1254), &KOGAN_AIR_SHOT[..3]),
+            ("kogan-air-shot-v1-green.png", (1254, 1254), &KOGAN_AIR_SHOT[3..]),
             ("kogan-judgment-v3-green.png", (1536, 1024), &KOGAN_JUDGMENT[..]),
             ("kogan-floor-v1-green.png", (1536, 1024), &KOGAN_FLOOR[..]),
             ("kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL[..]),
@@ -489,6 +512,32 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn air_gun_drawings_release_once_and_yield_immediately_to_landing() {
+        for facing in [false, true] {
+            let mut f = Fighter::spawn(CharacterId::Kogan, px(200), facing);
+            f.airborne = true;
+            let mv = f.data().move_def(MoveId::AirShot).unwrap();
+            let first = mv.first_active();
+            let total = mv.total_frames();
+            for frame in 0..total {
+                f.action = Action::Attack { move_id: MoveId::AirShot, frame, connected: Connect::None };
+                let expected = if frame < 4 { 0 } else if frame <= first { 1 }
+                    else if frame < first + 3 { 2 } else { 3 };
+                assert_eq!(air_shot_cell(&f), Some(Cell::AirShot(expected)));
+            }
+            for action in [Action::Stand, Action::Landing { frame: 0, total: 2 },
+                Action::Hit { stun: 8, knockdown: false }] {
+                f.action = action;
+                assert_eq!(air_shot_cell(&f), None, "a new legal state owns its drawing");
+            }
+        }
+        let mut raya = Fighter::spawn(CharacterId::Raya, px(200), true);
+        raya.airborne = true;
+        raya.action = Action::Attack { move_id: MoveId::AirShot, frame: 8, connected: Connect::None };
+        assert_eq!(air_shot_cell(&raya), None);
     }
 
     #[test]

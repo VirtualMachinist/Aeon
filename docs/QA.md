@@ -198,3 +198,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART17 | Dual-weapon gather, commitment, withdrawal and reholster | Four V3 drawings; complete baseline/candidate/corrected 16-case matrices at 1× (40s each), both facings at center/corners. Standing and crouching guard plus holster boundaries stepped. Full weapons/cape, separated faces and clean legal return. `judgment_preview_uses_legal_metered_input_and_covers_hit_guard_and_miss` and `judgment_keeps_a_crouched_receiver_visible_for_either_player` verify legal input, consequences, active-only extension, freeze, recovery and ordering. |
 
 133 tests pass (89 sim + 44 client), clippy and locked/offline release pass. All 2,400 final and 2,100 integration ticks match baseline. Complete new 35s integration playback reviewed; repeat smoke supplies all eight images, byte-identical to prior inspected evidence. S2/A2 refraction, rejected holster edits, exact paused ticks and archive paths are in the full-kit report. Remaining Kogan attacks/air/tech/feint/victory and Raya remain open.
+
+## September 5 Kogan airborne revolver review
+
+| ID | Check | Evidence |
+|---|---|---|
+| ART18 | Air gun intent, complete equipment, downward release and legal landing | Four selected V3/V1 drawings; all 32 before/final cases / 80s each viewed at 1×, hop/full, both facings at center/corners. Release, mirrored contact and exact landing ticks stepped. Air fixture tests all 224 legal loaded/empty air inputs; selector, muzzle-freeze, projected-tail and source-boundary regressions pass. Six air normals remain visually open. |
+
+137 tests pass (89 sim + 48 client), clippy and locked/offline release pass. All 4,800 final, 300 focused and 2,100 integration ticks match baseline. Complete new 35s integration playback reviewed; eight fresh smoke images match preceding inspected Judgment evidence. S1/S2/A2/G1 refraction, excluded malformed cells, exact paused ticks and archive paths are in the full-kit report. Remaining Kogan attacks/tech/feint/victory/air juggles and Raya stay open.

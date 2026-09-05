@@ -45,6 +45,7 @@ struct Case {
     right: bool,
     corner: bool,
     jump: Option<(u8, bool)>,
+    air: bool,
     ranged: bool,
     utility: bool,
     saber: bool,
@@ -59,7 +60,7 @@ fn cases(body: CharacterId) -> Vec<Case> {
         for response in RESPONSES {
             for corner in [false, true] {
                 for right in [true, false] {
-                    result.push(Case { body, move_id, response, right, corner, jump: None, ranged: false, utility: false, saber: false, disc: false, reaction: false, ground: None });
+                    result.push(Case { body, move_id, response, right, corner, jump: None, air: false, ranged: false, utility: false, saber: false, disc: false, reaction: false, ground: None });
                 }
             }
         }
@@ -74,7 +75,25 @@ fn movement_cases(body: CharacterId) -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body, move_id: MoveId::StP,
-                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), ranged: false, utility: false, saber: false, disc: false, reaction: false, ground: None });
+                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), air: false, ranged: false, utility: false, saber: false, disc: false, reaction: false, ground: None });
+                }
+            }
+        }
+    }
+    result
+}
+
+fn air_cases() -> Vec<Case> {
+    let mut result = Vec::new();
+    for move_id in [MoveId::JP, MoveId::JK, MoveId::JS, MoveId::JHS, MoveId::JFL, MoveId::JST, MoveId::AirShot] {
+        for hop in [true, false] {
+            for response in [Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff] {
+                for corner in [false, true] {
+                    for right in [true, false] {
+                        result.push(Case { body: CharacterId::Kogan, move_id, response, right, corner,
+                            jump: Some((8, hop)), air: true, ranged: false, utility: false,
+                            saber: false, disc: false, reaction: false, ground: None });
+                    }
                 }
             }
         }
@@ -89,7 +108,7 @@ fn ranged_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: true, utility: false, saber: false, disc: false, reaction: false, ground: None });
+                        right, corner, jump: None, air: false, ranged: true, utility: false, saber: false, disc: false, reaction: false, ground: None });
                 }
             }
         }
@@ -107,7 +126,7 @@ fn utility_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: false, utility: true, saber: false, disc: false, reaction: false, ground: None });
+                        right, corner, jump: None, air: false, ranged: false, utility: true, saber: false, disc: false, reaction: false, ground: None });
                 }
             }
         }
@@ -123,7 +142,7 @@ fn saber_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: false, utility: false, saber: true, disc: false, reaction: false, ground: None });
+                        right, corner, jump: None, air: false, ranged: false, utility: false, saber: true, disc: false, reaction: false, ground: None });
                 }
             }
         }
@@ -137,7 +156,7 @@ fn judgment_cases() -> Vec<Case> {
         for corner in [false, true] {
             for right in [true, false] {
                 result.push(Case { body: CharacterId::Kogan, move_id: MoveId::Super, response,
-                    right, corner, jump: None, ranged: false, utility: false, saber: true,
+                    right, corner, jump: None, air: false, ranged: false, utility: false, saber: true,
                     disc: false, reaction: false, ground: None });
             }
         }
@@ -152,7 +171,7 @@ fn disc_cases() -> Vec<Case> {
         for corner in [false, true] {
             for right in [true, false] {
                 result.push(Case { body: CharacterId::Kogan, move_id: MoveId::Guard,
-                    response, right, corner, jump: None, ranged: false, utility: false,
+                    response, right, corner, jump: None, air: false, ranged: false, utility: false,
                     saber: false, disc: true, reaction: false, ground: None });
             }
         }
@@ -168,7 +187,7 @@ fn ground_cases(body: CharacterId) -> Vec<Case> {
         for corner in [false, true] {
             for right in [true, false] {
                 result.push(Case { body, move_id: MoveId::StS, response: Response::Whiff,
-                    right, corner, jump: None, ranged: false, utility: false,
+                    right, corner, jump: None, air: false, ranged: false, utility: false,
                     saber: false, disc: false, reaction: false, ground: Some(ground) });
             }
         }
@@ -187,7 +206,7 @@ fn reaction_cases(victim: CharacterId) -> Vec<Case> {
         for corner in [false, true] {
             for right in [true, false] {
                 result.push(Case { body, move_id, response, right, corner, jump: None,
-                    ranged: false, utility: false, saber: false, disc: false,
+                    air: false, ranged: false, utility: false, saber: false, disc: false,
                     reaction: true, ground: None });
             }
         }
@@ -200,7 +219,7 @@ impl Case {
         if self.reaction { 150 }
         else if self.disc || self.ground.is_some() { 90 }
         else if self.saber && self.move_id == MoveId::Rekka3 { 180 }
-        else if self.ranged || self.utility || self.saber { 150 } else { LENGTH }
+        else if self.air || self.ranged || self.utility || self.saber { 150 } else { LENGTH }
     }
 
     fn label(self) -> String {
@@ -220,6 +239,11 @@ impl Case {
                 if self.response == Response::Whiff { "free travel" } else { "near opponent" },
                 if self.right { "right" } else { "left" },
                 if self.corner { "corner" } else { "center" });
+        }
+        if self.air {
+            return format!("KOGAN {:?} · {:?} · {} · {} · {}", self.move_id, self.response,
+                if self.jump.unwrap().1 { "hop" } else { "jump" },
+                if self.right { "right" } else { "left" }, if self.corner { "corner" } else { "center" });
         }
         if let Some((dir, hop)) = self.jump {
             return format!("{} {} dir {} · {} · {}", self.body.name(),
@@ -244,10 +268,16 @@ impl Case {
         };
         let mut world = World::new(self.body, opponent);
         if self.move_id == MoveId::Super { world.fighters[0].meter = 1000; }
+        if self.air && self.move_id == MoveId::JFL { world.fighters[0].gauge = 0; }
         let gap = if self.response == Response::Whiff { 150 } else { 40 };
         let defender = if self.corner { 740 } else { 340 };
         let attacker = defender - gap;
-        let (attacker, defender) = if self.reaction {
+        let (attacker, defender) = if self.air {
+            let defender = if self.corner { 740 } else { 500 };
+            let gap = if self.response == Response::Whiff { 360 }
+                else if self.move_id == MoveId::AirShot { if self.jump.unwrap().1 { 100 } else { 140 } } else { 35 };
+            (defender - gap, defender)
+        } else if self.reaction {
             let defender = if self.corner { 740 } else { 500 };
             (defender - 35, defender)
         } else if let Some(ground) = self.ground {
@@ -289,6 +319,27 @@ impl Case {
     // cannot make a fixed wall-clock script skip the later rekka actions.
     fn inputs_for_world(self, frame: u32, world: &World) -> [InputFrame; 2] {
         let mut inputs = self.inputs(frame);
+        if self.air {
+            let f = &world.fighters[0];
+            let attack_height = if self.move_id == MoveId::AirShot { 140 } else { 80 };
+            let ready = world.hitstop == 0 && f.vel.y <= 0 && f.pos.y <= px(attack_height)
+                && matches!(f.action, aeon_sim::Action::Jump { air_ok: true, .. });
+            if ready {
+                inputs[0].buttons = Buttons::one(match self.move_id {
+                    MoveId::JP => Btn::P, MoveId::JK => Btn::K, MoveId::JS => Btn::S,
+                    MoveId::JHS => Btn::HS, MoveId::JST => Btn::ST, _ => Btn::FL,
+                });
+            }
+            let guard = if self.move_id == MoveId::AirShot {
+                world.projectiles.iter().any(|p| p.owner == 0
+                    && (p.pos.x - world.fighters[1].pos.x).abs() <= px(50))
+                    || matches!(world.fighters[1].action, aeon_sim::Action::Block { .. })
+            } else { ready || f.action.attacking().is_some() };
+            inputs[1] = InputFrame::dir(match self.response {
+                Response::StandBlock if guard => 4,
+                Response::CrouchBlock => 1, _ => 5,
+            });
+        }
         if self.saber && world.hitstop == 0 {
             if let aeon_sim::Action::Attack { move_id, frame: action_frame, .. } = world.fighters[0].action {
                 let follow = move_id == MoveId::Rekka1 && matches!(self.move_id, MoveId::Rekka2 | MoveId::Rekka3)
@@ -504,7 +555,10 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let mut all = if args.iter().any(|a| a == "--kit-reaction") {
+    let mut all = if args.iter().any(|a| a == "--kit-air") {
+        assert!(body == CharacterId::Kogan, "air cases currently cover Kogan");
+        air_cases()
+    } else if args.iter().any(|a| a == "--kit-reaction") {
         reaction_cases(body)
     } else if args.iter().any(|a| a == "--kit-super") {
         assert!(body == CharacterId::Kogan, "judgment cases cover Kogan");
@@ -526,6 +580,11 @@ pub async fn run(assets: &Assets) {
     } else if args.iter().any(|a| a == "--kit-movement") {
         movement_cases(body)
     } else { cases(body) };
+    if let Some(name) = args.iter().find_map(|a| a.strip_prefix("--kit-jump=")) {
+        assert!(name == "hop" || name == "full", "--kit-jump must be hop or full");
+        all.retain(|case| case.jump.is_some_and(|(_, hop)| hop == (name == "hop")));
+        assert!(!all.is_empty(), "--kit-jump requires jumping cases");
+    }
     if let Some(name) = args.iter().find_map(|a| a.strip_prefix("--kit-ground-state=")) {
         all.retain(|case| case.ground.is_some_and(|g| format!("{g:?}") == name));
         assert!(!all.is_empty(), "--kit-ground-state must name a ground case");
@@ -622,6 +681,34 @@ pub async fn run(assets: &Assets) {
 mod tests {
     use super::*;
     use aeon_sim::{Action, EventKind};
+
+    #[test]
+    fn air_preview_recognizes_every_loaded_and_empty_cylinder_move() {
+        use aeon_sim::Action;
+        for case in air_cases() {
+            let mut world = case.world();
+            let initial_health = world.fighters[1].health;
+            let mut seen = false;
+            let mut blocked = false;
+            for frame in 0..case.duration() {
+                let inputs = case.inputs_for_world(frame, &world);
+                world.tick(inputs[0], inputs[1]);
+                seen |= matches!(world.fighters[0].action, Action::Attack { move_id, .. } if move_id == case.move_id);
+                blocked |= matches!(world.fighters[1].action, Action::Block { .. });
+            }
+            assert!(seen, "{} did not recognize its legal air input", case.label());
+            let damage = initial_health - world.fighters[1].health;
+            match case.response {
+                Response::Hit => assert!(damage > 0 && !blocked, "{}: damage {damage}, block {blocked}", case.label()),
+                Response::StandBlock => assert!(blocked, "{}: damage {damage}, no guard", case.label()),
+                Response::CrouchBlock if case.move_id == MoveId::AirShot => assert!(blocked, "{}: damage {damage}, no low guard", case.label()),
+                Response::CrouchBlock => assert!(damage > 0 && !blocked, "{}: high attack must defeat low guard", case.label()),
+                Response::Whiff => assert_eq!(damage, 0, "{}: spaced miss connected", case.label()),
+                _ => unreachable!(),
+            }
+            assert!(world.fighters.iter().all(|f| !f.airborne && f.action.actionable()), "{}: incomplete return", case.label());
+        }
+    }
 
     #[test]
     fn judgment_preview_uses_legal_metered_input_and_covers_hit_guard_and_miss() {

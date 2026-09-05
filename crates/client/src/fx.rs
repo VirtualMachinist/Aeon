@@ -23,6 +23,7 @@ pub enum FxKind {
     Feint,
     ExRing,
     Muzzle,
+    AirMuzzle,
     Cast,
     DiscGuard,
     Clash,
@@ -54,7 +55,7 @@ impl Fx {
             FxKind::RcRing => 14,
             FxKind::Feint => 9,
             FxKind::ExRing => 9,
-            FxKind::Muzzle => 4,
+            FxKind::Muzzle | FxKind::AirMuzzle => 4,
             FxKind::Cast => 9,
             FxKind::DiscGuard => 10,
             FxKind::Clash => 10,
@@ -251,10 +252,12 @@ impl Effects {
                         if let Some(def) = mv.projectile {
                             if advanced && *frame == mv.startup as u16 {
                                 let spawn = def.spawn.to_world(f.pos, f.facing_right);
-                                let kind = if f.id == CharacterId::Kogan
+                                let kind = if f.id == CharacterId::Kogan && *move_id == MoveId::AirShot {
+                                    FxKind::AirMuzzle
+                                } else if f.id == CharacterId::Kogan
                                     && matches!(
                                         move_id,
-                                        MoveId::ShotA | MoveId::ExB | MoveId::AirShot
+                                        MoveId::ShotA | MoveId::ExB
                                     ) {
                                     FxKind::Muzzle
                                 } else {
@@ -425,10 +428,11 @@ fn draw_fx(v: &View, fx: &Fx, t: f32) {
             v.poly_lines(c.x, c.y, 6, 8.0 + 44.0 * ease_out(t), 30.0, 2.5, Color { a: fade, ..CYAN });
             v.circle(c.x, c.y, 10.0 * fade, Color { a: 0.7 * fade, ..CYAN });
         }
-        FxKind::Muzzle => {
+        FxKind::Muzzle | FxKind::AirMuzzle => {
             v.circle(c.x, c.y, 12.0 * fade + 4.0, Color { a: fade, ..LINEN });
             for k in 0..3 {
-                let ang = (k as f32 - 1.0) * 0.35;
+                let ang = (k as f32 - 1.0) * 0.35
+                    + if fx.kind == FxKind::AirMuzzle { std::f32::consts::FRAC_PI_4 } else { 0.0 };
                 let len = 26.0 + 14.0 * t;
                 v.line(c.x, c.y, c.x + dir * ang.cos() * len, c.y + ang.sin() * len, 3.0, Color { a: fade, ..CYAN });
             }
@@ -523,6 +527,34 @@ mod tests {
             effects.after_tick(&w);
         }
         assert_eq!(effects.fx.iter().filter(|fx| matches!(fx.kind, FxKind::Dust { .. })).count(), 1);
+    }
+
+    #[test]
+    fn air_muzzle_uses_the_existing_spawn_and_freezes_for_both_facings() {
+        for facing in [false, true] {
+            let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
+            let f = &mut w.fighters[0];
+            f.facing_right = facing;
+            f.airborne = true;
+            f.pos.y = aeon_sim::px(200);
+            f.start_move(MoveId::AirShot);
+            let mut effects = Effects::default();
+            for _ in 0..8 {
+                w.tick(InputFrame::default(), InputFrame::default());
+                effects.after_tick(&w);
+            }
+            let f = &w.fighters[0];
+            let muzzle = effects.fx.iter().find(|fx| fx.kind == FxKind::AirMuzzle).unwrap();
+            assert_eq!(muzzle.facing_right, facing);
+            assert_eq!(muzzle.x, sub(f.pos.x) + if facing { 20.0 } else { -20.0 });
+            assert_eq!(muzzle.y, sub(f.pos.y) + 48.0);
+            w.hitstop = 6;
+            for _ in 0..6 {
+                w.tick(InputFrame::default(), InputFrame::default());
+                effects.after_tick(&w);
+            }
+            assert_eq!(effects.fx.iter().filter(|fx| fx.kind == FxKind::AirMuzzle).count(), 1);
+        }
     }
 
     #[test]

@@ -436,6 +436,12 @@ fn draw_layer(v: &View, sprites: &SpriteSet, l: &Layer, stand_h: f32, flash: &Fl
     true
 }
 
+// World y points up; the screen points down. A tail points opposite travel
+// in both axes, retaining the established width-based length for level shots.
+fn bullet_tail(velocity: aeon_sim::Vec2i, half_width: f32) -> Vec2 {
+    vec2(-sub_to_px(velocity.x), sub_to_px(velocity.y)).normalize_or_zero() * half_width * 2.5
+}
+
 pub fn draw_projectiles(v: &View, w: &World, show_boxes: bool, frame: u32) {
     for p in &w.projectiles {
         let b = p.hitbox();
@@ -447,8 +453,8 @@ pub fn draw_projectiles(v: &View, w: &World, show_boxes: bool, frame: u32) {
             ProjectileKind::Revolver | ProjectileKind::AirShot => {
                 v.circle(c.x, c.y, hh * 0.45, Color::new(1.0, 0.95, 0.7, 0.9));
                 v.circle(c.x, c.y, hh * 0.9, Color::new(0.35, 0.9, 1.0, 0.35));
-                let dir = if p.vel.x >= 0 { -1.0 } else { 1.0 };
-                v.line(c.x, c.y, c.x + dir * hw * 2.5, c.y - p.vel.y as f32 / SUB as f32 * WS * 2.0, 3.0, Color::new(0.35, 0.9, 1.0, 0.5));
+                let tail = bullet_tail(p.vel, hw);
+                v.line(c.x, c.y, c.x + tail.x, c.y + tail.y, 3.0, Color::new(0.35, 0.9, 1.0, 0.5));
             }
             ProjectileKind::Wave => {
                 let dir = if p.vel.x >= 0 { 1.0 } else { -1.0 };
@@ -719,6 +725,20 @@ pub fn draw_match_overlay(v: &View, m: &Match, frame: u32) {
 mod framing_tests {
     use super::*;
     use aeon_sim::px;
+
+    #[test]
+    fn bullet_tail_opposes_projected_travel_for_both_facings() {
+        for vx in [-6, 6] {
+            for vy in [-6, 0, 6] {
+                let tail = bullet_tail(aeon_sim::Vec2i::new(px(vx), px(vy)), 9.0);
+                let travel = vec2(vx as f32, -vy as f32);
+                assert!(tail.dot(travel) < 0.0);
+                assert!((tail.x * travel.y - tail.y * travel.x).abs() < 0.001);
+                assert!((tail.length() - 22.5).abs() < 0.001);
+            }
+        }
+        assert_eq!(bullet_tail(aeon_sim::Vec2i::new(0, 0), 9.0), Vec2::ZERO);
+    }
 
     #[test]
     fn both_stage_walls_leave_room_for_a_reaction_without_changing_zoom() {
