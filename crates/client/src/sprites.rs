@@ -177,6 +177,8 @@ pub struct SpriteSet {
     poke: Option<crate::sequences::Atlas>,
     disc: Option<crate::sequences::Atlas>,
     judgment: Option<crate::sequences::Atlas>,
+    air_shot: Option<crate::sequences::Atlas>,
+    air_shot_return: Option<crate::sequences::Atlas>,
     floor: Option<crate::sequences::Atlas>,
     recoil: Option<crate::sequences::Atlas>,
     ground: Option<crate::sequences::Atlas>,
@@ -209,6 +211,7 @@ pub enum Cell {
     Poke(usize),
     Disc(usize),
     Judgment(usize),
+    AirShot(usize),
     Floor(usize),
     Recoil(usize),
     Ground(usize),
@@ -401,6 +404,15 @@ impl SpriteSet {
         let ground = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND).await
         } else { None };
+        let air_shot = if body == CharacterId::Kogan {
+            Atlas::load_with_roots("assets/animation/kogan-air-shot-v3-green.png", (1254, 1254),
+                &KOGAN_AIR_SHOT[..3], &KOGAN_AIR_SHOT_ROOT_Y[..3]).await
+        } else { None };
+        // Keep the original sound return; later edits damaged that source cell.
+        let air_shot_return = if body == CharacterId::Kogan {
+            Atlas::load_with_roots("assets/animation/kogan-air-shot-v1-green.png", (1254, 1254),
+                &KOGAN_AIR_SHOT[3..], &KOGAN_AIR_SHOT_ROOT_Y[3..]).await
+        } else { None };
         let judgment = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-judgment-v3-green.png", (1536, 1024), &KOGAN_JUDGMENT).await
         } else { None };
@@ -410,7 +422,7 @@ impl SpriteSet {
         let recoil = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, floor, recoil, ground, walk, coil, movement, ranged, utility }
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, floor, recoil, ground, walk, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -428,6 +440,8 @@ impl SpriteSet {
             poke: None,
             disc: None,
             judgment: None,
+            air_shot: None,
+            air_shot_return: None,
             floor: None,
             recoil: None,
             ground: None,
@@ -468,6 +482,9 @@ impl SpriteSet {
 
     /// The picture for this fighter on this simulation tick.
     pub fn cell_for(&self, fighter: &Fighter, tick: u32) -> Cell {
+        if self.air_shot.is_some() && self.air_shot_return.is_some() {
+            if let Some(cell) = crate::sequences::air_shot_cell(fighter) { return cell; }
+        }
         if self.judgment.is_some() {
             if let Some(cell) = crate::sequences::judgment_cell(fighter) { return cell; }
         }
@@ -529,6 +546,8 @@ impl SpriteSet {
             Cell::Movement(cell) => self.movement.as_ref()?.frame(cell),
             Cell::Ranged(cell) => self.ranged.as_ref()?.frame(cell),
             Cell::Utility(cell) => self.utility.as_ref()?.frame(cell),
+            Cell::AirShot(3) => self.air_shot_return.as_ref()?.frame(0),
+            Cell::AirShot(cell) => self.air_shot.as_ref()?.frame(cell),
             Cell::Judgment(cell) => self.judgment.as_ref()?.frame(cell),
             Cell::Floor(cell) => self.floor.as_ref()?.frame(cell),
             Cell::Recoil(cell) => self.recoil.as_ref()?.frame(cell),
