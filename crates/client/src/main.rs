@@ -8,6 +8,7 @@ mod preview;
 mod render;
 mod replay;
 mod sprites;
+mod sequences;
 mod timing;
 
 use aeon_sim::input::{Btn, Chord};

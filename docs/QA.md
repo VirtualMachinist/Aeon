@@ -91,6 +91,16 @@ These are evidence requirements, not an assertion that the full game has passed 
 | FX1 | Impact reads without the camera | `fx.rs`: sparks, dust, rings and flashes spawn from `World::events` and state transitions, live in simulation frames, hold through hitstop. Reaction scene test `preview.rs::reaction_review_launches_grabs_and_lands_the_super`. No camera shake, zoom or slowdown. |
 | FX2 | Frozen effects and training resets | `fx.rs::tests::frozen_cast_and_landing_spawn_once` reproduces a freeze on a cast/landing frame; one release makes one effect. `roman_cancel_on_an_unchanged_world_frame_still_spawns_once` covers RC without advancing `World::frame`. F3/F4/F5 and successful F11 playback clear presentation history immediately, including while paused; inspect reset/frame-step in training. |
 
+## September 5 reaction animation checks
+
+| ID | Gate | Evidence |
+|---|---|---|
+| ART5 | Authored reaction/recovery and reversal drawings | `sequences.rs`: 32 selected drawings across five assets, source regions and anatomical scales; `authored_regions_preserve_complete_silhouettes_and_effects` checks the actual PNG boundaries. Review stand/crouch recoil, rise/fall, floor/getup and landing for both bodies. Grounded recoil remains one drawing per stance; full-kit animation is still incomplete. |
+| ART6 | Reversal continuity through the full airborne action | `reversal_art_follows_startup_rise_apex_and_descent_for_both_facings`, `an_uppercut_keeps_its_descent_drawing_after_attack_expiry`, and `anim.rs::authored_falling_and_reversal_drawings_are_not_rotated_twice`. Review the end of Kogan's attack frames through the remaining committed fall and landing. |
+| ART7 | Floor contact, keying and corner visibility | `a_throw_reaction_reaches_the_floor_and_all_getup_drawings_without_changing_the_sim`; key/despill tests preserve cyan, linen, copper and existing alpha. `render.rs::both_stage_walls_leave_room_for_a_reaction_without_changing_zoom`. Inspect scenes 6/7 tick 150 and scene 7 tick 300; fixed wall margins and backdrop overscan leave room for silhouettes. No camera effects. |
+
+Pass report: crate `docs/REACTIONS-2026-09-05.md` and vault [[Aeon/notes/2026-09-05-reaction-pass]]. These gates establish incremental coverage, not full animation or competitive acceptance. Legal 0f hop / 2f jump and move-specific landing recovery are unchanged.
+
 Animation atlas provenance: `crates/client/assets/animation/PROMPTS.md` and vault `art/fight-ready/animation/`. Generated sheets are keyed once in the client; original plates remain unsliced. Pass evidence: [[Aeon/notes/2026-09-05-polish-pass]].
 
 Latest independent review: crate `docs/QA-MOTION-2026-09-05.md` and vault [[Aeon/notes/2026-09-05-motion-qa]].

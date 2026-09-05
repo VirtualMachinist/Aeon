@@ -170,6 +170,9 @@ pub struct SpriteSet {
     body: CharacterId,
     atlas: Option<Texture2D>,
     thrust: Option<Texture2D>,
+    reactions: Option<crate::sequences::Atlas>,
+    uppercut: Option<crate::sequences::Atlas>,
+    coil: Option<crate::sequences::Atlas>,
 }
 
 /// A source rectangle and its foot anchor. Geometry stays in the sim.
@@ -188,6 +191,8 @@ pub enum Cell {
     Pose(Pose),
     Atlas(usize),
     Thrust(usize),
+    Reaction(usize),
+    Uppercut(usize),
 }
 
 // Foot anchors measured from the generated sheets, including their uneven
@@ -231,16 +236,37 @@ const RAYA_ANCHORS: [(f32, f32); 16] = [
 
 /// Extract the technical green background once at load, preserving cyan
 /// writing and Raya's linen. Source sheets and provenance remain intact.
-fn key_green(image: &mut Image) {
+pub(crate) fn key_green(image: &mut Image) {
     for rgba in image.bytes.chunks_exact_mut(4) {
         let other = rgba[0].max(rgba[2]);
         let dominance = i16::from(rgba[1]) - i16::from(other);
         if dominance > 90 && rgba[1] > 140 {
             rgba[3] = 0;
-        } else if dominance > 35 && rgba[1] > 110 {
-            let coverage = 1.0 - (dominance - 35) as f32 / 55.0;
+        } else if dominance > 18 && rgba[1] > 85 {
+            let coverage = 1.0 - (dominance - 18) as f32 / 72.0;
             rgba[3] = (rgba[3] as f32 * coverage.clamp(0.0, 1.0)) as u8;
             rgba[1] = other;
+        } else if dominance > 4 && rgba[1] > 65 {
+            // Weak key spill can survive on already-antialiased copper edges.
+            // Desaturate the key channel without eroding their existing alpha.
+            rgba[1] = other;
+        }
+    }
+    // Green mixed into copper can become yellow after the first despill.
+    // Correct only warm edge pixels adjacent to transparent background, leaving
+    // interior gold ornament, linen and blue/cyan writing untouched.
+    let width = image.width as usize;
+    let height = image.height as usize;
+    let alpha: Vec<_> = image.bytes.chunks_exact(4).map(|p| p[3]).collect();
+    for y in 1..height.saturating_sub(1) {
+        for x in 1..width.saturating_sub(1) {
+            let i = y * width + x;
+            let p = &mut image.bytes[i * 4..i * 4 + 4];
+            if p[3] > 0 && u16::from(p[1]) * 100 > u16::from(p[0]) * 70
+                && u16::from(p[1]) > u16::from(p[2]) + 15
+                && [i - 1, i + 1, i - width, i + width].iter().any(|&n| alpha[n] < 24) {
+                p[1] = ((u16::from(p[0]) * 65 / 100) as u8).max(p[2]);
+            }
         }
     }
 }
@@ -254,7 +280,9 @@ impl SpriteSet {
         let mut textures = HashMap::new();
         for pose in Pose::ALL {
             let path = format!("assets/{dir}/{}.png", pose.file());
-            if let Ok(tex) = load_texture(&path).await {
+            if let Ok(mut image) = load_image(&path).await {
+                key_green(&mut image);
+                let tex = Texture2D::from_image(&image);
                 tex.set_filter(FilterMode::Linear);
                 textures.insert(pose, tex);
             }
@@ -290,12 +318,19 @@ impl SpriteSet {
         } else {
             None
         };
-        Self {
-            textures,
-            body,
-            atlas,
-            thrust,
-        }
+        use crate::sequences::*;
+        let (reaction_roots, uppercut_roots) = match body {
+            CharacterId::Kogan => (&KOGAN_REACTIONS, &KOGAN_UPPERCUT),
+            CharacterId::Raya => (&RAYA_REACTIONS, &RAYA_UPPERCUT),
+        };
+        let reactions = Atlas::load(&format!("assets/animation/{dir}-reactions-v1-green.png"),
+            (1448, 1086), reaction_roots).await;
+        let uppercut = Atlas::load(&format!("assets/animation/{dir}-uppercut-v1-green.png"),
+            (1254, 1254), uppercut_roots).await;
+        let coil = if body == CharacterId::Kogan {
+            Atlas::load("assets/animation/kogan-uppercut-coil-v1-green.png", (1254, 1254), &KOGAN_COIL).await
+        } else { None };
+        Self { textures, body, atlas, thrust, reactions, uppercut, coil }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -306,6 +341,9 @@ impl SpriteSet {
             body,
             atlas: None,
             thrust: None,
+            reactions: None,
+            uppercut: None,
+            coil: None,
         }
     }
 
@@ -330,6 +368,12 @@ impl SpriteSet {
 
     /// The picture for this fighter on this simulation tick.
     pub fn cell_for(&self, fighter: &Fighter, tick: u32) -> Cell {
+        if let Some(cell) = crate::sequences::cell_for(fighter) {
+            if matches!(cell, Cell::Reaction(_)) && self.reactions.is_some()
+                || matches!(cell, Cell::Uppercut(_)) && self.uppercut.is_some() {
+                return cell;
+            }
+        }
         if let Some(cell) = animation_cell(fighter, tick) {
             let thrust = matches!(
                 fighter.action,
@@ -351,6 +395,9 @@ impl SpriteSet {
     /// Resolve a cell to its texture, source rectangle and foot anchor.
     pub fn frame(&self, cell: Cell) -> Option<SpriteFrame<'_>> {
         match cell {
+            Cell::Reaction(cell) => self.reactions.as_ref()?.frame(cell),
+            Cell::Uppercut(0) if self.coil.is_some() => self.coil.as_ref()?.frame(0),
+            Cell::Uppercut(cell) => self.uppercut.as_ref()?.frame(cell),
             Cell::Thrust(cell) => {
                 let texture = self.thrust.as_ref()?;
                 let cell = cell % 4;
@@ -606,6 +653,29 @@ mod tests {
         f.start_move(MoveId::ExA);
         assert_eq!(pose_for(&f), Pose::Rekka1);
         assert_eq!(animation_cell(&f, 0), Some(4));
+    }
+
+    #[test]
+    fn keying_despills_existing_translucent_edges_without_increasing_alpha() {
+        let mut image = Image { width: 3, height: 1,
+            bytes: vec![70, 125, 88, 96, 184, 115, 51, 160, 100, 112, 30, 80] };
+        key_green(&mut image);
+        assert_eq!(image.bytes[1], 88);
+        assert!(image.bytes[3] > 0 && image.bytes[3] < 96);
+        assert_eq!(&image.bytes[4..8], &[184, 115, 51, 160], "copper stays intact");
+        assert_eq!(&image.bytes[8..], &[100, 100, 30, 80], "weak spill loses green, not alpha");
+    }
+
+    #[test]
+    fn warm_edge_despill_preserves_interior_ornament_and_shape() {
+        let copper_edge = [170, 170, 35, 255];
+        let mut image = Image { width: 3, height: 3, bytes: vec![0; 36] };
+        image.bytes[16..20].copy_from_slice(&copper_edge);
+        key_green(&mut image);
+        assert_eq!(&image.bytes[16..20], &[170, 110, 35, 255]);
+        let mut interior = Image { width: 3, height: 3, bytes: copper_edge.repeat(9) };
+        key_green(&mut interior);
+        assert_eq!(&interior.bytes[16..20], &copper_edge);
     }
 
     #[test]
