@@ -92,3 +92,5 @@ Normal throw and tech: reviewed cape-step reuse plus two new supported disengage
 Feints reuse reviewed equipment withdrawal and ready drawings. [Exact reused cells and acceptance](KOGAN-FEINT-2026-09-05.md). No new bitmap generated; all 88 final cases and integration reviewed at original timing.
 
 Kogan victory V1: four complete draw/raise/settle/hold drawings. [Exact prompt, original, regions and acceptance](KOGAN-VICTORY-2026-09-05.md). Real KO, supported entry and reset reviewed at original timing.
+
+Both-body KO reuses existing recoil, airborne and floor/support drawings with no new generation. [Exact reuse and review](KO-CONTINUITY-2026-09-05.md). Grounded collapse, actual landing, sustained floor and reset reviewed without simulation changes.

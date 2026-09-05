@@ -275,3 +275,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART26 | Complete equipment and coherent supported entry into winner hold | Four new V1 drawings; all 16 before/final legal KO cases / 64s each viewed at 1× in 1280×720. Standing/airborne/crouched finishes, next round and rematch, both facings at center/corners. Corrected two-tick crouch rise and full gun phases stepped. |
 
 159 tests (89 sim + 70 client), clippy with warnings denied and locked/offline release pass. All 3,840 final and 2,100 integration ticks equal baseline; full new 35s integration viewed. Eight smoke PNGs retained, four identical and four changed pairs directly reviewed as wall-clock/menu sampling. Final rise correction was recaptured in all four relevant cases; the retained integration and Raya-winner smoke do not enter that branch. S2/G2/A1 informs supported weapon return, not a claim of commercial victory behavior. This accepts Kogan's winner gesture; defeated-body idle/getup remains open and is the next presentation correction. Remaining kits and physical play stay open.
+
+## September 5 both-body KO review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART27 | Defeated bodies retain consequence through grounded collapse, actual landing and match end | All 48 before/final real KO cases / 192s each viewed at 1× in 1280×720. Both bodies, facings and corners; standing/crouched hits, sweep, launch, throws, next round and rematch. Corrected eight-case grounded sweep / 32s recaptured and fully viewed. Support, landing and former getup boundaries stepped. |
+
+165 tests (89 sim + 76 client), clippy with warnings denied and locked/offline release pass. All 11,520 final and 2,100 integration ticks equal baseline; full new 35s integration viewed. All eight smoke PNGs equal preceding inspected victory evidence. Integration/smoke do not enter the narrowly corrected grounded-sweep collapse branch; all affected cases were recaptured. Existing reaction/floor art is deliberately reused; A1/G2/S2 informs victim consequence, not a claim of commercial KO behavior. Legacy close low-attack art, Raya living-body trails/HUD overlap, remaining kits and physical play stay open. Full details: full-kit report and ko-verification.json.

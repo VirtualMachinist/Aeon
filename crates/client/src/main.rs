@@ -10,6 +10,7 @@ mod render;
 mod replay;
 mod sprites;
 mod sequences;
+mod defeat;
 mod timing;
 
 use aeon_sim::input::{Btn, Chord};
@@ -107,6 +108,7 @@ struct Presentation {
     history: History,
     effects: Effects,
     victory: anim::VictoryClock,
+    defeat: defeat::Clock,
 }
 
 impl Presentation {
@@ -114,6 +116,7 @@ impl Presentation {
         self.history.reset();
         self.effects.reset();
         self.victory = anim::VictoryClock::default();
+        self.defeat = defeat::Clock::default();
     }
 
     /// Once after every simulation tick, frozen ticks included.
@@ -139,6 +142,7 @@ impl Presentation {
                 &self.history,
                 &LayerOpts {
                     win: self.victory.age(i),
+                    defeat: self.defeat.cell(w,i),
                     flash: self.effects.flash(i),
                 },
             );
@@ -351,9 +355,11 @@ async fn main() {
                     m.tick(p1, p2);
                     if m.world.frame < prior { pres.reset(); }
                     pres.victory.update(&m.world, m.phase);
+                    pres.defeat.update(&m.world, m.phase);
                     pres.after_tick(&assets, &m.world);
                 }
                 pres.victory.update(&m.world, m.phase);
+                pres.defeat.update(&m.world, m.phase);
                 view.follow(&m.world);
                 assets.stage.draw(&view, m.world.frame);
                 pres.draw(&view, &assets, &m.world, false);

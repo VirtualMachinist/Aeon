@@ -264,6 +264,8 @@ pub struct Layer {
 pub struct LayerOpts {
     /// Elapsed winner drawing ticks, present only after the body has recovered.
     pub win: Option<u32>,
+    /// Zero-health consequence selected by the match presentation clock.
+    pub defeat: Option<Cell>,
     /// Body flash from the effects layer: strength and colour.
     pub flash: (f32, Color),
 }
@@ -314,7 +316,16 @@ pub fn layers(
         cell = crate::sequences::victory_cell(f, age)
             .filter(|&cell| sprites.frame(cell).is_some()).unwrap_or(Cell::Pose(Pose::Win));
     }
-    let mut m = motion(f, w);
+    if let Some(down) = opts.defeat {
+        cell = if sprites.frame(down).is_some() { down } else {
+            Cell::Pose(match down {
+                Cell::Floor(0) | Cell::Reaction(4) => Pose::Down,
+                Cell::Floor(_) | Cell::Reaction(5..=7) => Pose::Getup,
+                _ => Pose::Hurt,
+            })
+        };
+    }
+    let mut m = if opts.defeat.is_some() { Motion::REST } else { motion(f, w) };
     respect_authored_drawing(f.id, cell, &mut m);
 
     // Hitstop: the struck body shudders in place, the striker leans on
@@ -363,14 +374,15 @@ pub fn layers(
     }
 
     // The hurt tint yields to a flash so a clean hit reads white, not pink.
+    let settling = matches!(opts.defeat,Some(Cell::Floor(_) | Cell::Reaction(4..=7)));
     let tint = match f.action {
-        Action::Hit { .. } | Action::Thrown { .. } if opts.flash.0 < 0.3 => HURT_TINT,
+        Action::Hit { .. } | Action::Thrown { .. } if !settling && opts.flash.0 < 0.3 => HURT_TINT,
         _ => WHITE,
     };
 
     // A tumbling or floored body cuts rather than fades: the previous
     // upright picture has no honest place over a body lying flat.
-    let cuts = matches!(f.action, Action::Knockdown { .. }) || (f.airborne && f.action.in_hitstun());
+    let cuts = opts.defeat.is_some() || matches!(f.action, Action::Knockdown { .. }) || (f.airborne && f.action.in_hitstun());
     // Authored movement/weapon phases already describe the transition. Overlaying
     // old silhouettes creates duplicate limbs and weapons through these cuts.
     if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
@@ -706,7 +718,7 @@ mod tests {
             let sprites = set(id);
             let history = History::default();
             let opts = LayerOpts {
-                win: None,
+                win: None, defeat: None,
                 flash: (0.0, WHITE),
             };
             for move_id in MoveId::ALL {
@@ -777,7 +789,7 @@ mod tests {
             0,
             &set(CharacterId::Kogan),
             &History::default(),
-            &LayerOpts { win: None, flash: (0.0, WHITE) },
+            &LayerOpts { win: None, defeat: None, flash: (0.0, WHITE) },
         );
         assert!(out.last().unwrap().rot <= -1.25);
     }
@@ -787,7 +799,7 @@ mod tests {
         let sprites = set(CharacterId::Kogan);
         let mut history = History::default();
         let mut w = World::new(CharacterId::Kogan, CharacterId::Kogan);
-        let opts = LayerOpts { win: None, flash: (0.0, WHITE) };
+        let opts = LayerOpts { win: None, defeat: None, flash: (0.0, WHITE) };
         w.fighters[0].action = Action::Run;
         for _ in 0..6 {
             w.frame += 1;
@@ -812,7 +824,7 @@ mod tests {
         let sprites = set(CharacterId::Raya);
         let mut history = History::default();
         let mut w = World::new(CharacterId::Raya, CharacterId::Raya);
-        let opts = LayerOpts { win: None, flash: (0.0, WHITE) };
+        let opts = LayerOpts { win: None, defeat: None, flash: (0.0, WHITE) };
         history.record(&w, [Cell::Pose(Pose::Idle); 2]);
         w.frame += 1;
         w.fighters[0].action = Action::Attack {
@@ -841,7 +853,7 @@ mod tests {
         history.record(&w, [Cell::Movement(6), Cell::Pose(Pose::Idle)]);
         w.frame += 1;
         w.fighters[0].action = Action::Landing { frame: 1, total: 2 };
-        let opts = LayerOpts { win: None, flash: (0.0, WHITE) };
+        let opts = LayerOpts { win: None, defeat: None, flash: (0.0, WHITE) };
         let out = layers(&w, 0, &sprites, &history, &opts);
         assert_eq!(out.len(), 1, "landing must not overlay an airborne body");
         assert!(!matches!(out[0].cell, Cell::Movement(_)));
@@ -1019,7 +1031,7 @@ mod tests {
     #[test]
     fn authored_kogan_return_has_one_body_and_no_extra_blade_rotation() {
         let sprites = set(CharacterId::Kogan);
-        let opts = LayerOpts { win: None, flash: (0.0, WHITE) };
+        let opts = LayerOpts { win: None, defeat: None, flash: (0.0, WHITE) };
         for previous in [Cell::Victory(0), Cell::Victory(1), Cell::Victory(2), Cell::Victory(3), Cell::ThrowTech(0), Cell::ThrowTech(1), Cell::Utility(0), Cell::Utility(1), Cell::Utility(2), Cell::Utility(3), Cell::Overhead(0), Cell::Overhead(1), Cell::Overhead(2), Cell::Overhead(3), Cell::CrouchSaber(8), Cell::CrouchSaber(9), Cell::CrouchSaber(10), Cell::CrouchSaber(11), Cell::CrouchSaber(12), Cell::CrouchSaber(13), Cell::CrouchSaber(14), Cell::CrouchSaber(15), Cell::CrouchSaber(0), Cell::CrouchSaber(1), Cell::CrouchSaber(2), Cell::CrouchSaber(3), Cell::CrouchSaber(4), Cell::CrouchSaber(5), Cell::CrouchSaber(6), Cell::CrouchSaber(7), Cell::Flash(0), Cell::Flash(1), Cell::Flash(2), Cell::Flash(3), Cell::Flash(4), Cell::Flash(5), Cell::Flash(6), Cell::Flash(7), Cell::AirLights(0), Cell::AirLights(1), Cell::AirLights(2), Cell::AirLights(3), Cell::AirLights(4), Cell::AirLights(5), Cell::AirSaber(0), Cell::AirSaber(1), Cell::AirSaber(2), Cell::AirSaber(3), Cell::AirSaber(4), Cell::AirSaber(5), Cell::AirShot(0), Cell::AirShot(1), Cell::AirShot(2), Cell::AirShot(3), Cell::Judgment(0), Cell::Judgment(1), Cell::Judgment(2), Cell::Judgment(3), Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
             let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
             let mut history = History::default();
@@ -1116,7 +1128,7 @@ mod tests {
     fn win_pose_only_replaces_a_body_at_rest() {
         let sprites = set(CharacterId::Kogan);
         let history = History::default();
-        let opts = LayerOpts { win: Some(0), flash: (0.0, WHITE) };
+        let opts = LayerOpts { win: Some(0), defeat: None, flash: (0.0, WHITE) };
         let mut w = World::new(CharacterId::Kogan, CharacterId::Kogan);
         assert_eq!(layers(&w, 0, &sprites, &history, &opts)[0].cell, Cell::Pose(Pose::Win));
         w.fighters[0].action = Action::Knockdown { frame: 3 };
@@ -1142,6 +1154,21 @@ mod tests {
         assert!(!history.victory_ready(&w,0),"new actions retain their drawing");
         history.reset();w.fighters[0].action=Action::Stand;
         assert!(history.victory_ready(&w,0),"no stale rise after reset");
+    }
+
+    #[test]
+    fn defeat_draws_one_opaque_supported_body_despite_underlying_getup() {
+        for id in [CharacterId::Kogan,CharacterId::Raya] {
+            let sprites=set(id);let mut w=World::new(id,id);let mut history=History::default();
+            history.record(&w,[Cell::Pose(Pose::Idle);2]);w.frame+=1;
+            w.fighters[1].health=0;w.fighters[1].action=Action::Getup {frame:23};
+            let cell=if id==CharacterId::Kogan { Cell::Floor(0) } else { Cell::Reaction(4) };
+            let opts=LayerOpts {win:None,defeat:Some(cell),flash:(0.0,WHITE)};
+            let hash=w.state_hash();let out=layers(&w,1,&sprites,&history,&opts);
+            assert_eq!(out.len(),1);assert_eq!(out[0].cell,Cell::Pose(Pose::Down));
+            assert_eq!((out[0].rot,out[0].sx,out[0].sy,out[0].alpha),(0.0,1.0,1.0,1.0));
+            assert_eq!(out[0].y,0.0);assert_eq!(w.state_hash(),hash);
+        }
     }
 
 }

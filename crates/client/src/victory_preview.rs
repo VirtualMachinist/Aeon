@@ -95,6 +95,7 @@ pub async fn run(assets: &Assets, args: &[String]) {
                 if case.tick(frame, &mut m) || m.world.frame < prior { pres.reset(); }
                 frame += 1;
                 pres.victory.update(&m.world,m.phase);
+                pres.defeat.update(&m.world,m.phase);
                 pres.after_tick(assets, &m.world);
                 if let Some(file) = &mut trace {
                     writeln!(file,"{index}\t{frame}\t{:016x}\t{:?}\t{:?}\t{:?}\t{:?}\t{}\t{:?}",
@@ -102,6 +103,7 @@ pub async fn run(assets: &Assets, args: &[String]) {
                 }
             }
             pres.victory.update(&m.world,m.phase);
+            pres.defeat.update(&m.world,m.phase);
             let mut view = View::fit();view.follow(&m.world);
             assets.stage.draw(&view,m.world.frame);
             pres.draw(&view,assets,&m.world,false);
