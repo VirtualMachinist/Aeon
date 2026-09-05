@@ -1,0 +1,21 @@
+# Kogan floor recovery — reviewed
+
+Built-in imagegen. Both supplied reference sheets were visually inspected. Baseline 36-case reaction playback found the older elbow-supported blade below its boot/hand support, and duplicate prone limbs at getup transitions. Four new phases preserve the back → elbow → knee → foot choreography, with equipment raised above the supports. A1/G2/S2 inform the physical sequence; no simulation timing changes.
+
+Exact prompt:
+
+```text
+Use case: stylized-concept.
+Create FOUR coherent full-body floor-recovery drawings for Aeon's original adult male armored duelist Kogan, painted high-resolution 2D game art. Reference 1 supplies the established floor/getup choreography and identity; reference 2 supplies current detailed armor, large cape and anatomical proportions. Make a NEW landscape 1536×1024 sheet, exactly TWO COLUMNS and TWO ROWS. Flat chroma green #00e600 throughout empty space, no floor line, shadows, labels, borders, effects or opponent.
+Identity: copper Egyptian nemes/cobra, cyan visor, dark intricately etched armor, cyan chest eye, holstered revolver, enormous copper aura-cape, one full long cyan saber in his right hand. Preserve the same head size, limbs, weapon length, lighting and materials across all four. Anatomical standing height approximately 400 source pixels, folded poses bend joints without shrinking the head or limbs. Wide uninterrupted green gutters; every complete figure, cape and saber tip has at least 25 pixels of green clearance from its cell boundaries. Side/three-quarter right-facing camera.
+TOP LEFT: lying on his back across the copper cape, head toward LEFT, feet toward RIGHT, face tilted up and toward RIGHT. Full saber held across his lower body, almost horizontal, safely above the cape that touches the invisible floor. One knee just begins to bend.
+TOP RIGHT: lift chest into a seated/elbow-supported position, head and torso still toward the LEFT of his bent knees and feet, looking RIGHT. LEFT elbow/palm supports body on the invisible floor. RIGHT hand keeps the complete saber horizontal across shins, clearly raised at least 30 pixels ABOVE the lowest supporting hand, hip, cape and boot soles. Do not angle its tip downward. Cape pools under/behind the body.
+BOTTOM LEFT: turn forward onto one knee, right-facing low kneel. Front foot flat and rear knee planted on the same invisible floor. Off hand assists near front knee. Complete saber held shallowly forward-right above the knees, with every blade pixel at least 35 pixels ABOVE soles/knee/cape support. Chest inclines forward, same anatomy. Cape gathers behind.
+BOTTOM RIGHT: push through front leg into a half-rise, knees still bent, torso straightening toward the familiar right-facing ready stance. Complete saber returns toward the low forward ready line at a very shallow down-right angle, tip still at least 40 pixels ABOVE the lowest boot sole. Off hand relaxes beside torso; enormous copper cape lifts with him.
+Each stage is a distinct physical weight transfer: back to elbow to knee to foot. No wounds or torn costume. Never place any saber pixel lower than the supports. No miniature bodies, shortened blades, cropped equipment, extra hands or weapons, detached trails, exaggerated effects or pixel art. Four complete drawings only.
+```
+
+V1 original: `exec-b595eece-8d75-4cf0-90f4-65a625dcda0f.png`, retained unchanged as `kogan-floor-v1-green.png` (1536×1024). Source inspection confirms complete blades above the supporting cape/hand/knee/soles. Final shared standing anatomy 530 px; measured top split 773 and row split 449, bottom split 774. Gameplay review confirms hand/knee/foot support, full-length prone anatomy and complete equipment at both corners; no duplicate limbs persist into idle.
+
+
+Final review: all 36 cases / 90 seconds at 1×, both facings and center/corners, plus selected impact/release/floor/getup/idle frame steps. Complete evidence and benchmark refraction are in the full-kit report. 131 tests (89 sim + 42 client), clean clippy and locked/offline release; 5,400 focused-family and 2,100 integration ticks remain byte-identical to baseline. The complete new 35-second integration preview was viewed. Original files and exact prompts remain unchanged.

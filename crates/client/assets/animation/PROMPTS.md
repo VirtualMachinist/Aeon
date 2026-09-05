@@ -71,3 +71,8 @@ Four reviewed Kogan phases use open copper linework and shared standing anatomy.
 ## Ground movement (2026-09-05)
 
 Eight reviewed Kogan V4 drawings cover cloth-changing glide, half/low crouch and four retreat phases. Existing utility drawings supply brief run transitions; existing walk drawings have measured green-gap regions. Exact creation/edit prompts, originals, rejected variants and roots: [ground provenance](KOGAN-GROUND-2026-09-05.md). Full 36-case review, immediate-exit validation and reference comparisons are in the full-kit report.
+
+
+## Kogan recoil and floor recovery — reviewed
+
+Selected `kogan-recoil-v2-green.png` (8 drawings) and `kogan-floor-v1-green.png` (4 drawings). Exact built-in imagegen prompts, original IDs, corrections and measured roots/scales: [recoil](KOGAN-RECOIL-2026-09-05.md), [floor](KOGAN-FLOOR-2026-09-05.md). V1 recoil remains in the vault as rejected source; only V2 is loaded. Full 36-case/90s final and 35s integration playback reviewed at 1×, with impact/release/corner-getup frame steps. 131 tests pass and full traces are unchanged.
