@@ -55,6 +55,7 @@ struct Case {
     disc: bool,
     reaction: bool,
     ground: Option<Ground>,
+    feint: Option<bool>, // true: first startup tick; false: last startup tick
 }
 
 fn cases(body: CharacterId) -> Vec<Case> { normal_cases(body, &MOVES) }
@@ -77,6 +78,17 @@ fn throw_cases() -> Vec<Case> {
     cases
 }
 
+fn feint_cases() -> Vec<Case> {
+    let base = saber_cases().into_iter().chain(ranged_cases()).chain(utility_cases())
+        .chain(disc_cases()).chain(overhead_cases())
+        .filter(|c| c.response == Response::Hit
+            && CharacterId::Kogan.data().move_def(c.move_id).is_some_and(|m| m.feintable))
+        .collect::<Vec<_>>();
+    [true, false].into_iter().flat_map(|early| base.iter().copied().map(move |mut c| {
+        c.feint = Some(early); c
+    })).collect()
+}
+
 fn overhead_cases() -> Vec<Case> {
     normal_cases(CharacterId::Kogan, &[MoveId::Overhead, MoveId::SpecialOverhead])
 }
@@ -91,7 +103,7 @@ fn normal_cases(body: CharacterId, moves: &[MoveId]) -> Vec<Case> {
         for response in RESPONSES {
             for corner in [false, true] {
                 for right in [true, false] {
-                    result.push(Case { body, move_id, response, right, corner, jump: None, air: false, ranged: false, utility: false, saber: false, disc: false, reaction: false, ground: None });
+                    result.push(Case { body, move_id, response, right, corner, jump: None, air: false, ranged: false, utility: false, saber: false, disc: false, reaction: false, ground: None, feint: None });
                 }
             }
         }
@@ -106,7 +118,7 @@ fn movement_cases(body: CharacterId) -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body, move_id: MoveId::StP,
-                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), air: false, ranged: false, utility: false, saber: false, disc: false, reaction: false, ground: None });
+                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), air: false, ranged: false, utility: false, saber: false, disc: false, reaction: false, ground: None, feint: None });
                 }
             }
         }
@@ -123,7 +135,7 @@ fn air_cases() -> Vec<Case> {
                     for right in [true, false] {
                         result.push(Case { body: CharacterId::Kogan, move_id, response, right, corner,
                             jump: Some((8, hop)), air: true, ranged: false, utility: false,
-                            saber: false, disc: false, reaction: false, ground: None });
+                            saber: false, disc: false, reaction: false, ground: None, feint: None });
                     }
                 }
             }
@@ -146,7 +158,7 @@ fn ranged_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, air: false, ranged: true, utility: false, saber: false, disc: false, reaction: false, ground: None });
+                        right, corner, jump: None, air: false, ranged: true, utility: false, saber: false, disc: false, reaction: false, ground: None, feint: None });
                 }
             }
         }
@@ -164,7 +176,7 @@ fn utility_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, air: false, ranged: false, utility: true, saber: false, disc: false, reaction: false, ground: None });
+                        right, corner, jump: None, air: false, ranged: false, utility: true, saber: false, disc: false, reaction: false, ground: None, feint: None });
                 }
             }
         }
@@ -180,7 +192,7 @@ fn saber_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, air: false, ranged: false, utility: false, saber: true, disc: false, reaction: false, ground: None });
+                        right, corner, jump: None, air: false, ranged: false, utility: false, saber: true, disc: false, reaction: false, ground: None, feint: None });
                 }
             }
         }
@@ -195,7 +207,7 @@ fn judgment_cases() -> Vec<Case> {
             for right in [true, false] {
                 result.push(Case { body: CharacterId::Kogan, move_id: MoveId::Super, response,
                     right, corner, jump: None, air: false, ranged: false, utility: false, saber: true,
-                    disc: false, reaction: false, ground: None });
+                    disc: false, reaction: false, ground: None, feint: None });
             }
         }
     }
@@ -210,7 +222,7 @@ fn disc_cases() -> Vec<Case> {
             for right in [true, false] {
                 result.push(Case { body: CharacterId::Kogan, move_id: MoveId::Guard,
                     response, right, corner, jump: None, air: false, ranged: false, utility: false,
-                    saber: false, disc: true, reaction: false, ground: None });
+                    saber: false, disc: true, reaction: false, ground: None, feint: None });
             }
         }
     }
@@ -226,7 +238,7 @@ fn ground_cases(body: CharacterId) -> Vec<Case> {
             for right in [true, false] {
                 result.push(Case { body, move_id: MoveId::StS, response: Response::Whiff,
                     right, corner, jump: None, air: false, ranged: false, utility: false,
-                    saber: false, disc: false, reaction: false, ground: Some(ground) });
+                    saber: false, disc: false, reaction: false, ground: Some(ground), feint: None });
             }
         }
     }
@@ -245,7 +257,7 @@ fn reaction_cases(victim: CharacterId) -> Vec<Case> {
             for right in [true, false] {
                 result.push(Case { body, move_id, response, right, corner, jump: None,
                     air: false, ranged: false, utility: false, saber: false, disc: false,
-                    reaction: true, ground: None });
+                    reaction: true, ground: None, feint: None });
             }
         }
     }
@@ -254,7 +266,8 @@ fn reaction_cases(victim: CharacterId) -> Vec<Case> {
 
 impl Case {
     fn duration(self) -> u32 {
-        if self.reaction || self.move_id == MoveId::Throw { 150 }
+        if self.feint.is_some() { 120 }
+        else if self.reaction || self.move_id == MoveId::Throw { 150 }
         else if self.disc || self.ground.is_some() { 90 }
         else if self.saber && self.move_id == MoveId::Rekka3 { 180 }
         else if self.air || self.ranged || self.utility || self.saber || matches!(self.move_id, MoveId::CrST | MoveId::SpecialOverhead) { 150 }
@@ -263,6 +276,11 @@ impl Case {
     }
 
     fn label(self) -> String {
+        if let Some(early) = self.feint {
+            return format!("KOGAN {:?} feint · {} · {} · {}", self.move_id,
+                if early { "early" } else { "late" }, if self.right { "right" } else { "left" },
+                if self.corner { "corner" } else { "center" });
+        }
         if self.reaction {
             let victim = if self.body == CharacterId::Raya { "KOGAN" } else { "RAYA" };
             return format!("{} reaction vs {:?} · {:?} · attacker {} · {}", victim, self.move_id,
@@ -396,6 +414,18 @@ impl Case {
                 let mv = world.fighters[0].data().move_def(move_id).unwrap();
                 if follow && action_frame == mv.last_active() + 1 {
                     inputs[0] = InputFrame::press(Btn::S);
+                }
+            }
+        }
+        if let Some(early) = self.feint {
+            let f = &world.fighters[0];
+            if world.hitstop == 0 {
+                if let aeon_sim::Action::Attack { move_id, frame: action_frame, .. } = f.action {
+                    let mv = f.data().move_def(move_id).unwrap();
+                    let cancel_frame = if early { 0 } else { mv.first_active() - 1 };
+                    if move_id == self.move_id && action_frame == cancel_frame {
+                        inputs[0] = InputFrame::chord(aeon_sim::Chord::Feint);
+                    }
                 }
             }
         }
@@ -644,7 +674,10 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let mut all = if args.iter().any(|a| a == "--kit-throw") {
+    let mut all = if args.iter().any(|a| a == "--kit-feint") {
+        assert!(body == CharacterId::Kogan, "feint cases currently cover Kogan");
+        feint_cases()
+    } else if args.iter().any(|a| a == "--kit-throw") {
         assert!(body == CharacterId::Kogan, "throw cases currently cover Kogan");
         throw_cases()
     } else if args.iter().any(|a| a == "--kit-overhead") {
@@ -681,6 +714,11 @@ pub async fn run(assets: &Assets) {
     } else if args.iter().any(|a| a == "--kit-movement") {
         movement_cases(body)
     } else { cases(body) };
+    if let Some(name) = args.iter().find_map(|a| a.strip_prefix("--kit-feint-timing=")) {
+        assert!(name == "early" || name == "late", "--kit-feint-timing must be early or late");
+        all.retain(|c| c.feint == Some(name == "early"));
+        assert!(!all.is_empty(), "--kit-feint-timing requires feint cases");
+    }
     if let Some(name) = args.iter().find_map(|a| a.strip_prefix("--kit-jump=")) {
         assert!(name == "hop" || name == "full", "--kit-jump must be hop or full");
         all.retain(|case| case.jump.is_some_and(|(_, hop)| hop == (name == "hop")));
@@ -782,6 +820,45 @@ pub async fn run(assets: &Assets) {
 mod tests {
     use super::*;
     use aeon_sim::{Action, EventKind};
+
+    #[test]
+    fn feint_preview_covers_every_legal_special_at_first_and_last_startup_tick() {
+        let all = feint_cases();
+        assert_eq!(all.len(), 88);
+        for case in all {
+            let mut world = case.world();
+            let mut seen = false;
+            let mut frames = Vec::new();
+            let mut feint_tick = None;
+            for tick in 0..case.duration() {
+                let before = world.fighters[0].clone();
+                let inputs = case.inputs_for_world(tick, &world);
+                world.tick(inputs[0], inputs[1]);
+                if let Action::Feint { frame } = world.fighters[0].action {
+                    if !seen {
+                        let Action::Attack { move_id, frame: prior, .. } = before.action else { panic!("{case:?}: legal attack entry") };
+                        assert_eq!(move_id, case.move_id);
+                        let mv = before.data().move_def(move_id).unwrap();
+                        assert_eq!(prior, if case.feint == Some(true) { 0 } else { mv.first_active() - 1 });
+                        assert_eq!(world.fighters[0].last_move, Some(case.move_id));
+                        feint_tick = Some(tick);
+                    }
+                    seen = true; frames.push(frame);
+                    assert!(world.events.iter().all(|e| !matches!(e.kind, EventKind::Hit | EventKind::Grab)), "{case:?}: canceled commitment cannot contact");
+                    assert!(world.projectiles.iter().all(|p| p.owner != 0), "{case:?}: canceled shot cannot release");
+                }
+                if seen && tick > feint_tick.unwrap() + 20 {
+                    assert!(!matches!(world.fighters[0].action, Action::Feint { .. }), "{case:?}: cancel must finish");
+                }
+            }
+            assert!(seen, "{case:?}: must reach feint through legal input");
+            assert_eq!(frames.first(), Some(&0));
+            assert!(frames.len() <= usize::from(aeon_sim::fighter::FEINT_RECOVERY));
+            assert_eq!(frames, (0..frames.len() as u16).collect::<Vec<_>>(), "{case:?}: uninterrupted phase clock until legal landing or return");
+            assert!(matches!(world.fighters[0].action, Action::Stand));
+            assert!(!world.fighters[0].airborne);
+        }
+    }
 
     #[test]
     fn air_saber_preview_preserves_contact_freeze_and_landing_with_complete_early_recovery() {

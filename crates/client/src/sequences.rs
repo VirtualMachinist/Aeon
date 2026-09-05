@@ -96,6 +96,28 @@ pub const KOGAN_REACTIONS: [Spec; 12] = [
     ([0, 700, 365, 1086], 220, 311), ([365, 700, 720, 1086], 565, 311),
     ([720, 700, 1075, 1086], 901, 311), ([1075, 700, 1448, 1086], 1228, 319),
 ];
+/// A canceled startup withdraws its own equipment, then regains ready.
+/// The existing eight-frame state owns the clock; landing/new actions take over.
+pub fn feint_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    let Action::Feint { frame } = f.action else { return None; };
+    let move_id = f.last_move?;
+    if !f.data().move_def(move_id)?.feintable { return None; }
+    let phase = usize::from(frame >= aeon_sim::fighter::FEINT_RECOVERY / 2);
+    if f.airborne { return Some([Cell::AirSaber(4), Cell::AirSaber(5)][phase]); }
+    let cells = match move_id {
+        MoveId::ShotA | MoveId::ExB => [Cell::Ranged(3), Cell::Ranged(7)],
+        MoveId::ShotB => [Cell::Ranged(6), Cell::Ranged(7)],
+        MoveId::Guard => [Cell::Disc(2), Cell::Disc(3)],
+        MoveId::Rekka1 | MoveId::ExA => [Cell::Atlas(7), Cell::Utility(3)],
+        MoveId::Rekka2 => [Cell::Atlas(11), Cell::Utility(3)],
+        MoveId::Rekka3 => [Cell::Thrust(3), Cell::Utility(3)],
+        MoveId::CommandGrab | MoveId::Uppercut | MoveId::SpecialOverhead => [Cell::Utility(2), Cell::Utility(3)],
+        _ => return None,
+    };
+    Some(cells[phase])
+}
+
 // Throw tech is an open-palm separation, then withdrawal and the familiar ready.
 // The world advances entry frame 0 immediately; visible phases are 1..=15.
 pub const KOGAN_THROW_TECH: [Spec; 2] = [
@@ -690,6 +712,33 @@ mod tests {
         raya.airborne = true;
         raya.action = Action::Attack { move_id: MoveId::JS, frame: 6, connected: Connect::None };
         assert_eq!(air_saber_cell(&raya), None);
+    }
+
+    #[test]
+    fn feint_art_requires_a_canceled_special_and_yields_to_every_new_state() {
+        for id in [CharacterId::Kogan, CharacterId::Raya] {
+            let mut f = Fighter::spawn(id, px(200), true);
+            for mv in id.data().moves.iter() {
+                f.last_move = Some(mv.id);
+                for airborne in [false, true] {
+                    f.airborne = airborne;
+                    for frame in 0..aeon_sim::fighter::FEINT_RECOVERY {
+                        f.action = Action::Feint { frame };
+                        let cell = feint_cell(&f);
+                        assert_eq!(cell.is_some(), id == CharacterId::Kogan && mv.feintable);
+                        if id == CharacterId::Kogan && mv.feintable && airborne {
+                            assert!(matches!(cell, Some(Cell::AirSaber(4 | 5))));
+                        }
+                    }
+                    for action in [Action::Stand, Action::Crouch, Action::Jump { air_ok: true, hop: false },
+                        Action::Landing { frame: 0, total: 1 }, Action::Hit { stun: 8, knockdown: false },
+                        Action::Block { stun: 8, crouching: false }, Action::ThrowTech { frame: 0 }] {
+                        f.action = action;
+                        assert_eq!(feint_cell(&f), None, "later states own their drawings");
+                    }
+                }
+            }
+        }
     }
 
     #[test]

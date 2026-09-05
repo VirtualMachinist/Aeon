@@ -259,3 +259,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART24 | Deliberate throw recovery and supported tech separation | Four reviewed utility drawings reused at normal-throw timing; two new full-size separation/withdrawal drawings lead into ready. All 32 before/final cases / 80s each and focused 7.5s viewed at 1× in 1280×720; contact, tech and complete returns stepped at center/corners in both facings. |
 
 151 tests (89 sim + 62 client), clippy with warnings denied and locked/offline release pass. All 4,800 final, 450 focused and 2,100 integration ticks match baseline. Complete new 35s integration viewed; eight smoke PNGs retained, seven byte-identical and changed versus-mid directly inspected as the intended normal-throw withdrawal. Original 2/1/20, damage, tech window and all simulation values remain unchanged. G2/A1/S2 refraction and exact evidence are in the full-kit report. Raya tech/guard/getup ghosts and brief pre-grab crouched overlap remain open; remaining kits and physical stick play are not accepted by this batch.
+
+## September 5 Kogan feint review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART25 | Canceled equipment withdraws into ready and respects legal landing | Reviewed art reused for all eleven feintable moves. All 88 before/final cases / 176s each and focused 20s viewed at 1× in 1280×720. Selected weapon/guard phases and corrected late-uppercut Jump/landing stepped in both facings at center/corners. |
+
+155 tests (89 sim + 66 client), clippy with warnings denied and locked/offline release pass. All 10,560 final, 1,200 focused and 2,100 integration ticks equal baseline; complete new 35s integration viewed. Eight smoke PNGs retained: four equal prior inspected throw evidence, four changed pairs directly reviewed as wall-clock/menu sampling differences. Exact changes, phase ticks and archived rejected Uppercut transition are in the full-kit report. The eight-frame feint and legal two-tick landings remain unchanged. G2/S2/G1 refraction supplies withdrawal and gathered descent; the cited excerpts are not feint demonstrations. Remaining kits and physical stick play stay open.
