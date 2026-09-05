@@ -22,6 +22,13 @@ struct Frame {
 
 impl Atlas {
     pub async fn load(path: &str, reference: (u16, u16), specs: &[Spec]) -> Option<Self> {
+        Self::load_with_roots(path, reference, specs, &[]).await
+    }
+
+    /// Airborne poses use a projected standing root below their tucked feet.
+    /// Grounded cells retain the measured lowest solid pixel as their root.
+    pub async fn load_with_roots(path: &str, reference: (u16, u16), specs: &[Spec],
+        roots_y: &[Option<u16>]) -> Option<Self> {
         let mut image = match load_image(path).await {
             Ok(image) => image,
             Err(e) => {
@@ -54,6 +61,8 @@ impl Atlas {
                 eprintln!("[aeon] empty sequence cell {i}: {path}");
                 return None;
             };
+            let bottom = roots_y.get(i).copied().flatten()
+                .map(|y| y as usize * height / reference.1 as usize).unwrap_or(bottom);
             let cell_h = (y1 - y0) as f32;
             frames.push(Frame {
                 source: Rect::new((x0 + 2) as f32, (y0 + 2) as f32,
@@ -105,6 +114,38 @@ pub const RAYA_UPPERCUT: [Spec; 4] = [
     ([0, 580, 627, 1254], 334, 455), ([627, 580, 1254, 1254], 888, 432),
 ];
 
+// Movement sheet: each row has individually measured green gaps. Root y
+// for air cells follows the projected body rather than the lowest sword tip.
+pub const KOGAN_MOVEMENT: [Spec; 8] = [
+    ([0, 0, 410, 440], 245, 330), ([410, 0, 810, 440], 654, 330),
+    ([810, 0, 1220, 440], 1047, 330), ([1220, 0, 1672, 440], 1430, 330),
+    ([0, 445, 392, 941], 237, 330), ([392, 445, 790, 941], 653, 330),
+    ([790, 445, 1200, 941], 1060, 330), ([1200, 445, 1672, 941], 1443, 330),
+];
+pub const KOGAN_MOVEMENT_ROOT_Y: [Option<u16>; 8] = [
+    None, Some(425), Some(415), Some(423),
+    Some(800), Some(810), Some(830), None,
+];
+
+pub fn movement_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan {
+        return None;
+    }
+    match f.action {
+        Action::Prejump { .. } => Some(Cell::Movement(0)),
+        Action::Jump { air_ok: false, .. } if f.last_move == Some(MoveId::Uppercut) => None,
+        Action::Jump { hop, .. } if f.airborne => {
+            let phase = if f.vel.y > aeon_sim::px(2) { 0 }
+                else if f.vel.y >= -aeon_sim::px(2) { 1 } else { 2 };
+            Some(Cell::Movement(if hop { 1 } else { 4 } + phase))
+        }
+        // Only the first existing 2f full-jump landing tick compresses deeply;
+        // its second tick uses the established rise-to-stance landing drawing.
+        Action::Landing { frame: 0, total: 2 } => Some(Cell::Movement(7)),
+        _ => None,
+    }
+}
+
 /// Selection reads authored move phases and actual vertical velocity. Render
 /// frequency, hitstop and facing cannot advance the drawing.
 pub fn cell_for(f: &Fighter) -> Option<Cell> {
@@ -140,6 +181,7 @@ mod tests {
     #[test]
     fn authored_regions_preserve_complete_silhouettes_and_effects() {
         for (name, reference, specs) in [
+            ("kogan-movement-v2-green.png", (1672, 941), &KOGAN_MOVEMENT[..]),
             ("kogan-reactions-v1-green.png", (1448, 1086), &KOGAN_REACTIONS[..]),
             ("raya-reactions-v1-green.png", (1448, 1086), &RAYA_REACTIONS[..]),
             ("kogan-uppercut-v1-green.png", (1254, 1254), &KOGAN_UPPERCUT[..]),

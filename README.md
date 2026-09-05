@@ -31,6 +31,8 @@ cargo run -p aeon -- --smoke     # scripted launch; writes shots/smoke-*.png and
 cargo test --workspace          # simulation law plus client timing/animation checks
 cargo run --release -p aeon -- --polish-preview  # repeatable 35-second movement/rekka/whiff/reaction review
 cargo run --release -p aeon -- --polish-preview --capture # 30 fps PNGs + trace in shots/polish
+cargo run --release -p aeon -- --kit-preview --kit-movement # 24 isolated hop/jump cases
+cargo run --release -p aeon -- --kit-preview --capture # 60 fps lights cases + trace in shots/kit
 cargo clippy --workspace --all-targets -- -D warnings
 ```
 
@@ -91,6 +93,6 @@ Character select (any pairing, mirrors included) → best of three rounds, 99 s 
 
 Netcode, audio, camera effects, other bodies, and anything that puts a float in the sim.
 
-The current build has 116 passing tests and verified versus/training launches. [First polish pass](docs/POLISH-2026-09-05.md) and [motion pass](docs/MOTION-2026-09-05.md) notes record the changes and limits; the [motion QA review](docs/QA-MOTION-2026-09-05.md) records the preceding verification and follow-up fixes. Both kits are playable and every state of both bodies moves through anticipation, contact and recovery with impact effects; the [reaction iteration](docs/REACTIONS-2026-09-05.md) adds 32 selected drawings for reactions, uppercuts, floor recovery and landing. Full-kit animation, stick feel and competitive balance remain ongoing work. Finish Kogan and Raya before expanding the roster.
+The current build has 119 passing tests and verified versus/training launches. [First polish pass](docs/POLISH-2026-09-05.md) and [motion pass](docs/MOTION-2026-09-05.md) notes record the changes and limits; the [motion QA review](docs/QA-MOTION-2026-09-05.md) records the preceding verification and follow-up fixes. Both kits are playable and every state of both bodies moves through anticipation, contact and recovery with impact effects; the [reaction iteration](docs/REACTIONS-2026-09-05.md) adds 32 selected drawings for reactions, uppercuts, floor recovery and landing. The [full-kit movement batch](docs/FULL-KIT-2026-09-05.md) adds eight Kogan jump drawings and focused comparison previews, informed by inspected fighting-game footage. Full-kit animation, stick feel and competitive balance remain ongoing work. Finish Kogan and Raya before expanding the roster.
 
 [Development guide](docs/DEVELOPMENT.md) covers the repository workflow and checks. [Animation prompts](crates/client/assets/animation/PROMPTS.md) preserve the generated-art provenance.

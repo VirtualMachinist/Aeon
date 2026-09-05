@@ -173,6 +173,7 @@ pub struct SpriteSet {
     reactions: Option<crate::sequences::Atlas>,
     uppercut: Option<crate::sequences::Atlas>,
     coil: Option<crate::sequences::Atlas>,
+    movement: Option<crate::sequences::Atlas>,
 }
 
 /// A source rectangle and its foot anchor. Geometry stays in the sim.
@@ -193,6 +194,7 @@ pub enum Cell {
     Thrust(usize),
     Reaction(usize),
     Uppercut(usize),
+    Movement(usize),
 }
 
 // Foot anchors measured from the generated sheets, including their uneven
@@ -330,7 +332,12 @@ impl SpriteSet {
         let coil = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-uppercut-coil-v1-green.png", (1254, 1254), &KOGAN_COIL).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, coil }
+        let legacy_movement = std::env::args().any(|a| a == "--kit-legacy-movement");
+        let movement = if body == CharacterId::Kogan && !legacy_movement {
+            Atlas::load_with_roots("assets/animation/kogan-movement-v2-green.png",
+                (1672, 941), &KOGAN_MOVEMENT, &KOGAN_MOVEMENT_ROOT_Y).await
+        } else { None };
+        Self { textures, body, atlas, thrust, reactions, uppercut, coil, movement }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -344,6 +351,7 @@ impl SpriteSet {
             reactions: None,
             uppercut: None,
             coil: None,
+            movement: None,
         }
     }
 
@@ -368,6 +376,11 @@ impl SpriteSet {
 
     /// The picture for this fighter on this simulation tick.
     pub fn cell_for(&self, fighter: &Fighter, tick: u32) -> Cell {
+        if self.movement.is_some() {
+            if let Some(cell) = crate::sequences::movement_cell(fighter) {
+                return cell;
+            }
+        }
         if let Some(cell) = crate::sequences::cell_for(fighter) {
             if matches!(cell, Cell::Reaction(_)) && self.reactions.is_some()
                 || matches!(cell, Cell::Uppercut(_)) && self.uppercut.is_some() {
@@ -395,6 +408,7 @@ impl SpriteSet {
     /// Resolve a cell to its texture, source rectangle and foot anchor.
     pub fn frame(&self, cell: Cell) -> Option<SpriteFrame<'_>> {
         match cell {
+            Cell::Movement(cell) => self.movement.as_ref()?.frame(cell),
             Cell::Reaction(cell) => self.reactions.as_ref()?.frame(cell),
             Cell::Uppercut(0) if self.coil.is_some() => self.coil.as_ref()?.frame(0),
             Cell::Uppercut(cell) => self.uppercut.as_ref()?.frame(cell),
