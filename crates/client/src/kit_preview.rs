@@ -4,7 +4,7 @@
 use super::{Assets, Presentation};
 use crate::render::{draw_hud, HudOpts, View, INK, LINEN, VW};
 use crate::timing::FixedClock;
-use aeon_sim::{px, Btn, CharacterId, InputFrame, MoveId, World, STAGE_W};
+use aeon_sim::{px, Btn, Buttons, CharacterId, InputFrame, MoveId, World, STAGE_W};
 use macroquad::prelude::*;
 use std::io::Write;
 
@@ -37,6 +37,7 @@ struct Case {
     right: bool,
     corner: bool,
     jump: Option<(u8, bool)>,
+    ranged: bool,
 }
 
 fn cases(body: CharacterId) -> Vec<Case> {
@@ -45,7 +46,7 @@ fn cases(body: CharacterId) -> Vec<Case> {
         for response in RESPONSES {
             for corner in [false, true] {
                 for right in [true, false] {
-                    result.push(Case { body, move_id, response, right, corner, jump: None });
+                    result.push(Case { body, move_id, response, right, corner, jump: None, ranged: false });
                 }
             }
         }
@@ -60,7 +61,22 @@ fn movement_cases(body: CharacterId) -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body, move_id: MoveId::StP,
-                        response: Response::Whiff, right, corner, jump: Some((dir, hop)) });
+                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), ranged: false });
+                }
+            }
+        }
+    }
+    result
+}
+
+fn ranged_cases() -> Vec<Case> {
+    let mut result = Vec::new();
+    for move_id in [MoveId::ShotA, MoveId::ShotB, MoveId::ExB] {
+        for response in [Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff] {
+            for corner in [false, true] {
+                for right in [true, false] {
+                    result.push(Case { body: CharacterId::Kogan, move_id, response,
+                        right, corner, jump: None, ranged: true });
                 }
             }
         }
@@ -69,6 +85,8 @@ fn movement_cases(body: CharacterId) -> Vec<Case> {
 }
 
 impl Case {
+    fn duration(self) -> u32 { if self.ranged { 150 } else { LENGTH } }
+
     fn label(self) -> String {
         if let Some((dir, hop)) = self.jump {
             return format!("{} {} dir {} · {} · {}", self.body.name(),
@@ -95,7 +113,11 @@ impl Case {
         let gap = if self.response == Response::Whiff { 150 } else { 40 };
         let defender = if self.corner { 740 } else { 340 };
         let attacker = defender - gap;
-        let (attacker, defender) = if self.jump.is_some() {
+        let (attacker, defender) = if self.ranged {
+            let distance = if self.response == Response::Whiff && self.move_id == MoveId::ShotB { 340 } else { 140 };
+            let defender = if self.corner { 740 } else { 480 };
+            (defender - distance, defender)
+        } else if self.jump.is_some() {
             if self.corner { (660, 740) } else { (260, 500) }
         } else { (attacker, defender) };
         for (fighter, x) in world.fighters.iter_mut().zip([attacker, defender]) {
@@ -105,6 +127,32 @@ impl Case {
     }
 
     fn inputs(self, frame: u32) -> [InputFrame; 2] {
+        if self.ranged {
+            let wave = self.move_id == MoveId::ShotB;
+            let direction = match frame {
+                n if n == PRESS - 3 => 2,
+                n if n == PRESS - 2 => if wave { 3 } else { 1 },
+                n if n == PRESS - 1 || n == PRESS => if wave { 6 } else { 4 },
+                _ => 5,
+            };
+            let mut attacker = InputFrame::dir(direction);
+            if frame == PRESS {
+                attacker.buttons = match self.move_id {
+                    MoveId::ExB => Buttons::two(Btn::S, Btn::HS),
+                    MoveId::ShotB => Buttons::one(Btn::HS),
+                    _ => Buttons::one(Btn::S),
+                };
+            }
+            let guard_start = if wave { PRESS + 34 } else { PRESS + 13 };
+            let jump_start = if self.move_id == MoveId::ExB { PRESS - 4 } else { PRESS + 4 };
+            let defense = match self.response {
+                Response::StandBlock if frame >= guard_start => 4,
+                Response::CrouchBlock => 1,
+                Response::Whiff if !wave && (jump_start..jump_start + 7).contains(&frame) => 8,
+                _ => 5,
+            };
+            return [attacker, InputFrame::dir(defense)];
+        }
         if let Some((dir, hop)) = self.jump {
             let up = frame == PRESS || (!hop && (PRESS..PRESS + 7).contains(&frame));
             return [InputFrame::dir(if up { dir } else { 5 }), InputFrame::default()];
@@ -139,7 +187,10 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let all = if args.iter().any(|a| a == "--kit-movement") {
+    let all = if args.iter().any(|a| a == "--kit-ranged") {
+        assert!(body == CharacterId::Kogan, "ranged cases currently cover Kogan");
+        ranged_cases()
+    } else if args.iter().any(|a| a == "--kit-movement") {
         movement_cases(body)
     } else { cases(body) };
     assert!(selected.is_none_or(|n| n < all.len()), "--kit-case out of range");
@@ -165,8 +216,9 @@ pub async fn run(assets: &Assets) {
         let mut world = case.world();
         let mut pres = Presentation::default();
         let mut frame = 0;
+        let duration = case.duration();
         clock.reset();
-        while frame < LENGTH {
+        while frame < duration {
             if is_key_pressed(KeyCode::Escape) || is_quit_requested() {
                 return;
             }
@@ -186,7 +238,7 @@ pub async fn run(assets: &Assets) {
             } else {
                 clock.advance(get_frame_time() as f64)
             };
-            for _ in 0..ticks.min((LENGTH - frame) as usize) {
+            for _ in 0..ticks.min((duration - frame) as usize) {
                 let [p1, p2] = case.inputs(frame);
                 world.tick(p1, p2);
                 frame += 1;
@@ -204,9 +256,9 @@ pub async fn run(assets: &Assets) {
             assets.stage.draw(&view, world.frame);
             pres.draw(&view, assets, &world, false);
             draw_hud(&view, &world, &HudOpts { wins: None, round: None });
-            view.text_center(&case.label(), VW / 2.0, 146.0, 22.0, LINEN);
+            view.text_center(&case.label(), VW / 2.0, 660.0, 22.0, LINEN);
             view.text_center(
-                &format!("KIT REVIEW · case {index} · tick {frame}/{LENGTH} · SPACE pause · . step · ESC exit"),
+                &format!("KIT REVIEW · case {index} · tick {frame}/{duration} · SPACE pause · . step · ESC exit"),
                 VW / 2.0, 696.0, 17.0, INK,
             );
             if capture {
@@ -262,6 +314,40 @@ mod tests {
                         assert!(drawings.contains(&crate::sprites::Cell::Movement(cell)), "{case:?} cell {cell}");
                     }
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn ranged_preview_exercises_release_guard_whiff_and_recovery() {
+        for case in ranged_cases() {
+            let mut world = case.world();
+            let mut started = false;
+            let mut hits = 0;
+            let mut blocks = 0;
+            let mut drawings = std::collections::HashSet::new();
+            for frame in 0..case.duration() {
+                let [p1, p2] = case.inputs(frame);
+                world.tick(p1, p2);
+                started |= world.fighters[0].action.attacking()
+                    .is_some_and(|(id, _, _)| id == case.move_id);
+                if let Some(cell) = crate::sequences::ranged_cell(&world.fighters[0]) {
+                    drawings.insert(cell);
+                }
+                for event in &world.events {
+                    hits += usize::from(matches!(event.kind, EventKind::Hit | EventKind::Knockdown | EventKind::Punish));
+                    blocks += usize::from(event.kind == EventKind::Block);
+                }
+            }
+            assert!(started, "{case:?} must start through motion inputs");
+            let expected = if case.response == Response::Whiff { (0, 0) }
+                else if matches!(case.response, Response::StandBlock | Response::CrouchBlock) { (0, 1) }
+                else { (1, 0) };
+            assert_eq!((hits, blocks), expected, "{case:?}");
+            assert!(world.fighters.iter().all(|f| f.action.actionable()), "{case:?} complete recovery");
+            let base = if case.move_id == MoveId::ShotB { 4 } else { 0 };
+            for phase in 0..4 {
+                assert!(drawings.contains(&crate::sprites::Cell::Ranged(base + phase)), "{case:?} phase {phase}");
             }
         }
     }

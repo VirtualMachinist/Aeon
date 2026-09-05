@@ -212,7 +212,7 @@ pub fn layers(
                 x: snap.x,
                 y: snap.y,
                 facing_right: snap.facing_right,
-                rot: if matches!(snap.cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_)) { 0.0 } else { m.rot * 0.5 },
+                rot: if matches!(snap.cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_) | Cell::Ranged(_)) { 0.0 } else { m.rot * 0.5 },
                 sx: 1.0,
                 sy: 1.0,
                 alpha: 0.17 * (1.0 - (k - 1) as f32 / count as f32),
@@ -232,10 +232,11 @@ pub fn layers(
     // A tumbling or floored body cuts rather than fades: the previous
     // upright picture has no honest place over a body lying flat.
     let cuts = matches!(f.action, Action::Knockdown { .. }) || (f.airborne && f.action.in_hitstun());
-    // Authored movement phases already describe the transition. Overlaying
-    // the old airborne silhouette creates duplicate limbs at takeoff/landing.
+    // Authored movement/weapon phases already describe the transition. Overlaying
+    // old silhouettes creates duplicate limbs and weapons through these cuts.
     if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
-        !cuts && !matches!(cell, Cell::Movement(_)) && !matches!(prev.cell, Cell::Movement(_))
+        !cuts && !matches!(cell, Cell::Movement(_) | Cell::Ranged(_))
+            && !matches!(prev.cell, Cell::Movement(_) | Cell::Ranged(_))
     }) {
         let age = w.frame.saturating_sub(prev.frame);
         if (1..=CROSSFADE).contains(&age) {
@@ -274,7 +275,7 @@ pub fn layers(
 /// Dedicated drawings already contain the bend/tumble. Rotating them again
 /// around their feet puts the body below the floor and distorts sword arcs.
 fn respect_authored_drawing(cell: Cell, m: &mut Motion) {
-    if matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_)) {
+    if matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_) | Cell::Ranged(_)) {
         m.rot = 0.0;
         m.sx = 1.0;
         m.sy = 1.0;

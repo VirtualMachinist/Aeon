@@ -91,6 +91,14 @@ These are evidence requirements, not an assertion that the full game has passed 
 | FX1 | Impact reads without the camera | `fx.rs`: sparks, dust, rings and flashes spawn from `World::events` and state transitions, live in simulation frames, hold through hitstop. Reaction scene test `preview.rs::reaction_review_launches_grabs_and_lands_the_super`. No camera shake, zoom or slowdown. |
 | FX2 | Frozen effects and training resets | `fx.rs::tests::frozen_cast_and_landing_spawn_once` reproduces a freeze on a cast/landing frame; one release makes one effect. `roman_cancel_on_an_unchanged_world_frame_still_spawns_once` covers RC without advancing `World::frame`. F3/F4/F5 and successful F11 playback clear presentation history immediately, including while paused; inspect reset/frame-step in training. |
 
+## September 5 ranged animation checks
+
+| ID | Gate | Evidence |
+|---|---|---|
+| ART11 | Kogan grounded revolver, wave and EX release/return | Eight V5 drawings; `ranged_preview_exercises_release_guard_whiff_and_recovery` verifies 48 legal-input cases and all four phases per action. Full 120-second final viewed at 1×; normal/EX muzzle release, wave withdrawal and crouch guard frame-stepped. V3 muzzle mismatch corrected in art. |
+
+Ranged batch: 120 workspace tests, clean clippy and locked/offline release. Focused 7,200-tick and retained 2,100-tick traces match their baselines byte for byte. Eight smoke images match the previously inspected batch by SHA-256. S2/A2 comparison and precise review ledger are in `docs/FULL-KIT-2026-09-05.md` and the vault full-kit pass. Air gun, victim reaction refinement and the remaining full-kit families stay open.
+
 ## September 5 full-kit movement checks
 
 | ID | Gate | Evidence |
