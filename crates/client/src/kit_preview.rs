@@ -19,6 +19,7 @@ enum Response {
     CrouchBlock,
     CrouchHit,
     AirEvade,
+    EarlyWhiff,
     Projectile,
     Whiff,
 }
@@ -99,6 +100,13 @@ fn air_cases() -> Vec<Case> {
         }
     }
     result
+}
+
+
+// Earlier legal input leaves time to inspect withdrawal above the floor.
+fn early_air_cases() -> Vec<Case> {
+    air_cases().into_iter().filter(|c| c.response == Response::Whiff && c.move_id != MoveId::AirShot)
+        .map(|mut c| { c.response = Response::EarlyWhiff; c }).collect()
 }
 
 fn ranged_cases() -> Vec<Case> {
@@ -274,7 +282,7 @@ impl Case {
         let attacker = defender - gap;
         let (attacker, defender) = if self.air {
             let defender = if self.corner { 740 } else { 500 };
-            let gap = if self.response == Response::Whiff { 360 }
+            let gap = if matches!(self.response, Response::Whiff | Response::EarlyWhiff) { 360 }
                 else if self.move_id == MoveId::AirShot { if self.jump.unwrap().1 { 100 } else { 140 } } else { 35 };
             (defender - gap, defender)
         } else if self.reaction {
@@ -321,7 +329,8 @@ impl Case {
         let mut inputs = self.inputs(frame);
         if self.air {
             let f = &world.fighters[0];
-            let attack_height = if self.move_id == MoveId::AirShot { 140 } else { 80 };
+            let attack_height = if self.response == Response::EarlyWhiff { 999 }
+                else if self.move_id == MoveId::AirShot { 140 } else { 80 };
             let ready = world.hitstop == 0 && f.vel.y <= 0 && f.pos.y <= px(attack_height)
                 && matches!(f.action, aeon_sim::Action::Jump { air_ok: true, .. });
             if ready {
@@ -557,7 +566,7 @@ pub async fn run(assets: &Assets) {
     });
     let mut all = if args.iter().any(|a| a == "--kit-air") {
         assert!(body == CharacterId::Kogan, "air cases currently cover Kogan");
-        air_cases()
+        if args.iter().any(|a| a == "--kit-air-early") { early_air_cases() } else { air_cases() }
     } else if args.iter().any(|a| a == "--kit-reaction") {
         reaction_cases(body)
     } else if args.iter().any(|a| a == "--kit-super") {
@@ -681,6 +690,43 @@ pub async fn run(assets: &Assets) {
 mod tests {
     use super::*;
     use aeon_sim::{Action, EventKind};
+
+    #[test]
+    fn air_saber_preview_preserves_contact_freeze_and_landing_with_complete_early_recovery() {
+        use crate::{sequences::air_saber_cell, sprites::Cell};
+        for case in air_cases().into_iter().chain(early_air_cases())
+            .filter(|c| matches!(c.move_id, MoveId::JS | MoveId::JHS | MoveId::JST)) {
+            let mut world = case.world();
+            let hp = world.fighters[1].health;
+            let mut seen = std::collections::HashSet::new();
+            let mut frozen = None;
+            for tick in 0..case.duration() {
+                let [a, b] = case.inputs_for_world(tick, &world);
+                world.tick(a, b);
+                let f = &world.fighters[0];
+                let cell = air_saber_cell(f);
+                if let Some(cell) = cell { seen.insert(cell); }
+                if let Some((frame, previous)) = frozen {
+                    if world.frame == frame { assert_eq!(cell, previous, "hitstop holds the selected phase"); }
+                }
+                frozen = Some((world.frame, cell));
+                if let Action::Attack { move_id, frame, .. } = f.action {
+                    let mv = f.data().move_def(move_id).unwrap();
+                    let contact = match move_id { MoveId::JS => 1, MoveId::JHS => 2, _ => 3 };
+                    assert_eq!(cell == Some(Cell::AirSaber(contact)), mv.is_active(frame));
+                }
+                if !f.airborne { assert_eq!(cell, None, "landing immediately owns the body"); }
+            }
+            if case.response == Response::EarlyWhiff {
+                assert_eq!(hp, world.fighters[1].health, "early fixture remains a spaced miss");
+                if !case.jump.unwrap().1 {
+                    assert_eq!(seen.len(), 4, "{}: gather/contact/withdraw/ready", case.label());
+                    assert!(seen.contains(&Cell::AirSaber(4)) && seen.contains(&Cell::AirSaber(5)));
+                }
+            }
+            assert!(world.fighters.iter().all(|f| !f.airborne && f.action.actionable()));
+        }
+    }
 
     #[test]
     fn air_preview_recognizes_every_loaded_and_empty_cylinder_move() {
