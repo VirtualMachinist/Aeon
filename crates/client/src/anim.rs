@@ -179,6 +179,7 @@ pub fn layers(
         cell = Cell::Pose(Pose::Win);
     }
     let mut m = motion(f, w);
+    respect_authored_drawing(cell, &mut m);
 
     // Hitstop: the struck body shudders in place, the striker leans on
     // the hit. Amplitude follows the weight of the contact.
@@ -197,6 +198,7 @@ pub fn layers(
     let mut out = Vec::with_capacity(6);
 
     if let Some((color, count, spacing)) = m.ghosts {
+        let count = if f.id == CharacterId::Kogan { count.min(2) } else { count };
         for k in (1..=count).rev() {
             let Some(snap) = history.at(i, w.frame.saturating_sub(k * spacing)) else {
                 continue;
@@ -210,10 +212,10 @@ pub fn layers(
                 x: snap.x,
                 y: snap.y,
                 facing_right: snap.facing_right,
-                rot: m.rot * 0.5,
+                rot: if matches!(snap.cell, Cell::Reaction(_) | Cell::Uppercut(_)) { 0.0 } else { m.rot * 0.5 },
                 sx: 1.0,
                 sy: 1.0,
-                alpha: 0.34 * (1.0 - (k - 1) as f32 / count as f32),
+                alpha: 0.17 * (1.0 - (k - 1) as f32 / count as f32),
                 flash: 0.85,
                 flash_color: color,
                 tint: WHITE,
@@ -263,6 +265,16 @@ pub fn layers(
         tint,
     });
     out
+}
+
+/// Dedicated drawings already contain the bend/tumble. Rotating them again
+/// around their feet puts the body below the floor and distorts sword arcs.
+fn respect_authored_drawing(cell: Cell, m: &mut Motion) {
+    if matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_)) {
+        m.rot = 0.0;
+        m.sx = 1.0;
+        m.sy = 1.0;
+    }
 }
 
 fn motion(f: &Fighter, w: &World) -> Motion {
@@ -575,6 +587,24 @@ mod tests {
     }
 
     #[test]
+    fn authored_falling_and_reversal_drawings_are_not_rotated_twice() {
+        let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
+        w.fighters[0].airborne = true;
+        w.fighters[0].vel.y = -px(3);
+        w.fighters[0].pos.y = px(30);
+        w.fighters[0].action = Action::Hit { stun: 4, knockdown: true };
+        let mut m = motion(&w.fighters[0], &w);
+        assert!(m.rot < -1.0);
+        respect_authored_drawing(Cell::Reaction(3), &mut m);
+        assert_eq!((m.rot, m.sx, m.sy), (0.0, 1.0, 1.0));
+        w.fighters[0].start_move(MoveId::Uppercut);
+        w.fighters[0].vel.y = px(6);
+        let mut m = motion(&w.fighters[0], &w);
+        respect_authored_drawing(Cell::Uppercut(1), &mut m);
+        assert_eq!((m.rot, m.sx, m.sy), (0.0, 1.0, 1.0));
+    }
+
+    #[test]
     fn a_launched_body_tumbles_and_lands_flat() {
         let mut w = World::new(CharacterId::Kogan, CharacterId::Kogan);
         w.fighters[0].pos.y = px(60);
@@ -609,11 +639,11 @@ mod tests {
             history.record(&w, [Cell::Pose(Pose::Run), Cell::Pose(Pose::Idle)]);
         }
         let out = layers(&w, 0, &sprites, &history, &opts);
-        assert_eq!(out.len(), 4, "three ghosts and the body");
-        assert!(out[0].alpha < out[2].alpha);
+        assert_eq!(out.len(), 3, "two light ghosts and the body");
+        assert!(out[0].alpha < out[1].alpha && out[1].alpha <= 0.17);
         // A frozen tick overwrites the same frame instead of growing the trail.
         history.record(&w, [Cell::Pose(Pose::Run), Cell::Pose(Pose::Idle)]);
-        assert_eq!(layers(&w, 0, &sprites, &history, &opts).len(), 4);
+        assert_eq!(layers(&w, 0, &sprites, &history, &opts).len(), 3);
     }
 
     #[test]

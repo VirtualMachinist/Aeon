@@ -47,3 +47,7 @@ cargo run --release --locked --offline -p aeon -- --polish-preview
 Do not commit build outputs, screenshots, replays, local stick configuration or credentials. `target/`, `shots/` and `replays/` are ignored. Private build-host inventory and synchronization instructions remain outside this public repository.
 
 The [motion QA review](QA-MOTION-2026-09-05.md) records 107 tests on Citadel, the release capture, and the remaining visual and stick checks.
+
+## Reaction animation iteration
+
+[Reaction pass](REACTIONS-2026-09-05.md) adds 32 selected drawings for both bodies' reactions, uppercuts, floor recovery and landing. `sequences.rs` owns measured source regions, projected roots and anatomical scales; `sprites.rs` selects the loaded art and keys green. Authored reaction drawings bypass duplicate tumble transforms. Fixed wall framing leaves room for corner silhouettes; the game camera scale is unchanged. Full prompts and correction history are in `assets/animation/REACTIONS-2026-09-05.md` under the client crate.

@@ -19,6 +19,9 @@ pub const VH: f32 = 800.0;
 pub const GROUND: f32 = 640.0;
 /// World pixels → canvas pixels. Bodies land around a third of the canvas.
 pub const WS: f32 = 2.2;
+/// Fixed framing allowance outside each stage wall for complete silhouettes.
+/// This changes neither collision walls nor camera scale/effects.
+const WALL_MARGIN: f32 = 96.0;
 
 pub const COPPER: Color = Color::new(0.722, 0.451, 0.200, 1.0);
 pub const COPPER_DIM: Color = Color::new(0.45, 0.28, 0.13, 1.0);
@@ -57,7 +60,8 @@ impl View {
         let target = sub_to_px(w.camera_x());
         let half_view = VW / WS / 2.0;
         let stage = sub_to_px(STAGE_W);
-        self.cam_x = target.clamp(half_view.min(stage / 2.0), (stage - half_view).max(stage / 2.0));
+        self.cam_x = target.clamp((half_view - WALL_MARGIN).min(stage / 2.0),
+            (stage - half_view + WALL_MARGIN).max(stage / 2.0));
     }
 
     pub fn sx(&self, x: f32) -> f32 {
@@ -167,13 +171,15 @@ impl Stage {
         if let Some(t) = &self.backdrop {
             // Cover the canvas above the floor; overscan so parallax never
             // shows an edge.
-            let h = GROUND + 40.0;
-            let w = h * (t.width() / t.height()).max(VW / h);
+            let aspect = t.width() / t.height();
+            let max_par = (stage_w / 2.0 - VW / WS / 2.0 + WALL_MARGIN).max(0.0) * 0.35 * WS;
+            let w = ((GROUND + 40.0) * aspect).max(VW + 2.0 * max_par + 32.0);
+            let h = w / aspect;
             let x = (VW - w) / 2.0 - par;
             draw_texture_ex(
                 t,
                 v.sx(x),
-                v.sy(-40.0),
+                v.sy(GROUND - h),
                 WHITE,
                 DrawTextureParams {
                     dest_size: Some(vec2(w * v.scale, h * v.scale)),
@@ -706,5 +712,26 @@ pub fn draw_match_overlay(v: &View, m: &Match, frame: u32) {
             v.text_center("P / ENTER  rematch      FL / ESC  character select", VW / 2.0, VH / 2.0 + 40.0, 22.0, INK);
         }
         Phase::Fight => {}
+    }
+}
+
+#[cfg(test)]
+mod framing_tests {
+    use super::*;
+    use aeon_sim::px;
+
+    #[test]
+    fn both_stage_walls_leave_room_for_a_reaction_without_changing_zoom() {
+        for right in [false, true] {
+            let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
+            let edge = if right { sub_to_px(STAGE_W) - 16.0 } else { 16.0 };
+            w.fighters[0].pos.x = px(edge as i32);
+            w.fighters[1].pos.x = px(if right { edge as i32 - 40 } else { edge as i32 + 40 });
+            let mut v = View { scale: 1.0, ox: 0.0, oy: 0.0, cam_x: 0.0 };
+            v.follow(&w);
+            let x = v.world(edge, 0.0).x;
+            assert!((240.0..=VW - 240.0).contains(&x), "edge {right}: {x}");
+            assert!((v.world(edge + 1.0, 0.0).x - x - WS).abs() < 0.001);
+        }
     }
 }

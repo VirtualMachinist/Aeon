@@ -29,7 +29,7 @@ On macOS, after dependencies are fetched, double-click `Play-Aeon.command` for s
 cargo run --release -p aeon     # title → versus / training / remap
 cargo run -p aeon -- --smoke     # scripted launch; writes shots/smoke-*.png and exits
 cargo test --workspace          # simulation law plus client timing/animation checks
-cargo run --release -p aeon -- --polish-preview  # repeatable 34-second movement/rekka/whiff/reaction review
+cargo run --release -p aeon -- --polish-preview  # repeatable 35-second movement/rekka/whiff/reaction review
 cargo run --release -p aeon -- --polish-preview --capture # 30 fps PNGs + trace in shots/polish
 cargo clippy --workspace --all-targets -- -D warnings
 ```
@@ -40,7 +40,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 crates/sim      aeon-sim: deterministic 60 Hz match. Integer subpixels. Zero dependencies.
                 No floats in World, no clock, no filesystem, no renderer (tests/purity.rs).
 crates/client   aeon: macroquad + gilrs client. Versus, training, stick remap, replays.
-                anim.rs moves the pictures; fx.rs draws impact; both read only sim state.
+                sequences.rs selects authored reactions/reversals; anim.rs adds motion; fx.rs draws impact.
 crates/client/assets/{kogan,raya}/*.png   one keyed 800×800 pose per state
 crates/client/assets/animation/*.png     authored walk/attack cells, keyed at load
 crates/client/assets/stage/sanctum.png    the Sanctum honeycomb vault
@@ -91,6 +91,6 @@ Character select (any pairing, mirrors included) → best of three rounds, 99 s 
 
 Netcode, audio, camera effects, other bodies, and anything that puts a float in the sim.
 
-The current build has 107 passing tests and verified versus/training launches. [First polish pass](docs/POLISH-2026-09-05.md) and [motion pass](docs/MOTION-2026-09-05.md) notes record the changes and limits; the [motion QA review](docs/QA-MOTION-2026-09-05.md) records the latest verification and follow-up fixes. Both kits are playable and every state of both bodies moves through anticipation, contact and recovery with impact effects; full multi-cell animation, stick feel and competitive balance remain ongoing work. Finish Kogan and Raya before expanding the roster.
+The current build has 116 passing tests and verified versus/training launches. [First polish pass](docs/POLISH-2026-09-05.md) and [motion pass](docs/MOTION-2026-09-05.md) notes record the changes and limits; the [motion QA review](docs/QA-MOTION-2026-09-05.md) records the preceding verification and follow-up fixes. Both kits are playable and every state of both bodies moves through anticipation, contact and recovery with impact effects; the [reaction iteration](docs/REACTIONS-2026-09-05.md) adds 32 selected drawings for reactions, uppercuts, floor recovery and landing. Full-kit animation, stick feel and competitive balance remain ongoing work. Finish Kogan and Raya before expanding the roster.
 
 [Development guide](docs/DEVELOPMENT.md) covers the repository workflow and checks. [Animation prompts](crates/client/assets/animation/PROMPTS.md) preserve the generated-art provenance.

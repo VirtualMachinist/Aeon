@@ -53,3 +53,7 @@ The client now sequences every state through anticipation, contact and recovery 
 | 4 | Consecrate, feint, win | kneel with crystal at the brow · fill (light grows) · feint (gesture stopped mid-air) · win (crystal held out, the offering) |
 
 Row layout convention for the selector: row 0 = the four phases used for a single move, in temporal order; a family of four different moves uses one row per move. Foot anchors are measured per cell as with the first atlases; record them beside the asset.
+
+## Reaction iteration (2026-09-05)
+
+The priority-one reaction/uppercut families above now have an initial authored implementation, with floor/getup and landing cells. See [full prompts, corrections and selection](REACTIONS-2026-09-05.md). Five selected PNG assets provide 32 consumed drawings. Most of the remaining family list is still open; one-cell grounded recoil and a few uppercut keys do not complete full-kit animation.
