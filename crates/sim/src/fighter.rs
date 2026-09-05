@@ -17,6 +17,8 @@ pub const METER_MAX: i32 = 1000;
 /// Frames of prejump. Releasing up before the last prejump frame hops.
 pub const PREJUMP: u8 = 4;
 pub const LANDING_RECOVERY: u8 = 2;
+/// A hop itself adds no landing lock. Air specials still owe their own tax.
+pub const HOP_LANDING_RECOVERY: u8 = 0;
 /// Hard knockdown: 32 down + 24 getup = 56 frames of oki. The currency.
 pub const GETUP_FRAMES: u16 = 24;
 pub const KNOCKDOWN_FRAMES: u16 = 32;
@@ -199,6 +201,8 @@ pub struct Fighter {
     pub action: Action,
     pub buffer: InputBuffer,
     pub airborne: bool,
+    /// The jump arc survives an air attack, its recovery, and Roman Cancel.
+    pub hop: bool,
     pub combo: u8,
     pub juggle: u8,
     pub last_move: Option<MoveId>,
@@ -231,6 +235,7 @@ impl Fighter {
             action: Action::Stand,
             buffer: InputBuffer::default(),
             airborne: false,
+            hop: false,
             combo: 0,
             juggle: 0,
             last_move: None,
@@ -286,7 +291,7 @@ impl Fighter {
         let local = match self.hurt_stance() {
             Stance::Crouch => d.hurt_crouch(),
             Stance::Air => {
-                let h = if self.action.is_hop() {
+                let h = if self.hop {
                     d.stand_h * 7 / 10
                 } else {
                     d.stand_h * 4 / 5
@@ -486,7 +491,7 @@ impl Fighter {
         self.action = if self.airborne {
             Action::Jump {
                 air_ok: true,
-                hop: false,
+                hop: self.hop,
             }
         } else {
             Action::Stand
@@ -521,7 +526,7 @@ impl Fighter {
             Action::Hit { stun, knockdown } => self.step_hit(stun, knockdown),
             Action::Block { crouching, stun } => {
                 if stun == 0 {
-                    self.idle_from_input();
+                    self.resume_control();
                 } else {
                     self.action = Action::Block {
                         crouching,
@@ -541,7 +546,7 @@ impl Fighter {
             }
             Action::Getup { frame } => {
                 if frame + 1 >= GETUP_FRAMES {
-                    self.idle_from_input();
+                    self.resume_control();
                 } else {
                     self.action = Action::Getup { frame: frame + 1 };
                 }
@@ -554,7 +559,7 @@ impl Fighter {
                 self.vel.x = if self.facing_right { -px(4) } else { px(4) };
                 if frame + 1 >= THROW_TECH_FRAMES {
                     self.vel.x = 0;
-                    self.idle_from_input();
+                    self.resume_control();
                 } else {
                     self.action = Action::ThrowTech { frame: frame + 1 };
                 }
@@ -562,7 +567,7 @@ impl Fighter {
             Action::Landing { frame, total } => {
                 self.vel = Vec2i::ZERO;
                 if frame + 1 >= total {
-                    self.idle_from_input();
+                    self.resume_control();
                 } else {
                     self.action = Action::Landing {
                         frame: frame + 1,
@@ -573,7 +578,7 @@ impl Fighter {
             Action::Feint { frame } => {
                 self.vel.x = 0;
                 if frame + 1 >= FEINT_RECOVERY {
-                    self.idle_from_input();
+                    self.resume_control();
                 } else {
                     self.action = Action::Feint { frame: frame + 1 };
                 }
@@ -598,7 +603,7 @@ impl Fighter {
                 }
                 if frame + 1 >= BACKDASH_FRAMES {
                     self.vel.x = 0;
-                    self.idle_from_input();
+                    self.resume_control();
                 } else {
                     if frame > 8 {
                         self.vel.x = self.vel.x * 3 / 4;
@@ -612,7 +617,8 @@ impl Fighter {
                 connected,
             } => self.step_attack(move_id, frame, connected),
             Action::Jump { air_ok, hop } => {
-                if air_ok {
+                let gravity = self.gravity_override.unwrap_or(self.data().gravity);
+                if air_ok && self.pos.y + self.vel.y - gravity > 0 {
                     self.try_air_offense(hop);
                 }
             }
@@ -625,7 +631,7 @@ impl Fighter {
                             dir_x: 1,
                             hop: false,
                         };
-                    } else if !inp.forward() {
+                    } else if !inp.forward() || inp.down() {
                         self.vel.x = 0;
                         self.idle_from_input();
                     } else {
@@ -653,7 +659,7 @@ impl Fighter {
                     hop: false,
                 };
             } else {
-                self.idle_from_input();
+                self.resume_control();
             }
         } else {
             self.action = Action::Hit {
@@ -746,11 +752,11 @@ impl Fighter {
             if self.airborne {
                 self.action = Action::Jump {
                     air_ok: false,
-                    hop: false,
+                    hop: self.hop,
                 };
             } else {
                 self.vel.x = 0;
-                self.idle_from_input();
+                self.resume_control();
             }
         } else {
             self.action = Action::Attack {
@@ -892,7 +898,7 @@ impl Fighter {
             self.action = Action::BackDash { frame: 0 };
             return true;
         }
-        if self.buffer.motion(Motion::ForwardDash) && inp.forward() {
+        if self.buffer.motion(Motion::ForwardDash) && inp.forward() && !inp.down() {
             self.action = Action::Run;
             let spd = self.data().run_speed;
             self.vel.x = if self.facing_right { spd } else { -spd };
@@ -970,10 +976,19 @@ impl Fighter {
         if self.airborne {
             self.action = Action::Jump {
                 air_ok: false,
-                hop: false,
+                hop: self.hop,
             };
         } else {
             self.ground_locomotion();
+        }
+    }
+
+    /// The first free frame accepts its input. This does not buffer a press
+    /// from the preceding recovery frame or introduce normal chains.
+    fn resume_control(&mut self) {
+        self.idle_from_input();
+        if !self.airborne {
+            self.try_ground_offense();
         }
     }
 
@@ -988,6 +1003,7 @@ impl Fighter {
             self.vel.y = d.jump_y;
         }
         self.airborne = true;
+        self.hop = hop;
         self.action = Action::Jump { air_ok: true, hop };
     }
 
@@ -995,14 +1011,15 @@ impl Fighter {
         self.last_move = Some(id);
         self.channel_frames = 0;
         if let Some(mv) = self.data().move_def(id) {
-            self.vel.x = if self.facing_right {
-                mv.vel_x
-            } else {
-                -mv.vel_x
-            };
+            // Air normals and air gun inherit the jump's horizontal travel.
+            // Only a move with authored movement replaces that trajectory.
+            if !self.airborne || mv.vel_x != 0 {
+                self.vel.x = if self.facing_right { mv.vel_x } else { -mv.vel_x };
+            }
             if mv.vel_y != 0 {
                 self.vel.y = mv.vel_y;
                 self.airborne = true;
+                self.hop = false;
                 self.land_recovery = mv.land_recovery;
             }
             self.gravity_override = mv.gravity_override;
@@ -1037,16 +1054,24 @@ impl Fighter {
                 self.airborne = false;
                 self.vel = Vec2i::ZERO;
                 self.gravity_override = None;
-                if let Action::Hit {
-                    knockdown: true, ..
-                } = self.action
-                {
-                    self.action = Action::Knockdown { frame: 0 };
-                } else {
-                    let total = LANDING_RECOVERY.max(self.land_recovery) as u16;
-                    self.action = Action::Landing { frame: 0, total };
+                match self.action {
+                    Action::Hit { knockdown: true, .. } => {
+                        self.action = Action::Knockdown { frame: 0 };
+                    }
+                    // Touching ground must not erase remaining air hitstun.
+                    Action::Hit { .. } => {}
+                    _ => {
+                        let base = if self.hop { HOP_LANDING_RECOVERY } else { LANDING_RECOVERY };
+                        let total = base.max(self.land_recovery) as u16;
+                        if total == 0 {
+                            self.resume_control();
+                        } else {
+                            self.action = Action::Landing { frame: 0, total };
+                        }
+                    }
                 }
                 self.land_recovery = 0;
+                self.hop = false;
             }
         }
     }
@@ -1078,6 +1103,7 @@ impl Fighter {
             self.vel = Vec2i::ZERO;
         }
         self.action = Action::Hit { stun, knockdown };
+        self.hop = false;
         self.gravity_override = None;
         self.land_recovery = 0;
         self.channel_frames = 0;

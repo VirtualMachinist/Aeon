@@ -2,7 +2,7 @@
 
 Law: `DESIGN.md`. Advantage on first-active contact = `hitstun − (active − 1) − recovery` (same with blockstun).
 
-This file is the authored numbers for the Fable pass (2026-09-02). The tables below the marker are **generated from the move data** in `crates/sim/src/chars/{kogan,raya}.rs` by `crates/sim/tests/frame_data_doc.rs`, and `cargo test -p aeon-sim` fails if they drift from the code. Retune in the code, then:
+These are the authored numbers from the September 2 implementation, updated for the September 5 consultation. The tables below the marker are **generated from the move data** in `crates/sim/src/chars/{kogan,raya}.rs` by `crates/sim/tests/frame_data_doc.rs`, and `cargo test -p aeon-sim` fails if they drift from the code. Retune in the code, then:
 
 ```
 AEON_REGEN_DOCS=1 cargo test -p aeon-sim --test frame_data_doc
@@ -13,11 +13,19 @@ Feel-targets these numbers must not violate:
 - Lights link (tight 1–2f windows are correct). No normal-to-normal chains.
 - Weapon-heavies (far S / far HS) stay **minus** on hit and on block. A missed heavy is a lost turn.
 - Disc close is plus on block (+3) so it frame-traps.
-- Damage lives in 2–3 hits. Scaling 100 / 80 / 60 / 45 / 35.
+- Two or three hits are typical; natural three-to-five-hit routes are allowed. Scaling 100 / 80 / 60 / 45 / 35.
 - Command grab whiff is max-punish. Uppercut blocked or baited is max-punish + hard knockdown.
 - Hop is a distinct, shorter, faster arc than jump. Run is a glide.
 
-## Authored this pass (what changed from the 2026-08-13 prototype)
+## September 5 flow pass
+
+- Landing recovery: full jump **2f**, hop **0f**. Move-specific landing recovery is preserved.
+- Run transitions are immediate; current inputs are accepted on the first free recovery frame. Early normal presses are not buffered through recovery.
+- Air normals retain horizontal travel and hop identity. Landing does not erase remaining air hitstun.
+- No move damage, startup, active, recovery, cancel windows or gauge costs were retuned. The tested natural Kogan jab → jab xx full rekka is **five hits / 170 damage / knockdown**.
+- Airtime tables now follow the simulation's gravity-before-position integration. This corrects the documentation by two frames; it does not retune the arcs.
+
+## September 2 implementation (changes from the August 13 prototype)
 
 | Verb | Decision |
 |---|---|
@@ -51,7 +59,7 @@ _Generated from `crates/sim/src/chars` by `tests/frame_data_doc.rs`. Do not edit
 | chord window | 3f; a normal started inside the window kara-cancels into the chord |
 | special cancel window | from first active frame to last active + 2f |
 | motion buffer | 12f for 236/214/623; 16f for 63214; charge 45f |
-| prejump / landing | 4f / 2f; tap up = hop, hold up = jump |
+| prejump / landing | 4f prejump; full jump 2f landing, hop 0f; move-specific landing recovery still applies |
 | backdash | 14f, punishable |
 | normal throw (P+K) | tech window 7f after the grab connects; tech = both pushed apart, 16f each |
 | command grab (63214+FL) | untechable; 4f hold then the throw resolves; whiff recovery is the move's own |
@@ -70,7 +78,7 @@ _Generated from `crates/sim/src/chars` by `tests/frame_data_doc.rs`. Do not edit
 | jump x / y | 4 / 13 px/f |
 | hop x / y | 4 / 8 px/f |
 | gravity | 0.625 px/f² |
-| jump airtime / hop airtime | 43f / 27f (+4f prejump, +2f landing) |
+| jump airtime / hop airtime | 41f / 25f (+4f prejump; full jump landing 2f, hop landing 0f) |
 | pushbox w, stand h, crouch h | 32 / 96 / 62 px |
 | throw range / close range | 36 / 52 px |
 | gauge (CYL) | max 6, starts 6, +1 every 60f after 90f idle |
@@ -133,7 +141,7 @@ Hurtbox standing 40×96 px, crouching 40×62 px.
 | jump x / y | 3 / 12 px/f |
 | hop x / y | 3 / 7 px/f |
 | gravity | 0.688 px/f² |
-| jump airtime / hop airtime | 36f / 22f (+4f prejump, +2f landing) |
+| jump airtime / hop airtime | 34f / 20f (+4f prejump; full jump landing 2f, hop landing 0f) |
 | pushbox w, stand h, crouch h | 30 / 98 / 60 px |
 | throw range / close range | 34 / 48 px |
 | gauge (CRYSTAL) | max 100, starts 0, no regen; buff tier every 50 gauge |

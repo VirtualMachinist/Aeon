@@ -2,12 +2,14 @@
 //! The sim is sacred; this crate is a window, a stick, and a sprite table.
 
 mod input;
+mod preview;
 mod render;
 mod replay;
 mod sprites;
+mod timing;
 
 use aeon_sim::input::{Btn, Chord};
-use aeon_sim::{Action, CharacterId, EventKind, InputFrame, Match, Phase, World, TICK_HZ};
+use aeon_sim::{Action, CharacterId, EventKind, InputFrame, Match, Phase, World};
 use macroquad::prelude::*;
 
 use input::{keyboard, merge, Bind, MenuEdges, Pads};
@@ -17,8 +19,7 @@ use render::{
 };
 use replay::Replay;
 use sprites::SpriteSet;
-
-const DT: f32 = 1.0 / TICK_HZ as f32;
+use timing::{FixedClock, InputLatch};
 
 fn window_conf() -> Conf {
     Conf {
@@ -134,6 +135,10 @@ async fn main() {
             load_texture("assets/select/raya.png").await.ok(),
         ],
     };
+    if std::env::args().any(|a| a == "--polish-preview") {
+        preview::run(&assets).await;
+        return;
+    }
     let mut pads = Pads::new();
     let smoke = std::env::args().any(|a| a == "--smoke");
     let mut mode = if smoke {
@@ -141,7 +146,8 @@ async fn main() {
     } else {
         Mode::Title { cursor: Menu::Versus }
     };
-    let mut acc = 0.0f32;
+    let mut clock = FixedClock::default();
+    let mut inputs = [InputLatch::default(), InputLatch::default()];
     let mut frame: u32 = 0;
     let mut toast: Option<(String, u16)> = None;
     let mut smoke_script: Option<Smoke> = smoke.then(Smoke::default);
@@ -174,6 +180,12 @@ async fn main() {
         }
 
         let edges = menu_edges(&pads);
+        inputs[0].sample(read_p1(&pads, true));
+        inputs[1].sample(read_p2(&pads, true));
+        if !matches!(mode, Mode::Versus { .. } | Mode::Training(_)) {
+            clock.reset();
+            for input in &mut inputs { input.discard_edges(); }
+        }
 
         match &mut mode {
             Mode::Title { cursor } => {
@@ -257,25 +269,22 @@ async fn main() {
                 }
             }
             Mode::Versus { m } => {
-                acc += get_frame_time().min(0.1);
-                let mut ticks = 0;
-                while acc >= DT && ticks < 4 {
+                let ticks = clock.advance(get_frame_time() as f64);
+                for _ in 0..ticks {
                     let (p1, p2) = match &smoke_script {
                         Some(s) => s.inputs(m.world.frame),
                         None => (
-                            read_p1(&pads, m.world.fighters[0].facing_right),
-                            read_p2(&pads, m.world.fighters[1].facing_right),
+                            inputs[0].take(m.world.fighters[0].facing_right),
+                            inputs[1].take(m.world.fighters[1].facing_right),
                         ),
                     };
                     m.tick(p1, p2);
-                    acc -= DT;
-                    ticks += 1;
                 }
                 view.follow(&m.world);
-                assets.stage.draw(&view, frame);
-                draw_world(&view, &assets, &m.world, false, frame);
+                assets.stage.draw(&view, m.world.frame);
+                draw_world(&view, &assets, &m.world, false, m.world.frame);
                 draw_hud(&view, &m.world, &HudOpts { wins: Some(m.wins), round: Some(m.round) });
-                draw_match_overlay(&view, m, frame);
+                draw_match_overlay(&view, m, m.world.frame);
                 if let Phase::MatchOver { .. } = m.phase {
                     if edges.confirm || is_key_pressed(KeyCode::Enter) {
                         m.rematch();
@@ -289,50 +298,52 @@ async fn main() {
             }
             Mode::Training(t) => {
                 training_keys(t, &mut toast);
-                acc += get_frame_time().min(0.1);
-                let mut ticks = 0;
-                let run = !t.paused || t.step_once;
-                while acc >= DT && ticks < 4 {
-                    if run && (ticks == 0 || !t.paused) {
-                        let (p1, p2) = if let Some((rep, i)) = &mut t.playback {
-                            if *i < rep.frames.len() {
-                                let f = rep.frames[*i];
-                                *i += 1;
-                                f
-                            } else {
-                                t.playback = None;
-                                (InputFrame::default(), InputFrame::default())
-                            }
-                        } else if let Some(s) = &smoke_script {
-                            s.inputs(t.world.frame)
+                let ticks = if t.paused {
+                    clock.reset();
+                    usize::from(t.step_once)
+                } else {
+                    clock.advance(get_frame_time() as f64)
+                };
+                for _ in 0..ticks {
+                    let (p1, p2) = if let Some((rep, i)) = &mut t.playback {
+                        if *i < rep.frames.len() {
+                            let f = rep.frames[*i];
+                            *i += 1;
+                            f
                         } else {
-                            (
-                                read_p1(&pads, t.world.fighters[0].facing_right),
-                                read_p2(&pads, t.world.fighters[1].facing_right),
-                            )
-                        };
-                        t.world.tick(p1, p2);
-                        if t.playback.is_none() {
-                            t.recording.push(p1, p2);
+                            t.playback = None;
+                            (InputFrame::default(), InputFrame::default())
                         }
-                        t.last_hash = t.world.state_hash();
-                        log_events(t);
-                        if t.step_once {
-                            t.step_once = false;
-                        }
+                    } else if let Some(s) = &smoke_script {
+                        s.inputs(t.world.frame)
+                    } else {
+                        (
+                            inputs[0].take(t.world.fighters[0].facing_right),
+                            inputs[1].take(t.world.fighters[1].facing_right),
+                        )
+                    };
+                    t.world.tick(p1, p2);
+                    if t.playback.is_none() {
+                        t.recording.push(p1, p2);
                     }
-                    acc -= DT;
-                    ticks += 1;
+                    t.last_hash = t.world.state_hash();
+                    log_events(t);
+                    if t.step_once {
+                        t.step_once = false;
+                    }
+                }
+                if t.paused {
+                    for input in &mut inputs { input.discard_edges(); }
                 }
                 if let Some((_, _, n)) = &mut t.flash {
-                    *n = n.saturating_sub(1);
+                    *n = n.saturating_sub(ticks as u8);
                     if *n == 0 {
                         t.flash = None;
                     }
                 }
                 view.follow(&t.world);
-                assets.stage.draw(&view, frame);
-                draw_world(&view, &assets, &t.world, t.show_boxes, frame);
+                assets.stage.draw(&view, t.world.frame);
+                draw_world(&view, &assets, &t.world, t.show_boxes, t.world.frame);
                 draw_hud(&view, &t.world, &HudOpts { wins: None, round: None });
                 draw_training_hud(&view, t, &pads);
                 if is_key_pressed(KeyCode::Escape) {
@@ -430,8 +441,15 @@ fn p2_edges(pads: &Pads) -> MenuEdges {
 }
 
 fn draw_world(view: &View, assets: &Assets, w: &World, boxes: bool, frame: u32) {
-    // Draw the body further back first so the attacker overlaps.
-    let order = if w.fighters[0].pos.y > w.fighters[1].pos.y { [1, 0] } else { [0, 1] };
+    // A defender's cape must not hide the attacking hands or weapon.
+    // When neither (or both) attacks, retain the height-based ordering.
+    let attacking = w.fighters.each_ref().map(|f| f.action.attacking().is_some());
+    let order = match attacking {
+        [true, false] => [1, 0],
+        [false, true] => [0, 1],
+        _ if w.fighters[0].pos.y > w.fighters[1].pos.y => [1, 0],
+        _ => [0, 1],
+    };
     for i in order {
         let fd = FighterDraw { sprites: Some(assets.sprites(w.fighters[i].id)), show_boxes: boxes };
         draw_fighter(view, w, i, &fd);

@@ -8,7 +8,7 @@ use aeon_sim::{
 };
 use macroquad::prelude::*;
 
-use crate::sprites::{pose_for, SpriteSet};
+use crate::sprites::SpriteSet;
 
 pub const VW: f32 = 1280.0;
 pub const VH: f32 = 800.0;
@@ -260,45 +260,27 @@ pub fn draw_fighter(v: &View, w: &World, i: usize, fd: &FighterDraw) {
         _ => WHITE,
     };
 
-    let sprite = fd.sprites.and_then(|s| s.get(pose_for(f)));
+    let sprite = fd.sprites.and_then(|s| s.sample(f, w.frame));
     match sprite {
-        Some(tex) => {
-            // Constant canvas: every pose is authored on the same frame with
-            // feet at the bottom, so one size holds across states.
-            let h = stand_h * 1.55;
-            let wdt = h * (tex.width() / tex.height());
-            let x = feet.x - wdt / 2.0;
-            let y = feet.y - h * 0.94;
-            // Smear on active frames / glide: a ghost trailing behind.
-            let ghost = match &f.action {
-                Action::Run => Some((-18.0 * facing, 0.30)),
-                Action::Attack { move_id, frame, .. } => {
-                    let mv = d.move_def(*move_id);
-                    mv.filter(|m| m.is_active(*frame)).map(|_| (-10.0 * facing, 0.35))
-                }
-                Action::Jump { hop: true, .. } => Some((-8.0 * facing, 0.22)),
-                _ => None,
-            };
-            if let Some((dx, a)) = ghost {
-                draw_texture_ex(
-                    tex,
-                    v.sx(x + dx),
-                    v.sy(y),
-                    Color::new(0.72, 0.45, 0.2, a),
-                    DrawTextureParams {
-                        dest_size: Some(vec2(wdt * v.scale, h * v.scale)),
-                        flip_x: !f.facing_right,
-                        ..Default::default()
-                    },
-                );
-            }
+        Some(sprite) => {
+            let breath = if matches!(f.action, Action::Stand) {
+                1.0 + 0.003 * (w.frame as f32 * 0.055).sin()
+            } else { 1.0 };
+            let h = stand_h * sprite.height * breath;
+            let aspect = sprite.source.map(|r| r.w / r.h)
+                .unwrap_or_else(|| sprite.texture.width() / sprite.texture.height());
+            let width = h * aspect;
+            let anchor_x = if f.facing_right { sprite.anchor.x } else { 1.0 - sprite.anchor.x };
+            let x = feet.x - width * anchor_x;
+            let y = feet.y - h * sprite.anchor.y;
             draw_texture_ex(
-                tex,
+                sprite.texture,
                 v.sx(x),
                 v.sy(y),
                 hit_tint,
                 DrawTextureParams {
-                    dest_size: Some(vec2(wdt * v.scale, h * v.scale)),
+                    source: sprite.source,
+                    dest_size: Some(vec2(width * v.scale, h * v.scale)),
                     flip_x: !f.facing_right,
                     ..Default::default()
                 },

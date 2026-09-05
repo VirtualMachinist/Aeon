@@ -146,6 +146,9 @@ pub struct Pads {
     gilrs: Option<Gilrs>,
     /// Raw button codes tracked from events, per pad.
     raw: HashMap<GamepadId, HashMap<u32, bool>>,
+    /// Preserve a press even if its release is drained in the same render.
+    taps: HashMap<GamepadId, Buttons>,
+    up_taps: std::collections::HashSet<GamepadId>,
     /// Most recent raw press (for remap capture).
     last_press: Option<(GamepadId, Button, u32)>,
     pub map: PadMap,
@@ -164,6 +167,8 @@ impl Pads {
         let mut pads = Self {
             gilrs,
             raw: HashMap::new(),
+            taps: HashMap::new(),
+            up_taps: std::collections::HashSet::new(),
             last_press: None,
             map: PadMap::load(),
             announced: Vec::new(),
@@ -203,8 +208,16 @@ impl Pads {
         while let Some(Event { id, event, .. }) = g.next_event() {
             match event {
                 EventType::ButtonPressed(btn, code) => {
+                    if btn == Button::DPadUp { self.up_taps.insert(id); }
                     let c = code.into_u32();
                     self.raw.entry(id).or_default().insert(c, true);
+                    for b in Btn::ALL {
+                        let matches = match self.map.bind(b) {
+                            Bind::Logical(logical) => logical == btn,
+                            Bind::Raw(raw) => raw == c,
+                        };
+                        if matches { self.taps.entry(id).or_default().set(b, true); }
+                    }
                     self.last_press = Some((id, btn, c));
                 }
                 EventType::ButtonReleased(_, code) => {
@@ -222,6 +235,8 @@ impl Pads {
     /// Advance gilrs' frame counter after all reads so `just pressed` edges
     /// are exactly one frame wide.
     pub fn end_frame(&mut self) {
+        self.taps.clear();
+        self.up_taps.clear();
         if let Some(g) = &mut self.gilrs {
             g.inc();
         }
@@ -284,14 +299,15 @@ impl Pads {
         } else if dx < -0.5 || gp.is_pressed(Button::DPadLeft) {
             sx = -1;
         }
-        if dy > 0.5 || gp.is_pressed(Button::DPadUp) {
+        if dy > 0.5 || gp.is_pressed(Button::DPadUp) || self.up_taps.contains(&id) {
             sy = 1;
         } else if dy < -0.5 || gp.is_pressed(Button::DPadDown) {
             sy = -1;
         }
         let mut buttons = Buttons::default();
         for b in Btn::ALL {
-            buttons.set(b, self.pressed(id, self.map.bind(b)));
+            buttons.set(b, self.pressed(id, self.map.bind(b))
+                || self.taps.get(&id).is_some_and(|t| t.get(b)));
         }
         Some(InputFrame {
             dir: stick_to_dir(sx, sy, facing_right),
@@ -341,27 +357,27 @@ pub fn keyboard(player: usize, facing_right: bool) -> InputFrame {
     let (sx, sy, buttons) = if player == 0 {
         (
             key_axis(KeyCode::D, KeyCode::A),
-            key_axis(KeyCode::W, KeyCode::S),
+            jump_axis(KeyCode::W, KeyCode::S),
             Buttons {
-                p: is_key_down(KeyCode::Y),
-                s: is_key_down(KeyCode::U),
-                hs: is_key_down(KeyCode::I),
-                k: is_key_down(KeyCode::H),
-                fl: is_key_down(KeyCode::J),
-                st: is_key_down(KeyCode::K),
+                p: is_key_down(KeyCode::Y) || is_key_pressed(KeyCode::Y),
+                s: is_key_down(KeyCode::U) || is_key_pressed(KeyCode::U),
+                hs: is_key_down(KeyCode::I) || is_key_pressed(KeyCode::I),
+                k: is_key_down(KeyCode::H) || is_key_pressed(KeyCode::H),
+                fl: is_key_down(KeyCode::J) || is_key_pressed(KeyCode::J),
+                st: is_key_down(KeyCode::K) || is_key_pressed(KeyCode::K),
             },
         )
     } else {
         (
             key_axis(KeyCode::Right, KeyCode::Left),
-            key_axis(KeyCode::Up, KeyCode::Down),
+            jump_axis(KeyCode::Up, KeyCode::Down),
             Buttons {
-                p: is_key_down(KeyCode::P),
-                s: is_key_down(KeyCode::LeftBracket),
-                hs: is_key_down(KeyCode::RightBracket),
-                k: is_key_down(KeyCode::L),
-                fl: is_key_down(KeyCode::Semicolon),
-                st: is_key_down(KeyCode::Apostrophe),
+                p: is_key_down(KeyCode::P) || is_key_pressed(KeyCode::P),
+                s: is_key_down(KeyCode::LeftBracket) || is_key_pressed(KeyCode::LeftBracket),
+                hs: is_key_down(KeyCode::RightBracket) || is_key_pressed(KeyCode::RightBracket),
+                k: is_key_down(KeyCode::L) || is_key_pressed(KeyCode::L),
+                fl: is_key_down(KeyCode::Semicolon) || is_key_pressed(KeyCode::Semicolon),
+                st: is_key_down(KeyCode::Apostrophe) || is_key_pressed(KeyCode::Apostrophe),
             },
         )
     };
@@ -369,6 +385,10 @@ pub fn keyboard(player: usize, facing_right: bool) -> InputFrame {
         dir: stick_to_dir(sx, sy, facing_right),
         buttons,
     }
+}
+
+fn jump_axis(up: KeyCode, down: KeyCode) -> i32 {
+    (is_key_down(up) || is_key_pressed(up)) as i32 - is_key_down(down) as i32
 }
 
 fn key_axis(pos: KeyCode, neg: KeyCode) -> i32 {
