@@ -96,6 +96,45 @@ pub const KOGAN_REACTIONS: [Spec; 12] = [
     ([0, 700, 365, 1086], 220, 311), ([365, 700, 720, 1086], 565, 311),
     ([720, 700, 1075, 1086], 901, 311), ([1075, 700, 1448, 1086], 1228, 319),
 ];
+// Prone, seated hand support, kneel and half rise share anatomical scale.
+pub const KOGAN_FLOOR: [Spec; 4] = [
+    ([0, 0, 773, 449], 400, 530), ([773, 0, 1536, 449], 1090, 530),
+    ([0, 449, 774, 1024], 410, 530), ([774, 449, 1536, 1024], 1110, 530),
+];
+
+pub fn floor_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    match f.action {
+        Action::Knockdown { .. } => Some(Cell::Floor(0)),
+        Action::Getup { frame } => Some(Cell::Floor((frame * 4 / GETUP_FRAMES).min(3) as usize)),
+        _ => None,
+    }
+}
+
+// Contact / release pairs retain a shared anatomical scale. The narrow
+// second-row gutter is measured rather than split at the nominal midpoint.
+pub const KOGAN_RECOIL: [Spec; 8] = [
+    ([0, 0, 490, 410], 260, 330), ([490, 0, 1024, 410], 715, 330),
+    ([0, 410, 521, 730], 265, 330), ([521, 410, 1024, 730], 710, 330),
+    ([0, 730, 465, 1130], 255, 330), ([465, 730, 1024, 1130], 695, 330),
+    ([0, 1130, 467, 1536], 260, 330), ([467, 1130, 1024, 1536], 715, 330),
+];
+
+/// Show recovery during the final four existing stun frames (3 through 0). Knockdowns
+/// retain recoil through the fall; no false return to control is suggested.
+/// Remaining stun is frozen by the sim during hitstop and replay pause.
+pub fn recoil_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan || f.airborne { return None; }
+    match f.action {
+        Action::Hit { stun, knockdown } => Some(Cell::Recoil(
+            usize::from(f.input().down()) * 2 + usize::from(stun < 4 && !knockdown))),
+        Action::Block { crouching, stun } => Some(Cell::Recoil(
+            4 + usize::from(crouching) * 2 + usize::from(stun < 4))),
+        Action::Thrown { .. } => Some(Cell::Recoil(0)),
+        _ => None,
+    }
+}
+
 pub const RAYA_REACTIONS: [Spec; 12] = [
     ([0, 0, 350, 382], 228, 320), ([350, 0, 700, 382], 518, 332),
     ([700, 0, 1055, 382], 905, 324), ([1055, 0, 1448, 382], 1254, 336),
@@ -369,8 +408,32 @@ mod tests {
     use aeon_sim::{px, CharacterId, Connect, World};
 
     #[test]
+    fn recoil_release_uses_four_remaining_frames_and_yields_to_legal_control() {
+        for facing in [false, true] {
+            let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
+            w.fighters[0].facing_right = facing;
+            w.fighters[0].apply_hit(12, false, 0, 0, false);
+            let mut release = 0;
+            for _ in 0..20 {
+                release += usize::from(recoil_cell(&w.fighters[0]) == Some(Cell::Recoil(1)));
+                w.tick(Default::default(), Default::default());
+            }
+            assert_eq!(release, 4, "stun zero is itself one visible tick");
+            assert_eq!(recoil_cell(&w.fighters[0]), None);
+            w.fighters[0].start_move(MoveId::StP);
+            assert_eq!(recoil_cell(&w.fighters[0]), None, "no art recovery masks an attack");
+            w.fighters[0].action = Action::Hit { stun: 2, knockdown: true };
+            assert_eq!(recoil_cell(&w.fighters[0]), Some(Cell::Recoil(0)), "a pending knockdown never regains control");
+            w.fighters[0].airborne = true;
+            assert_eq!(recoil_cell(&w.fighters[0]), None, "air recoil keeps the velocity-driven sequence");
+        }
+    }
+
+    #[test]
     fn authored_regions_preserve_complete_silhouettes_and_effects() {
         for (name, reference, specs) in [
+            ("kogan-floor-v1-green.png", (1536, 1024), &KOGAN_FLOOR[..]),
+            ("kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL[..]),
             ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
             ("kogan-disc-v2-green.png", (1536, 1024), &KOGAN_DISC[..]),

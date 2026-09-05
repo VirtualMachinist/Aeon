@@ -113,7 +113,7 @@ Full-kit movement report: [[Aeon/notes/2026-09-05-full-kit-pass]] and crate `doc
 
 | ID | Gate | Evidence |
 |---|---|---|
-| ART5 | Authored reaction/recovery and reversal drawings | `sequences.rs`: 32 selected drawings across five assets, source regions and anatomical scales; `authored_regions_preserve_complete_silhouettes_and_effects` checks the actual PNG boundaries. Review stand/crouch recoil, rise/fall, floor/getup and landing for both bodies. Grounded recoil remains one drawing per stance; full-kit animation is still incomplete. |
+| ART5 | Authored reaction/recovery and reversal drawings | `sequences.rs`: 32 selected drawings across five assets, source regions and anatomical scales; `authored_regions_preserve_complete_silhouettes_and_effects` checks the actual PNG boundaries. Review stand/crouch recoil, rise/fall, floor/getup and landing for both bodies. Raya grounded recoil remains one drawing per stance; Kogan follow-up coverage is recorded at ART16. Full-kit animation is still incomplete. |
 | ART6 | Reversal continuity through the full airborne action | `reversal_art_follows_startup_rise_apex_and_descent_for_both_facings`, `an_uppercut_keeps_its_descent_drawing_after_attack_expiry`, and `anim.rs::authored_falling_and_reversal_drawings_are_not_rotated_twice`. Review the end of Kogan's attack frames through the remaining committed fall and landing. |
 | ART7 | Floor contact, keying and corner visibility | `a_throw_reaction_reaches_the_floor_and_all_getup_drawings_without_changing_the_sim`; key/despill tests preserve cyan, linen, copper and existing alpha. `render.rs::both_stage_walls_leave_room_for_a_reaction_without_changing_zoom`. Inspect scenes 6/7 tick 150 and scene 7 tick 300; fixed wall margins and backdrop overscan leave room for silhouettes. No camera effects. |
 
@@ -181,3 +181,12 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART15 | Kogan ground phases, immediate exits and visible crouch | Eight V4 drawings plus measured original walk cells; 36 legal-input cases verify two walk cycles, 14f backdash, immediate run exits, real block/hit and 2f full-jump landing. Complete before/final 54s viewed at 1×; run, retreat and close-crouch phase boundaries stepped. Client history tests protect freeze/reset/new-input precedence; draw-order test protects low-body visibility and attacker priority. |
 
 129 tests pass (89 sim + 40 client), clippy and locked/offline release pass. All 3,240 ground and 2,100 retained integration ticks match baseline. The complete new 35s integration preview was viewed at 1×; eight fresh smoke images match the preceding inspected evidence byte for byte. G1/K1/S1/S2/A2 refraction, rejected candidates and final before/after evidence are in the full-kit report. Kogan attacks/reactions, Raya's kit and physical stick play remain open.
+
+
+## September 5 Kogan recoil and floor review
+
+| ID | Gate | Evidence |
+|---|---|---|
+| ART16 | Grounded impact/guard release, launches and supported floor recovery | All 36 before/final cases / 90s each viewed at 1×, both facings and center/corners; standing/crouched hit/guard and corner getup boundaries stepped. Eight recoil V2 and four floor V1 drawings retain scale/equipment, remove old-body ghosts and preserve immediate legal control. `reaction_preview_covers_grounded_guard_recoil_launch_and_floor_recovery` and `recoil_release_uses_four_remaining_frames_and_yields_to_legal_control` verify consequences, freeze, full recovery and four visible release ticks. |
+
+131 tests pass (89 sim + 42 client), clippy and locked/offline release pass. All 5,400 reaction and 2,100 integration ticks match baseline. Full new 35s integration playback inspected; eight fresh smoke images match preceding inspected evidence byte for byte. G2/S2/A1/S1/A2 refraction, prompts and exact paused ticks are in the full-kit report. Air-normal juggles, tech, remaining Kogan attacks/feint/victory and Raya remain open.

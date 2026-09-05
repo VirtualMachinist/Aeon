@@ -323,7 +323,7 @@ pub fn layers(
 /// Dedicated drawings already contain the bend/tumble. Rotating them again
 /// around their feet puts the body below the floor and distorts sword arcs.
 fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
-    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(8..=11))
+    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(_) | Cell::Recoil(_) | Cell::Floor(_))
 }
 
 fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
@@ -813,7 +813,7 @@ mod tests {
     fn authored_kogan_return_has_one_body_and_no_extra_blade_rotation() {
         let sprites = set(CharacterId::Kogan);
         let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
-        for previous in [Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
+        for previous in [Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
             let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
             let mut history = History::default();
             history.record(&w, [previous, Cell::Pose(Pose::Idle)]);
