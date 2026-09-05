@@ -356,7 +356,7 @@ pub fn layers(
 /// Dedicated drawings already contain the bend/tumble. Rotating them again
 /// around their feet puts the body below the floor and distorts sword arcs.
 fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
-    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(_) | Cell::Recoil(_) | Cell::Floor(_) | Cell::Judgment(_) | Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::Overhead(_))
+    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(_) | Cell::Recoil(_) | Cell::Floor(_) | Cell::Judgment(_) | Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::Overhead(_) | Cell::ThrowTech(_))
 }
 
 fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
@@ -365,7 +365,7 @@ fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
 }
 
 fn respect_authored_drawing(id: CharacterId, cell: Cell, m: &mut Motion) {
-    if id == CharacterId::Kogan && matches!(cell, Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::Overhead(_)) {
+    if id == CharacterId::Kogan && matches!(cell, Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::Overhead(_) | Cell::ThrowTech(_)) {
         // Commitment is drawn; extra shifts detach the weapon from its contact line.
         m.dx = 0.0;
         m.dy = 0.0;
@@ -909,7 +909,7 @@ mod tests {
     fn authored_kogan_return_has_one_body_and_no_extra_blade_rotation() {
         let sprites = set(CharacterId::Kogan);
         let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
-        for previous in [Cell::Overhead(0), Cell::Overhead(1), Cell::Overhead(2), Cell::Overhead(3), Cell::CrouchSaber(8), Cell::CrouchSaber(9), Cell::CrouchSaber(10), Cell::CrouchSaber(11), Cell::CrouchSaber(12), Cell::CrouchSaber(13), Cell::CrouchSaber(14), Cell::CrouchSaber(15), Cell::CrouchSaber(0), Cell::CrouchSaber(1), Cell::CrouchSaber(2), Cell::CrouchSaber(3), Cell::CrouchSaber(4), Cell::CrouchSaber(5), Cell::CrouchSaber(6), Cell::CrouchSaber(7), Cell::Flash(0), Cell::Flash(1), Cell::Flash(2), Cell::Flash(3), Cell::Flash(4), Cell::Flash(5), Cell::Flash(6), Cell::Flash(7), Cell::AirLights(0), Cell::AirLights(1), Cell::AirLights(2), Cell::AirLights(3), Cell::AirLights(4), Cell::AirLights(5), Cell::AirSaber(0), Cell::AirSaber(1), Cell::AirSaber(2), Cell::AirSaber(3), Cell::AirSaber(4), Cell::AirSaber(5), Cell::AirShot(0), Cell::AirShot(1), Cell::AirShot(2), Cell::AirShot(3), Cell::Judgment(0), Cell::Judgment(1), Cell::Judgment(2), Cell::Judgment(3), Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
+        for previous in [Cell::ThrowTech(0), Cell::ThrowTech(1), Cell::Utility(0), Cell::Utility(1), Cell::Utility(2), Cell::Utility(3), Cell::Overhead(0), Cell::Overhead(1), Cell::Overhead(2), Cell::Overhead(3), Cell::CrouchSaber(8), Cell::CrouchSaber(9), Cell::CrouchSaber(10), Cell::CrouchSaber(11), Cell::CrouchSaber(12), Cell::CrouchSaber(13), Cell::CrouchSaber(14), Cell::CrouchSaber(15), Cell::CrouchSaber(0), Cell::CrouchSaber(1), Cell::CrouchSaber(2), Cell::CrouchSaber(3), Cell::CrouchSaber(4), Cell::CrouchSaber(5), Cell::CrouchSaber(6), Cell::CrouchSaber(7), Cell::Flash(0), Cell::Flash(1), Cell::Flash(2), Cell::Flash(3), Cell::Flash(4), Cell::Flash(5), Cell::Flash(6), Cell::Flash(7), Cell::AirLights(0), Cell::AirLights(1), Cell::AirLights(2), Cell::AirLights(3), Cell::AirLights(4), Cell::AirLights(5), Cell::AirSaber(0), Cell::AirSaber(1), Cell::AirSaber(2), Cell::AirSaber(3), Cell::AirSaber(4), Cell::AirSaber(5), Cell::AirShot(0), Cell::AirShot(1), Cell::AirShot(2), Cell::AirShot(3), Cell::Judgment(0), Cell::Judgment(1), Cell::Judgment(2), Cell::Judgment(3), Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
             let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
             let mut history = History::default();
             history.record(&w, [previous, Cell::Pose(Pose::Idle)]);

@@ -251,3 +251,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART23 | Complete standing cut/withdrawal and falling saber/landing | Four new standing drawings and reviewed air-saber/landing reuse. All 40 before/final cases / 80s each viewed at 1× in 1280×720, both facings at center/corners, all five responses. Focused phases and final mirrored/corner contacts, eight landing ticks and defender getup stepped. Legal outcomes, active-only contact, freeze, state isolation, source boundaries and clean transitions pass. |
 
 149 tests (89 sim + 60 client), clippy with warnings denied and locked/offline release pass. All 4,800 final, 480 focused and 2,100 integration ticks equal baseline; complete new 35s integration viewed. Accepted repeat smoke has all eight PNGs identical to the preceding inspected crouching-saber evidence. The incomplete first six-PNG smoke remains archived separately. Standing 22/3/16, falling 18/4/14, eight landing ticks and all simulation values are unchanged. Exact S2/A1/S1/A2/G1 refraction, review steps, prompts and archive paths are in the full-kit report. Remaining Kogan families, Raya and physical stick play stay open.
+
+## September 5 Kogan normal throw and tech review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART24 | Deliberate throw recovery and supported tech separation | Four reviewed utility drawings reused at normal-throw timing; two new full-size separation/withdrawal drawings lead into ready. All 32 before/final cases / 80s each and focused 7.5s viewed at 1× in 1280×720; contact, tech and complete returns stepped at center/corners in both facings. |
+
+151 tests (89 sim + 62 client), clippy with warnings denied and locked/offline release pass. All 4,800 final, 450 focused and 2,100 integration ticks match baseline. Complete new 35s integration viewed; eight smoke PNGs retained, seven byte-identical and changed versus-mid directly inspected as the intended normal-throw withdrawal. Original 2/1/20, damage, tech window and all simulation values remain unchanged. G2/A1/S2 refraction and exact evidence are in the full-kit report. Raya tech/guard/getup ghosts and brief pre-grab crouched overlap remain open; remaining kits and physical stick play are not accepted by this batch.
