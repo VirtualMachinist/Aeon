@@ -49,6 +49,7 @@ pub struct Snapshot {
     pub y: f32,
     pub facing_right: bool,
     pub cell: Cell,
+    ground: crate::sequences::GroundContext,
 }
 
 /// What each body showed over the last few simulation frames.
@@ -58,6 +59,29 @@ pub struct History {
 }
 
 impl History {
+    /// Keep the attacking gesture in front. At equal grounded height, a
+    /// crouching body must remain visible below the opponent's standing torso.
+    /// Its two-frame rise keeps that order until the standing drawing returns.
+    pub fn draw_order(&self, w: &World) -> [usize; 2] {
+        let attacking = w.fighters.each_ref().map(|f| f.action.attacking().is_some());
+        match attacking {
+            [true, false] => return [1, 0],
+            [false, true] => return [0, 1],
+            _ => {}
+        }
+        if w.fighters[0].pos.y != w.fighters[1].pos.y {
+            return if w.fighters[0].pos.y > w.fighters[1].pos.y { [1, 0] } else { [0, 1] };
+        }
+        let low = [0, 1].map(|i| {
+            let f = &w.fighters[i];
+            let c = self.ground_context(w, i);
+            matches!(f.action, Action::Crouch)
+                || (f.id == CharacterId::Kogan && c.state == crate::sequences::GroundState::Stand
+                    && c.from == crate::sequences::GroundState::Crouch && c.age < 2)
+        });
+        if low == [true, false] { [1, 0] } else { [0, 1] }
+    }
+
     /// Record once per simulation tick, after the world stepped. Frozen ticks
     /// (hitstop, RC) overwrite the same frame; a reset or replay that moves
     /// the frame counter backwards clears the trail.
@@ -70,6 +94,7 @@ impl History {
                 y: sub(f.pos.y),
                 facing_right: f.facing_right,
                 cell,
+                ground: self.ground_context(w, i),
             };
             let t = &mut self.trail[i];
             match t.back().map(|s| s.frame) {
@@ -87,6 +112,25 @@ impl History {
                 t.pop_front();
             }
         }
+    }
+
+    pub fn ground_context(&self, w: &World, i: usize) -> crate::sequences::GroundContext {
+        use crate::sequences::{GroundContext, GroundState};
+        let state = GroundState::of(&w.fighters[i].action);
+        if let Some(previous) = self.trail[i].back().filter(|s| {
+            s.frame == w.frame || s.frame.checked_add(1) == Some(w.frame)
+        }) {
+            if previous.ground.state == state {
+                return GroundContext { age: previous.ground.age.saturating_add(u32::from(previous.frame != w.frame)),
+                    ..previous.ground };
+            }
+            return GroundContext { state, from: previous.ground.state, age: 0 };
+        }
+        GroundContext { state, ..Default::default() }
+    }
+
+    pub fn cell_for(&self, w: &World, i: usize, sprites: &SpriteSet) -> Cell {
+        sprites.cell_for_with_ground(&w.fighters[i], w.frame, self.ground_context(w, i))
     }
 
     pub fn reset(&mut self) {
@@ -171,7 +215,7 @@ pub fn layers(
     opts: &LayerOpts,
 ) -> Vec<Layer> {
     let f = &w.fighters[i];
-    let mut cell = sprites.cell_for(f, w.frame);
+    let mut cell = history.cell_for(w, i, sprites);
     if opts.win
         && !f.airborne
         && matches!(f.action, Action::Stand | Action::Crouch | Action::Walk { .. })
@@ -279,7 +323,7 @@ pub fn layers(
 /// Dedicated drawings already contain the bend/tumble. Rotating them again
 /// around their feet puts the body below the floor and distorts sword arcs.
 fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
-    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(4..=15) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(8..=11))
+    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(8..=11))
 }
 
 fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
@@ -705,10 +749,71 @@ mod tests {
     }
 
     #[test]
-    fn authored_saber_return_has_one_body_and_no_extra_blade_rotation() {
+    fn ground_phase_clock_freezes_resets_and_yields_to_new_actions() {
+        use crate::sequences::{ground_cell, GroundState};
+        use aeon_sim::{Btn, InputFrame};
+        let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
+        let mut history = History::default();
+        let cells = [Cell::Pose(Pose::Idle); 2];
+        history.record(&w, cells);
+        for dir in [6, 5, 6] {
+            w.tick(InputFrame::dir(dir), InputFrame::dir(5));
+            history.record(&w, cells);
+        }
+        let context = history.ground_context(&w, 0);
+        assert_eq!((context.state, context.age), (GroundState::Run, 0));
+        assert_eq!(ground_cell(&w.fighters[0], context), Some(Cell::Utility(4)));
+        for _ in 0..12 {
+            w.tick(InputFrame::dir(6), InputFrame::dir(5));
+            history.record(&w, cells);
+        }
+        let before = history.ground_context(&w, 0);
+        assert_eq!(ground_cell(&w.fighters[0], before), Some(Cell::Ground(1)));
+        w.hitstop = 3;
+        for _ in 0..3 {
+            let hash = w.state_hash();
+            for _ in 0..5 {
+                assert_eq!(history.ground_context(&w, 0), before);
+                history.record(&w, cells);
+            }
+            assert_eq!(hash, w.state_hash(), "presentation queries are read only");
+            w.tick(InputFrame::dir(6), InputFrame::dir(5));
+            history.record(&w, cells);
+            assert_eq!(history.ground_context(&w, 0), before, "frozen ticks hold the drawing clock");
+        }
+        w.tick(InputFrame::dir(5), InputFrame::dir(5));
+        history.record(&w, cells);
+        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Utility(6)));
+        w.tick(InputFrame::press(Btn::S), InputFrame::dir(5));
+        history.record(&w, cells);
+        assert!(w.fighters[0].action.attacking().is_some());
+        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), None,
+            "the visible brake never masks an immediate attack");
+        w = World::new(CharacterId::Kogan, CharacterId::Raya);
+        history.record(&w, cells);
+        let reset = history.ground_context(&w, 0);
+        assert_eq!((reset.age, reset.from), (0, GroundState::Other), "replay reset clears old movement");
+        w.tick(InputFrame::dir(2), InputFrame::dir(5));
+        history.record(&w, cells);
+        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Ground(2)));
+        for _ in 0..2 {
+            w.tick(InputFrame::dir(2), InputFrame::dir(5));
+            history.record(&w, cells);
+        }
+        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Ground(3)));
+        w.tick(InputFrame::dir(5), InputFrame::dir(5));
+        history.record(&w, cells);
+        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Ground(2)));
+        history.reset();
+        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), None,
+            "training reset discards a pending rise");
+    }
+
+    #[test]
+    fn authored_kogan_return_has_one_body_and_no_extra_blade_rotation() {
         let sprites = set(CharacterId::Kogan);
         let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
-        for previous in [Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
+        for previous in [Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
             let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
             let mut history = History::default();
             history.record(&w, [previous, Cell::Pose(Pose::Idle)]);
@@ -720,8 +825,36 @@ mod tests {
             respect_authored_drawing(CharacterId::Kogan, previous, &mut m);
             assert_eq!((m.rot, m.sx, m.sy), (0.0, 1.0, 1.0));
         }
-        assert!(!kogan_combat_cell(CharacterId::Kogan, Cell::Atlas(0)), "walking remains separate");
         assert!(!kogan_combat_cell(CharacterId::Raya, Cell::Atlas(6)), "Raya has separate review coverage");
+    }
+
+    #[test]
+    fn close_crouch_and_rise_stay_visible_without_hiding_attacks() {
+        use aeon_sim::{Btn, InputFrame};
+        for croucher in 0..2 {
+            let mut w = World::new(CharacterId::Kogan, CharacterId::Kogan);
+            let mut history = History::default();
+            let cells = [Cell::Pose(Pose::Idle); 2];
+            let mut inputs = [InputFrame::dir(5); 2];
+            inputs[croucher] = InputFrame::dir(2);
+            w.tick(inputs[0], inputs[1]);
+            history.record(&w, cells);
+            assert_eq!(history.draw_order(&w)[1], croucher);
+            w.tick(InputFrame::dir(5), InputFrame::dir(5));
+            history.record(&w, cells);
+            assert_eq!(history.draw_order(&w)[1], croucher, "the half-rise stays visible");
+            for _ in 0..2 {
+                w.tick(InputFrame::dir(5), InputFrame::dir(5));
+                history.record(&w, cells);
+            }
+            assert_eq!(history.draw_order(&w), [0, 1], "rest restores stable ordering");
+            inputs[1 - croucher] = InputFrame::press(Btn::S);
+            w.tick(inputs[0], inputs[1]);
+            history.record(&w, cells);
+            let hash = w.state_hash();
+            assert_eq!(history.draw_order(&w)[1], 1 - croucher, "attacking hands retain priority");
+            assert_eq!(w.state_hash(), hash);
+        }
     }
 
     #[test]

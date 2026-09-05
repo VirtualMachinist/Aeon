@@ -172,3 +172,12 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART14 | Kogan disc phases, open visibility and clean return | Four V2 drawings; `disc_preview_covers_close_contact_and_legal_projectile_absorption` exercises 20 legal cases and all phases. Complete before/final 30s viewed at 1×, both facings and center/corners; selected glyph absorption, recovery and crouch-block frames stepped. Source boundary and clean combat-transition regressions include disc cells. |
 
 126 tests pass (89 sim + 37 client), clippy and locked/offline release pass. All 1,800 disc and 2,100 retained polish ticks match baseline. Complete polish video and eight fresh smoke images are byte-identical to the preceding fully inspected saber evidence. S2/A2 refraction and exact before/after review are in the full-kit report. Crouch-entry and Raya reaction/glyph ghosts, remaining families and physical stick play stay open.
+
+
+## September 5 ground-movement checks
+
+| ID | Gate | Evidence |
+|---|---|---|
+| ART15 | Kogan ground phases, immediate exits and visible crouch | Eight V4 drawings plus measured original walk cells; 36 legal-input cases verify two walk cycles, 14f backdash, immediate run exits, real block/hit and 2f full-jump landing. Complete before/final 54s viewed at 1×; run, retreat and close-crouch phase boundaries stepped. Client history tests protect freeze/reset/new-input precedence; draw-order test protects low-body visibility and attacker priority. |
+
+129 tests pass (89 sim + 40 client), clippy and locked/offline release pass. All 3,240 ground and 2,100 retained integration ticks match baseline. The complete new 35s integration preview was viewed at 1×; eight fresh smoke images match the preceding inspected evidence byte for byte. G1/K1/S1/S2/A2 refraction, rejected candidates and final before/after evidence are in the full-kit report. Kogan attacks/reactions, Raya's kit and physical stick play remain open.

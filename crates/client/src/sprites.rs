@@ -176,6 +176,8 @@ pub struct SpriteSet {
     cuts: Option<crate::sequences::Atlas>,
     poke: Option<crate::sequences::Atlas>,
     disc: Option<crate::sequences::Atlas>,
+    ground: Option<crate::sequences::Atlas>,
+    walk: Option<crate::sequences::Atlas>,
     coil: Option<crate::sequences::Atlas>,
     movement: Option<crate::sequences::Atlas>,
     ranged: Option<crate::sequences::Atlas>,
@@ -203,6 +205,7 @@ pub enum Cell {
     UppercutCompact(usize),
     Poke(usize),
     Disc(usize),
+    Ground(usize),
     Movement(usize),
     Ranged(usize),
     Utility(usize),
@@ -386,7 +389,13 @@ impl SpriteSet {
         let disc = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-disc-v2-green.png", (1536, 1024), &KOGAN_DISC).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, coil, movement, ranged, utility }
+        let walk = if body == CharacterId::Kogan {
+            Atlas::load("assets/animation/kogan-v1-green.png", (1254, 1254), &KOGAN_WALK).await
+        } else { None };
+        let ground = if body == CharacterId::Kogan {
+            Atlas::load("assets/animation/kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND).await
+        } else { None };
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, ground, walk, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -403,6 +412,8 @@ impl SpriteSet {
             cuts: None,
             poke: None,
             disc: None,
+            ground: None,
+            walk: None,
             coil: None,
             movement: None,
             ranged: None,
@@ -427,6 +438,14 @@ impl SpriteSet {
             p = cur.fallback();
         }
         None
+    }
+
+    pub fn cell_for_with_ground(&self, fighter: &Fighter, tick: u32,
+        context: crate::sequences::GroundContext) -> Cell {
+        if self.ground.is_some() && self.utility.is_some() {
+            if let Some(cell) = crate::sequences::ground_cell(fighter, context) { return cell; }
+        }
+        self.cell_for(fighter, tick)
     }
 
     /// The picture for this fighter on this simulation tick.
@@ -486,6 +505,7 @@ impl SpriteSet {
             Cell::Reaction(cell) => self.reactions.as_ref()?.frame(cell),
             Cell::Poke(cell) => self.poke.as_ref()?.frame(cell),
             Cell::Disc(cell) => self.disc.as_ref()?.frame(cell),
+            Cell::Ground(cell) => self.ground.as_ref()?.frame(cell),
             Cell::UppercutCompact(cell) => self.compact_uppercut.as_ref()?.frame(cell),
             Cell::Uppercut(0) if self.coil.is_some() => self.coil.as_ref()?.frame(0),
             Cell::Uppercut(cell) => self.uppercut.as_ref()?.frame(cell),
@@ -500,6 +520,7 @@ impl SpriteSet {
                     height,
                 })
             }
+            Cell::Atlas(cell @ 0..=3) if self.walk.is_some() => self.walk.as_ref()?.frame(cell),
             Cell::Atlas(cell @ 4..=11) if self.cuts.is_some() => self.cuts.as_ref()?.frame(cell - 4),
             Cell::Atlas(cell) => {
                 let texture = self.atlas.as_ref()?;

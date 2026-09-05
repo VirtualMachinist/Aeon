@@ -31,6 +31,12 @@ const RESPONSES: [Response; 5] = [
     Response::Whiff,
 ];
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Ground {
+    WalkForward, WalkBack, Crouch, RunStop, RunCrouch,
+    RunBlock, RunJump, RunAttack, BackDash,
+}
+
 #[derive(Clone, Copy, Debug)]
 struct Case {
     body: CharacterId,
@@ -43,6 +49,7 @@ struct Case {
     utility: bool,
     saber: bool,
     disc: bool,
+    ground: Option<Ground>,
 }
 
 fn cases(body: CharacterId) -> Vec<Case> {
@@ -51,7 +58,7 @@ fn cases(body: CharacterId) -> Vec<Case> {
         for response in RESPONSES {
             for corner in [false, true] {
                 for right in [true, false] {
-                    result.push(Case { body, move_id, response, right, corner, jump: None, ranged: false, utility: false, saber: false, disc: false });
+                    result.push(Case { body, move_id, response, right, corner, jump: None, ranged: false, utility: false, saber: false, disc: false, ground: None });
                 }
             }
         }
@@ -66,7 +73,7 @@ fn movement_cases(body: CharacterId) -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body, move_id: MoveId::StP,
-                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), ranged: false, utility: false, saber: false, disc: false });
+                        response: Response::Whiff, right, corner, jump: Some((dir, hop)), ranged: false, utility: false, saber: false, disc: false, ground: None });
                 }
             }
         }
@@ -81,7 +88,7 @@ fn ranged_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: true, utility: false, saber: false, disc: false });
+                        right, corner, jump: None, ranged: true, utility: false, saber: false, disc: false, ground: None });
                 }
             }
         }
@@ -99,7 +106,7 @@ fn utility_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: false, utility: true, saber: false, disc: false });
+                        right, corner, jump: None, ranged: false, utility: true, saber: false, disc: false, ground: None });
                 }
             }
         }
@@ -115,7 +122,7 @@ fn saber_cases() -> Vec<Case> {
             for corner in [false, true] {
                 for right in [true, false] {
                     result.push(Case { body: CharacterId::Kogan, move_id, response,
-                        right, corner, jump: None, ranged: false, utility: false, saber: true, disc: false });
+                        right, corner, jump: None, ranged: false, utility: false, saber: true, disc: false, ground: None });
                 }
             }
         }
@@ -131,7 +138,23 @@ fn disc_cases() -> Vec<Case> {
             for right in [true, false] {
                 result.push(Case { body: CharacterId::Kogan, move_id: MoveId::Guard,
                     response, right, corner, jump: None, ranged: false, utility: false,
-                    saber: false, disc: true });
+                    saber: false, disc: true, ground: None });
+            }
+        }
+    }
+    result
+}
+
+fn ground_cases(body: CharacterId) -> Vec<Case> {
+    let mut result = Vec::new();
+    for ground in [Ground::WalkForward, Ground::WalkBack, Ground::Crouch,
+        Ground::RunStop, Ground::RunCrouch, Ground::RunBlock, Ground::RunJump,
+        Ground::RunAttack, Ground::BackDash] {
+        for corner in [false, true] {
+            for right in [true, false] {
+                result.push(Case { body, move_id: MoveId::StS, response: Response::Whiff,
+                    right, corner, jump: None, ranged: false, utility: false,
+                    saber: false, disc: false, ground: Some(ground) });
             }
         }
     }
@@ -140,12 +163,17 @@ fn disc_cases() -> Vec<Case> {
 
 impl Case {
     fn duration(self) -> u32 {
-        if self.disc { 90 }
+        if self.disc || self.ground.is_some() { 90 }
         else if self.saber && self.move_id == MoveId::Rekka3 { 180 }
         else if self.ranged || self.utility || self.saber { 150 } else { LENGTH }
     }
 
     fn label(self) -> String {
+        if let Some(ground) = self.ground {
+            return format!("{} {:?} · {} · {}", self.body.name(), ground,
+                if self.right { "right" } else { "left" },
+                if self.corner { "corner" } else { "center" });
+        }
         if self.utility && self.move_id == MoveId::CommandDash {
             return format!("KOGAN threshold-step · {} · {} · {}",
                 if self.response == Response::Whiff { "free travel" } else { "near opponent" },
@@ -177,7 +205,11 @@ impl Case {
         let gap = if self.response == Response::Whiff { 150 } else { 40 };
         let defender = if self.corner { 740 } else { 340 };
         let attacker = defender - gap;
-        let (attacker, defender) = if self.disc {
+        let (attacker, defender) = if let Some(ground) = self.ground {
+            if self.corner && matches!(ground, Ground::WalkBack | Ground::BackDash | Ground::Crouch) {
+                (60, 260)
+            } else if self.corner { (540, 740) } else { (300, 500) }
+        } else if self.disc {
             let distance = match self.response {
                 Response::Whiff => 200, Response::Projectile => 150, _ => 40,
             };
@@ -226,6 +258,25 @@ impl Case {
     }
 
     fn inputs(self, frame: u32) -> [InputFrame; 2] {
+        if let Some(ground) = self.ground {
+            let dir = match ground {
+                Ground::WalkForward if (12..60).contains(&frame) => 6,
+                Ground::WalkBack if (12..60).contains(&frame) => 4,
+                Ground::Crouch if (12..40).contains(&frame) => 2,
+                Ground::BackDash if frame == 12 || frame == 14 => 4,
+                Ground::RunStop | Ground::RunCrouch | Ground::RunBlock
+                    | Ground::RunJump | Ground::RunAttack if frame == 12 || (14..40).contains(&frame) => 6,
+                Ground::RunCrouch if (40..66).contains(&frame) => 2,
+                Ground::RunBlock if (40..74).contains(&frame) => 4,
+                Ground::RunJump if (40..46).contains(&frame) => 9,
+                _ => 5,
+            };
+            let mut p1 = InputFrame::dir(dir);
+            if ground == Ground::RunAttack && frame == 40 { p1.buttons = Buttons::one(Btn::S); }
+            let p2 = if ground == Ground::RunBlock && frame == 40 { InputFrame::press(Btn::S) }
+                else { InputFrame::dir(5) };
+            return [p1, p2];
+        }
         if self.disc {
             let mut attacker = InputFrame::dir(match frame {
                 n if n == PRESS - 2 => 2,
@@ -373,7 +424,9 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let mut all = if args.iter().any(|a| a == "--kit-disc") {
+    let mut all = if args.iter().any(|a| a == "--kit-ground") {
+        ground_cases(body)
+    } else if args.iter().any(|a| a == "--kit-disc") {
         assert!(body == CharacterId::Kogan, "disc cases cover Kogan");
         disc_cases()
     } else if args.iter().any(|a| a == "--kit-saber") {
@@ -388,6 +441,10 @@ pub async fn run(assets: &Assets) {
     } else if args.iter().any(|a| a == "--kit-movement") {
         movement_cases(body)
     } else { cases(body) };
+    if let Some(name) = args.iter().find_map(|a| a.strip_prefix("--kit-ground-state=")) {
+        all.retain(|case| case.ground.is_some_and(|g| format!("{g:?}") == name));
+        assert!(!all.is_empty(), "--kit-ground-state must name a ground case");
+    }
     if let Some(name) = args.iter().find_map(|a| a.strip_prefix("--kit-move=")) {
         all.retain(|case| format!("{:?}", case.move_id) == name);
         assert!(!all.is_empty(), "--kit-move must name a move in the selected family");
@@ -514,6 +571,50 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+
+    #[test]
+    fn ground_preview_preserves_immediate_run_exits_and_complete_backdash() {
+        for case in ground_cases(CharacterId::Kogan) {
+            let ground = case.ground.unwrap();
+            let mut world = case.world();
+            let mut run = false; let mut blocked = false; let mut hit = false;
+            let mut backdash = 0; let mut walk = 0; let mut crouch = false;
+            let mut jumped = false; let mut landing = 0;
+            for frame in 0..case.duration() {
+                let [p1, p2] = case.inputs_for_world(frame, &world);
+                world.tick(p1, p2);
+                let f = &world.fighters[0];
+                run |= f.action == Action::Run;
+                blocked |= matches!(f.action, Action::Block { .. });
+                backdash += usize::from(matches!(f.action, Action::BackDash { .. }));
+                walk += usize::from(matches!(f.action, Action::Walk { .. }));
+                crouch |= f.action == Action::Crouch;
+                jumped |= matches!(f.action, Action::Jump { hop: false, .. });
+                landing += usize::from(matches!(f.action, Action::Landing { total: 2, .. }));
+                hit |= world.events.iter().any(|e| e.attacker == 0 && matches!(e.kind, EventKind::Hit | EventKind::Punish));
+                if frame == 40 {
+                    match ground {
+                        Ground::RunStop => assert_eq!(f.action, Action::Stand, "{case:?}: stop immediately"),
+                        Ground::RunCrouch => assert_eq!(f.action, Action::Crouch, "{case:?}: crouch immediately"),
+                        Ground::RunBlock => assert_eq!(f.action, Action::Walk { forward: false }, "{case:?}: guard input immediately"),
+                        Ground::RunJump => assert!(matches!(f.action, Action::Prejump { frame: 0, .. }), "{case:?}"),
+                        Ground::RunAttack => assert!(f.action.attacking().is_some_and(|(id, f, _)| id == MoveId::StS && f == 0), "{case:?}"),
+                        _ => {},
+                    }
+                }
+            }
+            match ground {
+                Ground::WalkForward | Ground::WalkBack => assert!(walk >= 48, "{case:?}"),
+                Ground::Crouch => assert!(crouch, "{case:?}"),
+                Ground::BackDash => assert_eq!(backdash, aeon_sim::fighter::BACKDASH_FRAMES as usize, "{case:?}"),
+                Ground::RunBlock => assert!(run && blocked, "{case:?}"),
+                Ground::RunJump => assert!(run && jumped && landing == 2, "{case:?}: full jump landing {landing}"),
+                Ground::RunAttack => assert!(run && hit, "{case:?}"),
+                _ => assert!(run, "{case:?}"),
+            }
+            assert!(world.fighters.iter().all(|f| f.action.actionable()), "{case:?}: fully recovered");
         }
     }
 
