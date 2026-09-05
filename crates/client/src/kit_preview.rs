@@ -55,9 +55,15 @@ struct Case {
     ground: Option<Ground>,
 }
 
-fn cases(body: CharacterId) -> Vec<Case> {
+fn cases(body: CharacterId) -> Vec<Case> { normal_cases(body, &MOVES) }
+
+fn flash_cases() -> Vec<Case> {
+    normal_cases(CharacterId::Kogan, &[MoveId::StFL, MoveId::StST])
+}
+
+fn normal_cases(body: CharacterId, moves: &[MoveId]) -> Vec<Case> {
     let mut result = Vec::new();
-    for move_id in MOVES {
+    for &move_id in moves {
         for response in RESPONSES {
             for corner in [false, true] {
                 for right in [true, false] {
@@ -536,7 +542,10 @@ impl Case {
         }
         let crouch = self.move_id == MoveId::CrK;
         let attacker = if frame == PRESS {
-            let button = if self.move_id == MoveId::StP { Btn::P } else { Btn::K };
+            let button = match self.move_id {
+                MoveId::StP => Btn::P, MoveId::StFL => Btn::FL, MoveId::StST => Btn::ST,
+                _ => Btn::K,
+            };
             InputFrame::dir_press(if crouch { 2 } else { 5 }, button)
         } else {
             InputFrame::dir(if crouch { 2 } else { 5 })
@@ -564,7 +573,10 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let mut all = if args.iter().any(|a| a == "--kit-air") {
+    let mut all = if args.iter().any(|a| a == "--kit-flash") {
+        assert!(body == CharacterId::Kogan, "flash cases currently cover Kogan");
+        flash_cases()
+    } else if args.iter().any(|a| a == "--kit-air") {
         assert!(body == CharacterId::Kogan, "air cases currently cover Kogan");
         if args.iter().any(|a| a == "--kit-air-early") { early_air_cases() } else { air_cases() }
     } else if args.iter().any(|a| a == "--kit-reaction") {
@@ -1225,6 +1237,42 @@ mod tests {
             for phase in 0..4 {
                 assert!(drawings.contains(&crate::sprites::Cell::Ranged(base + phase)), "{case:?} phase {phase}");
             }
+        }
+    }
+
+    #[test]
+    fn flash_preview_reaches_both_mid_normals_and_recovers_after_contact() {
+        let cases = flash_cases();
+        assert_eq!(cases.len(), 40);
+        for case in cases {
+            let mut world = case.world();
+            let mut started = false;
+            let mut held = None;
+            let mut seen = std::collections::HashSet::new();
+            let (mut hits, mut blocks) = (0, 0);
+            for tick in 0..case.duration() {
+                let [a, b] = case.inputs_for_world(tick, &world);
+                world.tick(a, b);
+                let cell = crate::sequences::flash_cell(&world.fighters[0]);
+                if let Some(cell) = cell { seen.insert(cell); }
+                if let Some((frame, previous)) = held {
+                    if frame == world.frame { assert_eq!(cell, previous, "frozen contact holds"); }
+                }
+                held = Some((world.frame, cell));
+                started |= world.fighters[0].action.attacking()
+                    .is_some_and(|(id, _, _)| id == case.move_id);
+                hits += world.events.iter().filter(|e| e.kind == EventKind::Hit).count();
+                blocks += world.events.iter().filter(|e| e.kind == EventKind::Block).count();
+            }
+            assert_eq!(seen.len(), 4, "{case:?}: all four drawn phases occur");
+            assert!(started, "{case:?}: recognized through legal inputs");
+            let expected = match case.response {
+                Response::Whiff => (0, 0),
+                Response::StandBlock | Response::CrouchBlock => (0, 1),
+                _ => (1, 0),
+            };
+            assert_eq!((hits, blocks), expected, "{case:?}");
+            assert!(world.fighters.iter().all(|f| !f.airborne && f.action.actionable()), "{case:?}: legal return");
         }
     }
 

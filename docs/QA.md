@@ -224,3 +224,12 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART20 | Distinct downward fist/boot/bent-knee contact, gathered withdrawal and legal landing | Six selected V1/V4 drawings; all 120 corrected final cases / 300s viewed at 1×, both facings at center/corners, hop/full, hit/high guard/defeated low guard/miss and early recovery. Full early JP 39/43/51/55, JK 43/51 and JFL 39/44/49/55 stepped; focused JFL 56/64/65/67 verifies contact freeze and landing. V1 contacts rejected after actual contact review; lower V4 limbs meet both defender heights. Active-only selection, freeze, source regions, expiry/new-state isolation and clean transitions tested. |
 
 142 tests pass (89 sim + 53 client), clippy and locked/offline release pass. All 18,000 corrected final, 900 focused contact and 2,100 integration ticks match baseline. Complete new 35s integration playback reviewed; eight smoke PNGs match preceding inspected airborne-saber evidence. K2/G2/G1 refraction, exact baseline and rejected-candidate review limits, prompts and archive paths are in the full-kit report. Remaining Kogan grounded normals/throws/tech/feint/victory/air juggles and Raya stay open; the original blocked grounded-light request remains un-retried.
+
+
+## September 5 Kogan standing Flash and Style review
+
+| ID | Check | Evidence |
+|---|---|---|
+| ART21 | Low pommel and waist-level saber contact, visible withdrawal and original return | Seven V2 drawings, four phases per move with shared withdrawal. All 40 before/final cases / 40s each viewed at 1× in 1280×720, both facings at center/corners, hit/high and low guard/crouched hit/miss. Focused StFL 14/20/27/33/35 and StST 17/22/28/37/39 stepped; standing contact paused in all four positions. Legal input/outcomes, active-only contact, freeze, new-state isolation, source boundaries and clean transitions tested. |
+
+144 tests pass (89 sim + 55 client), clippy and locked/offline release pass. All 2,400 final, 240 focused and 2,100 integration ticks match baseline. Complete new 35s integration reviewed at 1×; eight smoke PNGs match preceding inspected air-light evidence. S2/G2 refraction, excluded blade-tip cells, exact prompts and archive paths are in the full-kit report. Remaining Kogan families and Raya stay open, including her legacy reaction ghosts and the broader old/new style transition.
