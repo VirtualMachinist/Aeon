@@ -66,3 +66,8 @@ Four short high-poke drawings and two compact uppercut phases are integrated and
 ## Disc-shield (2026-09-05)
 
 Four reviewed Kogan phases use open copper linework and shared standing anatomy. Exact creation/edit prompts, originals, blade correction and measurements: [disc provenance](KOGAN-DISC-2026-09-05.md). The full 20-case review and remaining coverage are in the full-kit report.
+
+
+## Ground movement (2026-09-05)
+
+Eight reviewed Kogan V4 drawings cover cloth-changing glide, half/low crouch and four retreat phases. Existing utility drawings supply brief run transitions; existing walk drawings have measured green-gap regions. Exact creation/edit prompts, originals, rejected variants and roots: [ground provenance](KOGAN-GROUND-2026-09-05.md). Full 36-case review, immediate-exit validation and reference comparisons are in the full-kit report.

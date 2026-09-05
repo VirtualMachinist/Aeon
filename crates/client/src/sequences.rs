@@ -104,6 +104,66 @@ pub const RAYA_REACTIONS: [Spec; 12] = [
     ([0, 688, 365, 1086], 213, 342), ([365, 688, 700, 1086], 510, 334),
     ([700, 688, 1065, 1086], 920, 340), ([1065, 688, 1448, 1086], 1237, 350),
 ];
+// Two cloth-only glide keys, half/full crouch, and four backward retreat
+// phases. Shared anatomy preserves the head size through compression.
+pub const KOGAN_GROUND: [Spec; 8] = [
+    ([0, 0, 365, 500], 250, 340), ([365, 0, 723, 500], 615, 340),
+    ([723, 0, 1135, 500], 915, 340), ([1135, 0, 1536, 500], 1345, 340),
+    ([0, 500, 374, 1024], 232, 340), ([374, 500, 780, 1024], 570, 340),
+    ([780, 500, 1150, 1024], 953, 340), ([1150, 500, 1536, 1024], 1350, 340),
+];
+
+// Walk uses the existing four drawings, extracted at real green gaps.
+pub const KOGAN_WALK: [Spec; 4] = [
+    ([0, 0, 313, 320], 175, 277), ([313, 0, 614, 320], 470, 277),
+    ([614, 0, 906, 320], 756, 277), ([906, 0, 1254, 320], 1055, 277),
+];
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum GroundState {
+    #[default]
+    Other,
+    Stand,
+    Crouch,
+    Run,
+}
+
+impl GroundState {
+    pub fn of(action: &Action) -> Self {
+        match action {
+            Action::Stand => Self::Stand,
+            Action::Crouch => Self::Crouch,
+            Action::Run => Self::Run,
+            _ => Self::Other,
+        }
+    }
+}
+
+/// Client history only: how long this ground state has been shown and
+/// the state it entered from. It never adds a simulation recovery window.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct GroundContext {
+    pub state: GroundState,
+    pub from: GroundState,
+    pub age: u32,
+}
+
+pub fn ground_cell(f: &Fighter, context: GroundContext) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    match f.action {
+        Action::Run if context.age < 2 => Some(Cell::Utility(4)),
+        Action::Run => Some(Cell::Ground(((context.age - 2) / 8 % 2) as usize)),
+        Action::Crouch => Some(Cell::Ground(if context.age < 2 { 2 } else { 3 })),
+        Action::BackDash { frame } => Some(Cell::Ground(if frame < 3 { 4 }
+            else if frame < 9 { 5 } else if frame < 12 { 6 } else { 7 })),
+        Action::Stand if context.from == GroundState::Run && context.age < 4 => {
+            Some(Cell::Utility(if context.age < 2 { 6 } else { 7 }))
+        }
+        Action::Stand if context.from == GroundState::Crouch && context.age < 2 => Some(Cell::Ground(2)),
+        _ => None,
+    }
+}
+
 // The old cut rows are not an equal grid. Their neighboring capes
 // cross nominal boundaries; measured green gaps preserve each full drawing.
 pub const KOGAN_CUTS: [Spec; 8] = [
@@ -311,6 +371,8 @@ mod tests {
     #[test]
     fn authored_regions_preserve_complete_silhouettes_and_effects() {
         for (name, reference, specs) in [
+            ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND[..]),
+            ("kogan-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
             ("kogan-disc-v2-green.png", (1536, 1024), &KOGAN_DISC[..]),
             ("kogan-standing-poke-v1-green.png", (1536, 1024), &KOGAN_POKE[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_CUTS[..]),

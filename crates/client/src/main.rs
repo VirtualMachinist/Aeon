@@ -121,22 +121,14 @@ impl Presentation {
         self.effects.after_tick(w);
         let cells = [0, 1].map(|i| {
             let f = &w.fighters[i];
-            assets.sprites(f.id).cell_for(f, w.frame)
+            self.history.cell_for(w, i, assets.sprites(f.id))
         });
         self.history.record(w, cells);
     }
 
     fn draw(&self, view: &View, assets: &Assets, w: &World, boxes: bool) {
         self.effects.draw_behind(view, w);
-        // A defender's cape must not hide the attacking hands or weapon.
-        // When neither (or both) attacks, retain the height-based ordering.
-        let attacking = w.fighters.each_ref().map(|f| f.action.attacking().is_some());
-        let order = match attacking {
-            [true, false] => [1, 0],
-            [false, true] => [0, 1],
-            _ if w.fighters[0].pos.y > w.fighters[1].pos.y => [1, 0],
-            _ => [0, 1],
-        };
+        let order = self.history.draw_order(w);
         for i in order {
             let sprites = assets.sprites(w.fighters[i].id);
             let layers = anim::layers(
