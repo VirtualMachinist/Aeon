@@ -681,7 +681,9 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let mut all = if args.iter().any(|a| a == "--kit-feint") {
+    let mut all = if args.iter().any(|a| a == "--kit-crp") {
+        normal_cases(body, &[MoveId::CrP])
+    } else if args.iter().any(|a| a == "--kit-feint") {
         assert!(body == CharacterId::Kogan, "feint cases currently cover Kogan");
         feint_cases()
     } else if args.iter().any(|a| a == "--kit-throw") {
@@ -864,6 +866,50 @@ mod tests {
             assert_eq!(frames, (0..frames.len() as u16).collect::<Vec<_>>(), "{case:?}: uninterrupted phase clock until legal landing or return");
             assert!(matches!(world.fighters[0].action, Action::Stand));
             assert!(!world.fighters[0].airborne);
+        }
+    }
+
+
+    #[test]
+    fn crouch_punch_preview_keeps_contact_freeze_and_returns_control_on_time() {
+        use crate::{sequences::crouch_punch_cell, sprites::Cell};
+        let cases = normal_cases(CharacterId::Kogan, &[MoveId::CrP]);
+        assert_eq!(cases.len(), 20);
+        for case in cases {
+            let mut world = case.world();
+            let hp = world.fighters[1].health;
+            let mut seen = std::collections::HashSet::new();
+            let mut blocked = false;
+            let mut frozen = None;
+            for tick in 0..case.duration() {
+                let [a, b] = case.inputs_for_world(tick, &world);
+                world.tick(a, b);
+                let f = &world.fighters[0];
+                let hash = world.state_hash();
+                let cell = crouch_punch_cell(f);
+                assert_eq!(world.state_hash(), hash);
+                if let Some(cell) = cell { seen.insert(cell); }
+                if let Some((action, previous)) = frozen {
+                    if f.action == action { assert_eq!(cell, previous, "pause/hitstop keeps its drawing"); }
+                }
+                frozen = Some((f.action.clone(), cell));
+                if let Action::Attack { move_id, frame, .. } = f.action {
+                    let mv = f.data().move_def(move_id).unwrap();
+                    assert_eq!(cell == Some(Cell::CrouchPunch(1)), mv.is_active(frame));
+                } else {
+                    assert_eq!(cell, None, "the action owns the body immediately");
+                }
+                blocked |= matches!(world.fighters[1].action, Action::Block { .. });
+            }
+            assert_eq!(seen.len(), 4, "{}: preparation/contact/withdrawal/ready", case.label());
+            match case.response {
+                Response::Hit | Response::CrouchHit => assert_eq!(hp - world.fighters[1].health, 35),
+                Response::StandBlock | Response::CrouchBlock => { assert!(blocked); assert_eq!(hp, world.fighters[1].health); }
+                Response::Whiff => { assert!(!blocked); assert_eq!(hp, world.fighters[1].health); }
+                _ => unreachable!(),
+            }
+            assert!(world.fighters.iter().all(|f| f.action.actionable()));
+            assert!(matches!(world.fighters[0].action, Action::Crouch));
         }
     }
 

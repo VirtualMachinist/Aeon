@@ -160,6 +160,24 @@ pub fn overhead_cell(f: &Fighter) -> Option<Cell> {
         else { 3 }))
 }
 
+// The low fist has a gathered arm, contact, bent-elbow withdrawal and low ready.
+pub const KOGAN_CROUCH_PUNCH: [Spec; 4] = [
+    ([0, 0, 625, 620], 355, 510),
+    ([625, 0, 1254, 620], 955, 510),
+    ([0, 620, 625, 1254], 355, 510),
+    ([625, 620, 1254, 1254], 955, 510),
+];
+
+pub fn crouch_punch_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan || f.airborne { return None; }
+    let Action::Attack { move_id: MoveId::CrP, frame, .. } = f.action else { return None; };
+    let mv = f.data().move_def(MoveId::CrP)?;
+    Some(Cell::CrouchPunch(if frame < mv.first_active() { 0 }
+        else if mv.is_active(frame) { 1 }
+        else if frame < mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+        else { 3 }))
+}
+
 // Crouching forward and rising saber paths retain grounded support and common anatomy.
 pub const KOGAN_CROUCH_SABER: [Spec; 8] = [
     ([0, 0, 480, 410], 285, 370), ([480, 0, 1024, 410], 750, 370),
@@ -659,6 +677,7 @@ mod tests {
             ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
             ("kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW[..]),
+            ("kogan-crouch-punch-v1-green.png", (1254, 1254), &KOGAN_CROUCH_PUNCH[..]),
             ("kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER[..]),
             ("kogan-flash-v2-green.png", (1024, 1536), &KOGAN_FLASH[..]),
             ("kogan-air-lights-v1-green.png", (1024, 1536), &KOGAN_AIR_LIGHTS[..]),
