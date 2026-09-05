@@ -1,19 +1,36 @@
 # AEON
 
+Repository: [VirtualMachinist/Aeon](https://github.com/VirtualMachinist/Aeon). `main` contains the current integrated build.
+
 A grounded 1v1 2D fighter in Rust. Two bodies of the Sanctum — **Kogan** (saber, revolver, disc-shield) and **Raya** (voice glyphs, crystals, the rite). Super Turbo footsies, Samurai Shodown's tax on the heavy buttons, then a measured layer of Roman Cancel, hop, run and feint.
 
 Lights link. Weapon-heavies are minus. There are no normal chains. Two or three hits are typical; natural three-to-five-hit routes are allowed. Execution stays strict. The knockdown is the currency.
 
-- Law: `DESIGN.md`. Numbers: `docs/FRAME-DATA.md` (generated from the code, checked by a test). Grading: `docs/QA.md`.
+- Law: [DESIGN.md](DESIGN.md). Numbers: [FRAME-DATA.md](docs/FRAME-DATA.md), generated from code and checked by a test. Grading: [QA.md](docs/QA.md).
 - Toolchain is pinned to **Rust 1.96.0** by `rust-toolchain.toml`.
-- On macOS, double-click `Play-Aeon.command` for the optimized playtest build. Its build cache lives under `~/Library/Caches/AeonBuild`, outside this source tree.
+- Verified platform: Apple Silicon macOS. Other platforms have not yet been validated.
+
+## Get started
+
+Install Rust through rustup and the platform C/linker toolchain, then clone and fetch dependencies once:
 
 ```sh
-cargo run -p aeon                # title → versus / training / remap
+git clone https://github.com/VirtualMachinist/Aeon.git
+cd Aeon
+cargo fetch --locked
+cargo run --release --locked -p aeon
+```
+
+On macOS, after dependencies are fetched, double-click `Play-Aeon.command` for subsequent optimized playtests. Its build cache lives under `~/Library/Caches/AeonBuild`, outside the source tree. The launcher uses offline mode; a fresh checkout needs the initial fetch above.
+
+## Development commands
+
+```sh
+cargo run --release -p aeon     # title → versus / training / remap
 cargo run -p aeon -- --smoke     # scripted launch; writes shots/smoke-*.png and exits
 cargo test --workspace          # simulation law plus client timing/animation checks
-cargo run -p aeon -- --polish-preview  # repeatable 24-second movement/rekka/whiff review
-cargo run -p aeon -- --polish-preview --capture # 30 fps PNGs + trace in shots/polish
+cargo run --release -p aeon -- --polish-preview  # repeatable 24-second movement/rekka/whiff review
+cargo run --release -p aeon -- --polish-preview --capture # 30 fps PNGs + trace in shots/polish
 cargo clippy --workspace --all-targets -- -D warnings
 ```
 
@@ -73,4 +90,6 @@ Character select (any pairing, mirrors included) → best of three rounds, 99 s 
 
 Netcode, audio, camera effects, other bodies, and anything that puts a float in the sim.
 
-September 5 flow changes and remaining playtest/animation work: `docs/POLISH-2026-09-05.md`. The full kits are playable; their complete animation and competitive balance are ongoing work.
+The first flow pass has 96 passing tests and verified versus/training launches. [Pass notes](docs/POLISH-2026-09-05.md) record the changes and limits. Both kits are playable; full animation, stick feel and competitive balance remain ongoing work. Finish Kogan and Raya before expanding the roster.
+
+[Development guide](docs/DEVELOPMENT.md) covers the repository workflow and checks. [Animation prompts](crates/client/assets/animation/PROMPTS.md) preserve the generated-art provenance.
