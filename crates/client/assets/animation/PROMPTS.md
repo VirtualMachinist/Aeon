@@ -84,3 +84,5 @@ Four V3 gather/dual-rush/withdrawal/reholster drawings. [Exact prompts and corre
 Airborne saber: six selected V2 drawings and the rejected V1 gather blade are documented in [KOGAN-AIR-SABER-2026-09-05.md](KOGAN-AIR-SABER-2026-09-05.md). Complete prompts, source IDs, measured roots and final gameplay acceptance are retained.
 
 Crouching saber: sixteen selected V1/V3 drawings cover CrS/CrHS/CrFL/CrST. [Exact prompts, source corrections and roots](KOGAN-CROUCH-SABER-2026-09-05.md) retain both rejected low candidates. All 80 cases / 140s and full integration reviewed; original combat timing retained.
+
+Overheads: four standing drawings plus reviewed falling saber/landing reuse. [Exact prompt, source and measured regions](KOGAN-OVERHEAD-2026-09-05.md). All 40 final cases / 80s and complete integration reviewed; original combat timings retained.
