@@ -283,3 +283,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART27 | Defeated bodies retain consequence through grounded collapse, actual landing and match end | All 48 before/final real KO cases / 192s each viewed at 1× in 1280×720. Both bodies, facings and corners; standing/crouched hits, sweep, launch, throws, next round and rematch. Corrected eight-case grounded sweep / 32s recaptured and fully viewed. Support, landing and former getup boundaries stepped. |
 
 165 tests (89 sim + 76 client), clippy with warnings denied and locked/offline release pass. All 11,520 final and 2,100 integration ticks equal baseline; full new 35s integration viewed. All eight smoke PNGs equal preceding inspected victory evidence. Integration/smoke do not enter the narrowly corrected grounded-sweep collapse branch; all affected cases were recaptured. Existing reaction/floor art is deliberately reused; A1/G2/S2 informs victim consequence, not a claim of commercial KO behavior. Legacy close low-attack art, Raya living-body trails/HUD overlap, remaining kits and physical play stay open. Full details: full-kit report and ko-verification.json.
+
+## September 5 Kogan crouching punch review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART28 | Crouching punch has readable drawn contact/withdrawal and a coherent low return | Four complete V1 drawings. All 20 before/final cases/20 s each viewed at 1× in 1280×720; hit/both guards/crouched hit/whiff, both facings and corners. Selected phase/contact/support/return frames stepped. |
+
+166 tests (89 sim +77 client), clean clippy and locked/offline release. All 1,200 final and 2,100 integration ticks equal baseline; complete new 35 s integration reviewed. Eight smoke images equal preceding inspected evidence. G2/S2 informs the arm's outbound/return and deliberate hold. Original 4/2/6 and all sim values fixed. Remaining grounded lights/kicks, airborne-target/juggle coverage, Raya and physical play stay open. Full-kit report and crp-verification.json hold exact evidence.
