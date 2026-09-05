@@ -80,3 +80,5 @@ Selected `kogan-recoil-v2-green.png` (8 drawings) and `kogan-floor-v1-green.png`
 ## Kogan Judgment — reviewed
 
 Four V3 gather/dual-rush/withdrawal/reholster drawings. [Exact prompts and corrections](KOGAN-JUDGMENT-2026-09-05.md) retain the V1 dangling gun, rejected V2 grip error, V3 source and final root measurements. Complete corrected 16-case/40s and 35s integration playback reviewed at 1×; 133 tests pass and traces remain unchanged.
+
+Airborne saber: six selected V2 drawings and the rejected V1 gather blade are documented in [KOGAN-AIR-SABER-2026-09-05.md](KOGAN-AIR-SABER-2026-09-05.md). Complete prompts, source IDs, measured roots and final gameplay acceptance are retained.

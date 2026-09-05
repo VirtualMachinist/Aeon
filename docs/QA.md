@@ -206,3 +206,12 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART18 | Air gun intent, complete equipment, downward release and legal landing | Four selected V3/V1 drawings; all 32 before/final cases / 80s each viewed at 1×, hop/full, both facings at center/corners. Release, mirrored contact and exact landing ticks stepped. Air fixture tests all 224 legal loaded/empty air inputs; selector, muzzle-freeze, projected-tail and source-boundary regressions pass. Six air normals remain visually open. |
 
 137 tests pass (89 sim + 48 client), clippy and locked/offline release pass. All 4,800 final, 300 focused and 2,100 integration ticks match baseline. Complete new 35s integration playback reviewed; eight fresh smoke images match preceding inspected Judgment evidence. S1/S2/A2/G1 refraction, excluded malformed cells, exact paused ticks and archive paths are in the full-kit report. Remaining Kogan attacks/tech/feint/victory/air juggles and Raya stay open.
+
+
+## September 5 Kogan airborne saber review
+
+| ID | Check | Evidence |
+|---|---|---|
+| ART19 | Distinct short/long/steep contact, withdrawal and legal landing | Six V2 drawings; all 120 final cases / 300s viewed at 1×, both facings at center/corners, hit/high guard/defeated low guard/miss and early recovery. Final JS 55–59, JHS 44/49/54/57 and JST 45/50/55/56/57 stepped. Recent history keeps the saber in front through the existing landing without affecting later jumps. Active-only selection, freeze, source regions, attack expiry, reset and clean transitions tested. |
+
+140 tests pass (89 sim + 51 client), clippy and locked/offline release pass. All 18,000 final, 1,800 focused and 2,100 integration ticks match baseline. Complete new 35s integration playback reviewed; eight smoke hashes match preceding inspected AirShot evidence. S1/S2/A2/G1 refraction, exact baseline-review limits, prompts and archive paths are in the full-kit report. Kogan JP/JK/JFL, remaining grounded normals/throws/tech/feint/victory/air juggles and Raya stay open.

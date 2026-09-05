@@ -141,7 +141,20 @@ impl History {
         GroundContext { state, ..Default::default() }
     }
 
+    fn saber_landing(&self, w: &World, i: usize) -> bool {
+        let f = &w.fighters[i];
+        if f.id != CharacterId::Kogan || f.airborne { return false; }
+        let Action::Landing { frame, .. } = f.action else { return false; };
+        w.frame.checked_sub(frame as u32 + 1).and_then(|tick| self.at(i, tick))
+            .is_some_and(|s| matches!(s.cell, Cell::AirSaber(_)))
+    }
+
     pub fn cell_for(&self, w: &World, i: usize, sprites: &SpriteSet) -> Cell {
+        // Keep the blade in front through the existing full-jump landing.
+        // A recorded air cut is required; last_move alone would affect later jumps.
+        if self.saber_landing(w, i) && sprites.frame(Cell::Reaction(8)).is_some() {
+            return Cell::Reaction(8);
+        }
         sprites.cell_for_with_ground(&w.fighters[i], w.frame, self.ground_context(w, i))
     }
 
@@ -335,7 +348,7 @@ pub fn layers(
 /// Dedicated drawings already contain the bend/tumble. Rotating them again
 /// around their feet puts the body below the floor and distorts sword arcs.
 fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
-    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(_) | Cell::Recoil(_) | Cell::Floor(_) | Cell::Judgment(_) | Cell::AirShot(_))
+    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(_) | Cell::Recoil(_) | Cell::Floor(_) | Cell::Judgment(_) | Cell::AirShot(_) | Cell::AirSaber(_))
 }
 
 fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
@@ -344,8 +357,8 @@ fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
 }
 
 fn respect_authored_drawing(id: CharacterId, cell: Cell, m: &mut Motion) {
-    if id == CharacterId::Kogan && matches!(cell, Cell::AirShot(_)) {
-        // Recoil is drawn; shifting the whole body would pull the gun off its shot.
+    if id == CharacterId::Kogan && matches!(cell, Cell::AirShot(_) | Cell::AirSaber(_)) {
+        // Air commitment is drawn; extra shifts detach the weapon from its contact line.
         m.dx = 0.0;
         m.dy = 0.0;
     }
@@ -827,10 +840,33 @@ mod tests {
     }
 
     #[test]
+    fn saber_landing_uses_recent_air_history_and_clears_on_new_jump_or_reset() {
+        let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
+        let mut history = History::default();
+        w.frame = 40;
+        w.fighters[0].airborne = true;
+        history.record(&w, [Cell::AirSaber(1), Cell::Pose(Pose::Idle)]);
+        w.fighters[0].airborne = false;
+        for frame in 0..2 {
+            w.frame += 1;
+            w.fighters[0].action = Action::Landing { frame, total: 2 };
+            assert!(history.saber_landing(&w, 0));
+            history.record(&w, [Cell::Reaction(8), Cell::Pose(Pose::Idle)]);
+        }
+        w.fighters[0].action = Action::Stand;
+        assert!(!history.saber_landing(&w, 0));
+        w.frame += 10;
+        w.fighters[0].action = Action::Landing { frame: 0, total: 2 };
+        assert!(!history.saber_landing(&w, 0), "old cuts do not change a later jump");
+        history.reset();
+        assert!(!history.saber_landing(&w, 0));
+    }
+
+    #[test]
     fn authored_kogan_return_has_one_body_and_no_extra_blade_rotation() {
         let sprites = set(CharacterId::Kogan);
         let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
-        for previous in [Cell::AirShot(0), Cell::AirShot(1), Cell::AirShot(2), Cell::AirShot(3), Cell::Judgment(0), Cell::Judgment(1), Cell::Judgment(2), Cell::Judgment(3), Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
+        for previous in [Cell::AirSaber(0), Cell::AirSaber(1), Cell::AirSaber(2), Cell::AirSaber(3), Cell::AirSaber(4), Cell::AirSaber(5), Cell::AirShot(0), Cell::AirShot(1), Cell::AirShot(2), Cell::AirShot(3), Cell::Judgment(0), Cell::Judgment(1), Cell::Judgment(2), Cell::Judgment(3), Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
             let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
             let mut history = History::default();
             history.record(&w, [previous, Cell::Pose(Pose::Idle)]);

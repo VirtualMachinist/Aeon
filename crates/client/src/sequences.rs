@@ -96,6 +96,33 @@ pub const KOGAN_REACTIONS: [Spec; 12] = [
     ([0, 700, 365, 1086], 220, 311), ([365, 700, 720, 1086], 565, 311),
     ([720, 700, 1075, 1086], 901, 311), ([1075, 700, 1448, 1086], 1228, 319),
 ];
+// Short, long and steep downward cuts share a gather and two withdrawal drawings.
+// Measured gaps and shared anatomy preserve full blades and consistent scale.
+pub const KOGAN_AIR_SABER: [Spec; 6] = [
+    ([0, 0, 535, 500], 365, 430), ([535, 0, 1024, 500], 770, 430),
+    ([0, 510, 565, 977], 230, 430), ([565, 510, 1024, 977], 735, 430),
+    ([0, 980, 520, 1536], 270, 430), ([520, 980, 1024, 1536], 740, 430),
+];
+pub const KOGAN_AIR_SABER_ROOT_Y: [Option<u16>; 6] = [
+    Some(480), Some(480), Some(930), Some(955), Some(1410), Some(1450),
+];
+
+pub fn air_saber_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan || !f.airborne { return None; }
+    if matches!(f.action, Action::Jump { air_ok: false, .. })
+        && matches!(f.last_move, Some(MoveId::JS | MoveId::JHS | MoveId::JST)) {
+        return Some(Cell::AirSaber(5));
+    }
+    if let Action::Attack { move_id, frame, .. } = f.action {
+        let contact = match move_id { MoveId::JS => 1, MoveId::JHS => 2, MoveId::JST => 3, _ => return None };
+        let mv = f.data().move_def(move_id)?;
+        return Some(Cell::AirSaber(if frame < mv.first_active() { 0 }
+            else if mv.is_active(frame) { contact }
+            else if frame < mv.total_frames().saturating_sub(3) { 4 } else { 5 }));
+    }
+    None
+}
+
 // Shared unfolded anatomy and projected air roots keep tucked feet from
 // moving the body origin. Aim aligns with the existing downward projectile.
 pub const KOGAN_AIR_SHOT: [Spec; 4] = [
@@ -477,6 +504,7 @@ mod tests {
             ("kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL[..]),
             ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
+            ("kogan-air-saber-v2-green.png", (1024, 1536), &KOGAN_AIR_SABER[..]),
             ("kogan-disc-v2-green.png", (1536, 1024), &KOGAN_DISC[..]),
             ("kogan-standing-poke-v1-green.png", (1536, 1024), &KOGAN_POKE[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_CUTS[..]),
@@ -512,6 +540,31 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn airborne_saber_return_survives_attack_expiry_but_yields_to_every_new_state() {
+        for right in [false, true] {
+            for move_id in [MoveId::JS, MoveId::JHS, MoveId::JST] {
+                let mut f = Fighter::spawn(CharacterId::Kogan, px(200), right);
+                f.airborne = true;
+                f.last_move = Some(move_id);
+                f.action = Action::Jump { air_ok: false, hop: false };
+                assert_eq!(air_saber_cell(&f), Some(Cell::AirSaber(5)));
+                for action in [Action::Jump { air_ok: true, hop: false }, Action::Stand,
+                    Action::Landing { frame: 0, total: 2 }, Action::Hit { stun: 8, knockdown: false }] {
+                    f.action = action;
+                    assert_eq!(air_saber_cell(&f), None);
+                }
+                f.action = Action::Jump { air_ok: false, hop: false };
+                f.airborne = false;
+                assert_eq!(air_saber_cell(&f), None);
+            }
+        }
+        let mut raya = Fighter::spawn(CharacterId::Raya, px(200), true);
+        raya.airborne = true;
+        raya.action = Action::Attack { move_id: MoveId::JS, frame: 6, connected: Connect::None };
+        assert_eq!(air_saber_cell(&raya), None);
     }
 
     #[test]
