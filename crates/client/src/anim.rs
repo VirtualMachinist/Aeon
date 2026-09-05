@@ -212,7 +212,7 @@ pub fn layers(
                 x: snap.x,
                 y: snap.y,
                 facing_right: snap.facing_right,
-                rot: if matches!(snap.cell, Cell::Reaction(_) | Cell::Uppercut(_)) { 0.0 } else { m.rot * 0.5 },
+                rot: if matches!(snap.cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_)) { 0.0 } else { m.rot * 0.5 },
                 sx: 1.0,
                 sy: 1.0,
                 alpha: 0.17 * (1.0 - (k - 1) as f32 / count as f32),
@@ -232,7 +232,11 @@ pub fn layers(
     // A tumbling or floored body cuts rather than fades: the previous
     // upright picture has no honest place over a body lying flat.
     let cuts = matches!(f.action, Action::Knockdown { .. }) || (f.airborne && f.action.in_hitstun());
-    if let Some(prev) = history.previous_cell(i, cell).filter(|_| !cuts) {
+    // Authored movement phases already describe the transition. Overlaying
+    // the old airborne silhouette creates duplicate limbs at takeoff/landing.
+    if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
+        !cuts && !matches!(cell, Cell::Movement(_)) && !matches!(prev.cell, Cell::Movement(_))
+    }) {
         let age = w.frame.saturating_sub(prev.frame);
         if (1..=CROSSFADE).contains(&age) {
             out.push(Layer {
@@ -270,7 +274,7 @@ pub fn layers(
 /// Dedicated drawings already contain the bend/tumble. Rotating them again
 /// around their feet puts the body below the floor and distorts sword arcs.
 fn respect_authored_drawing(cell: Cell, m: &mut Motion) {
-    if matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_)) {
+    if matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::Movement(_)) {
         m.rot = 0.0;
         m.sx = 1.0;
         m.sy = 1.0;
@@ -670,6 +674,20 @@ mod tests {
         w.frame += 1;
         history.record(&w, [cell, Cell::Pose(Pose::Idle)]);
         assert_eq!(layers(&w, 0, &sprites, &history, &opts).len(), 1);
+    }
+
+    #[test]
+    fn movement_landing_does_not_leave_an_airborne_ghost() {
+        let sprites = set(CharacterId::Kogan);
+        let mut history = History::default();
+        let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
+        history.record(&w, [Cell::Movement(6), Cell::Pose(Pose::Idle)]);
+        w.frame += 1;
+        w.fighters[0].action = Action::Landing { frame: 1, total: 2 };
+        let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
+        let out = layers(&w, 0, &sprites, &history, &opts);
+        assert_eq!(out.len(), 1, "landing must not overlay an airborne body");
+        assert!(!matches!(out[0].cell, Cell::Movement(_)));
     }
 
     #[test]

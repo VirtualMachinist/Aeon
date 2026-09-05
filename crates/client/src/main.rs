@@ -5,6 +5,7 @@ mod anim;
 mod fx;
 mod input;
 mod preview;
+mod kit_preview;
 mod render;
 mod replay;
 mod sprites;
@@ -206,6 +207,10 @@ async fn main() {
     };
     if std::env::args().any(|a| a == "--polish-preview") {
         preview::run(&assets).await;
+        return;
+    }
+    if std::env::args().any(|a| a == "--kit-preview") {
+        kit_preview::run(&assets).await;
         return;
     }
     let mut pads = Pads::new();

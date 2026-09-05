@@ -91,6 +91,16 @@ These are evidence requirements, not an assertion that the full game has passed 
 | FX1 | Impact reads without the camera | `fx.rs`: sparks, dust, rings and flashes spawn from `World::events` and state transitions, live in simulation frames, hold through hitstop. Reaction scene test `preview.rs::reaction_review_launches_grabs_and_lands_the_super`. No camera shake, zoom or slowdown. |
 | FX2 | Frozen effects and training resets | `fx.rs::tests::frozen_cast_and_landing_spawn_once` reproduces a freeze on a cast/landing frame; one release makes one effect. `roman_cancel_on_an_unchanged_world_frame_still_spawns_once` covers RC without advancing `World::frame`. F3/F4/F5 and successful F11 playback clear presentation history immediately, including while paused; inspect reset/frame-step in training. |
 
+## September 5 full-kit movement checks
+
+| ID | Gate | Evidence |
+|---|---|---|
+| ART8 | Kogan drawn prejump/hop/full-jump coverage | Eight movement cells; 24 directional/facing/position cases viewed at 1×, selected final landing frames stepped. `movement_preview_preserves_hop_and_jump_landings` verifies phases and 0f/2f durations. |
+| ART9 | Clean movement transitions | `movement_landing_does_not_leave_an_airborne_ghost`; authored movement cuts instead of crossfading, with anatomical scale and projected air roots. Final frames at 0.633–0.683 and 12.933–12.983 seconds were inspected. |
+| ART10 | Isolated hit/block/whiff coverage | `--kit-preview` and `lights_preview_exercises_legal_moves_and_guard_outcomes` exercise standing P/K and crouching K for both bodies. Dedicated Kogan CrK → crouched Raya baseline exposes the existing wrong punch drawing and overlap; attack/reaction acceptance remains open. |
+
+Full-kit movement report: [[Aeon/notes/2026-09-05-full-kit-pass]] and crate `docs/FULL-KIT-2026-09-05.md`. Current batch: 119 tests, clean clippy, release build; focused 1,440-tick movement and retained 2,100-tick polish traces byte-identical to baseline. These checks accept standalone Kogan jumps, not air attacks or the complete kits. Four-game observations are recorded in [[Aeon/notes/2026-09-05-animation-references]].
+
 ## September 5 reaction animation checks
 
 | ID | Gate | Evidence |
