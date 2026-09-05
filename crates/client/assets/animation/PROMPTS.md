@@ -88,3 +88,5 @@ Crouching saber: sixteen selected V1/V3 drawings cover CrS/CrHS/CrFL/CrST. [Exac
 Overheads: four standing drawings plus reviewed falling saber/landing reuse. [Exact prompt, source and measured regions](KOGAN-OVERHEAD-2026-09-05.md). All 40 final cases / 80s and complete integration reviewed; original combat timings retained.
 
 Normal throw and tech: reviewed cape-step reuse plus two new supported disengagement drawings. [Exact tech prompt, original and regions](KOGAN-THROW-2026-09-05.md). All 32 final cases / 80s and full integration reviewed; original timing retained.
+
+Feints reuse reviewed equipment withdrawal and ready drawings. [Exact reused cells and acceptance](KOGAN-FEINT-2026-09-05.md). No new bitmap generated; all 88 final cases and integration reviewed at original timing.

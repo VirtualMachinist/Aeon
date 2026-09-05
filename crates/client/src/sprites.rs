@@ -532,6 +532,9 @@ impl SpriteSet {
 
     /// The picture for this fighter on this simulation tick.
     pub fn cell_for(&self, fighter: &Fighter, tick: u32) -> Cell {
+        if let Some(cell) = crate::sequences::feint_cell(fighter) {
+            if self.frame(cell).is_some() { return cell; }
+        }
         if self.throw_tech.is_some() && self.utility.is_some() {
             if let Some(cell) = crate::sequences::throw_tech_cell(fighter) { return cell; }
         }
