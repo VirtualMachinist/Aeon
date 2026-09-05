@@ -96,6 +96,20 @@ pub const KOGAN_REACTIONS: [Spec; 12] = [
     ([0, 700, 365, 1086], 220, 311), ([365, 700, 720, 1086], 565, 311),
     ([720, 700, 1075, 1086], 901, 311), ([1075, 700, 1448, 1086], 1228, 319),
 ];
+// Throw tech is an open-palm separation, then withdrawal and the familiar ready.
+// The world advances entry frame 0 immediately; visible phases are 1..=15.
+pub const KOGAN_THROW_TECH: [Spec; 2] = [
+    ([0, 0, 720, 1024], 440, 670), ([720, 0, 1536, 1024], 1150, 670),
+];
+
+pub fn throw_tech_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan || f.airborne { return None; }
+    let Action::ThrowTech { frame } = f.action else { return None; };
+    Some(if frame <= 5 { Cell::ThrowTech(0) }
+        else if frame <= 10 { Cell::ThrowTech(1) }
+        else { Cell::Utility(3) })
+}
+
 // Standing overhead keeps a complete raised blade, forward cut and two returns.
 // Anatomy is shared rather than fitting the extra height of the raised arms.
 pub const KOGAN_OVERHEAD: [Spec; 4] = [
@@ -489,13 +503,18 @@ pub fn utility_cell(f: &Fighter) -> Option<Cell> {
     let Action::Attack { move_id, frame, connected } = f.action else { return None; };
     let mv = f.data().move_def(move_id)?;
     let cell = match move_id {
-        MoveId::CommandGrab => {
+        MoveId::CommandGrab | MoveId::Throw => {
+            let hold = if move_id == MoveId::Throw { aeon_sim::fighter::THROW_TECH_WINDOW }
+                else { aeon_sim::fighter::COMMAND_GRAB_HOLD };
             let release = if connected == aeon_sim::Connect::Hit {
-                mv.first_active() + u16::from(aeon_sim::fighter::COMMAND_GRAB_HOLD)
-            } else { mv.last_active() + 1 };
+                mv.first_active() + u16::from(hold)
+            } else if move_id == MoveId::Throw { mv.last_active() } else { mv.last_active() + 1 };
+            let ready = if move_id == MoveId::Throw {
+                release + (mv.total_frames() - release) / 2
+            } else { mv.last_active() + u16::from(mv.recovery) / 2 };
             if frame < mv.first_active() { 0 }
             else if frame < release { 1 }
-            else if frame < mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+            else if frame < ready { 2 }
             else { 3 }
         }
         MoveId::CommandDash => {
@@ -603,6 +622,7 @@ mod tests {
             ("kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL[..]),
             ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
+            ("kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH[..]),
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
             ("kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW[..]),
             ("kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER[..]),
@@ -670,6 +690,33 @@ mod tests {
         raya.airborne = true;
         raya.action = Action::Attack { move_id: MoveId::JS, frame: 6, connected: Connect::None };
         assert_eq!(air_saber_cell(&raya), None);
+    }
+
+    #[test]
+    fn throw_tech_uses_three_supported_phases_and_yields_to_every_new_action() {
+        for id in [CharacterId::Kogan, CharacterId::Raya] {
+            let mut f = Fighter::spawn(id, px(200), true);
+            f.last_move = Some(MoveId::Throw);
+            for frame in 0..16 {
+                f.action = Action::ThrowTech { frame };
+                let expected = if id == CharacterId::Raya { None }
+                    else if frame <= 5 { Some(Cell::ThrowTech(0)) }
+                    else if frame <= 10 { Some(Cell::ThrowTech(1)) }
+                    else { Some(Cell::Utility(3)) };
+                assert_eq!(throw_tech_cell(&f), expected);
+                assert_eq!(utility_cell(&f), None, "a tech cannot continue the grab");
+                f.airborne = true;
+                assert_eq!(throw_tech_cell(&f), None);
+                f.airborne = false;
+            }
+            for action in [Action::Stand, Action::Crouch, Action::Feint { frame: 0 },
+                Action::Block { stun: 8, crouching: false }, Action::Hit { stun: 8, knockdown: false },
+                Action::Jump { air_ok: true, hop: false }, Action::Landing { frame: 0, total: 2 }] {
+                f.action = action;
+                assert_eq!(throw_tech_cell(&f), None);
+                assert_eq!(utility_cell(&f), None);
+            }
+        }
     }
 
     #[test]

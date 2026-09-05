@@ -181,6 +181,7 @@ pub struct SpriteSet {
     air_saber: Option<crate::sequences::Atlas>,
     flash: Option<crate::sequences::Atlas>,
     overhead: Option<crate::sequences::Atlas>,
+    throw_tech: Option<crate::sequences::Atlas>,
     crouch_saber: Option<crate::sequences::Atlas>,
     crouch_low: Option<crate::sequences::Atlas>,
     air_lights: Option<crate::sequences::Atlas>,
@@ -224,6 +225,7 @@ pub enum Cell {
     Flash(usize),
     CrouchSaber(usize),
     Overhead(usize),
+    ThrowTech(usize),
     Floor(usize),
     Recoil(usize),
     Ground(usize),
@@ -416,6 +418,9 @@ impl SpriteSet {
         let ground = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND).await
         } else { None };
+        let throw_tech = if body == CharacterId::Kogan {
+            Atlas::load("assets/animation/kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH).await
+        } else { None };
         let overhead = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD).await
         } else { None };
@@ -459,7 +464,7 @@ impl SpriteSet {
         let recoil = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, overhead, crouch_saber, crouch_low, floor, recoil, ground, walk, coil, movement, ranged, utility }
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, overhead, throw_tech, crouch_saber, crouch_low, floor, recoil, ground, walk, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -481,6 +486,7 @@ impl SpriteSet {
             air_saber: None,
             flash: None,
             overhead: None,
+            throw_tech: None,
             crouch_saber: None,
             crouch_low: None,
             air_lights: None,
@@ -526,6 +532,9 @@ impl SpriteSet {
 
     /// The picture for this fighter on this simulation tick.
     pub fn cell_for(&self, fighter: &Fighter, tick: u32) -> Cell {
+        if self.throw_tech.is_some() && self.utility.is_some() {
+            if let Some(cell) = crate::sequences::throw_tech_cell(fighter) { return cell; }
+        }
         if self.overhead.is_some() {
             if let Some(cell) = crate::sequences::overhead_cell(fighter) { return cell; }
         }
@@ -605,6 +614,7 @@ impl SpriteSet {
             Cell::Movement(cell) => self.movement.as_ref()?.frame(cell),
             Cell::Ranged(cell) => self.ranged.as_ref()?.frame(cell),
             Cell::Utility(cell) => self.utility.as_ref()?.frame(cell),
+            Cell::ThrowTech(cell) => self.throw_tech.as_ref()?.frame(cell),
             Cell::Overhead(cell) => self.overhead.as_ref()?.frame(cell),
             Cell::CrouchSaber(cell @ 8..=15) => self.crouch_low.as_ref()?.frame(cell - 8),
             Cell::CrouchSaber(cell) => self.crouch_saber.as_ref()?.frame(cell),
