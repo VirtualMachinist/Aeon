@@ -1,6 +1,6 @@
 # Developing Aeon
 
-The primary repository is [VirtualMachinist/Aeon](https://github.com/VirtualMachinist/Aeon). `main` contains the integrated playable build. The September 5 first polish pass is `a9dec50`; its [report](POLISH-2026-09-05.md) separates verified behavior from remaining playtest and animation work.
+The primary repository is [VirtualMachinist/Aeon](https://github.com/VirtualMachinist/Aeon). `main` contains the integrated playable build. The September 5 first polish pass is `a9dec50`; its [report](POLISH-2026-09-05.md) and the [motion pass report](MOTION-2026-09-05.md) separate verified behavior from remaining playtest and animation work.
 
 ## Project direction
 
@@ -42,6 +42,8 @@ cargo run --release --locked --offline -p aeon -- --smoke
 cargo run --release --locked --offline -p aeon -- --polish-preview
 ```
 
-`--polish-preview --capture` writes 720 PNGs at a capture rate of 30 fps plus a state trace for the 24-second review. Gameplay remains 60 Hz. Captures are supporting evidence; hardware latency, physical stick input and competitive feel require hands-on play. Use the [QA rubric](QA.md) and report unperformed checks explicitly.
+`--polish-preview --capture` writes 1,050 PNGs at a capture rate of 30 fps plus a state trace for the 35-second review (movement, rekka, whiff punish and reactions per body). Gameplay remains 60 Hz. Captures are supporting evidence; hardware latency, physical stick input and competitive feel require hands-on play. Use the [QA rubric](QA.md) and report unperformed checks explicitly.
 
 Do not commit build outputs, screenshots, replays, local stick configuration or credentials. `target/`, `shots/` and `replays/` are ignored. Private build-host inventory and synchronization instructions remain outside this public repository.
+
+The [motion QA review](QA-MOTION-2026-09-05.md) records 107 tests on Citadel, the release capture, and the remaining visual and stick checks.

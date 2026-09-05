@@ -1,6 +1,8 @@
 //! AEON client: versus and training shells around the pure sim.
 //! The sim is sacred; this crate is a window, a stick, and a sprite table.
 
+mod anim;
+mod fx;
 mod input;
 mod preview;
 mod render;
@@ -9,13 +11,15 @@ mod sprites;
 mod timing;
 
 use aeon_sim::input::{Btn, Chord};
-use aeon_sim::{Action, CharacterId, EventKind, InputFrame, Match, Phase, World};
+use aeon_sim::{Action, CharacterId, EventKind, InputFrame, Match, Phase, RoundOutcome, World};
 use macroquad::prelude::*;
 
+use anim::{History, LayerOpts};
+use fx::Effects;
 use input::{keyboard, merge, Bind, MenuEdges, Pads};
 use render::{
-    draw_fighter, draw_hud, draw_input, draw_match_overlay, draw_projectiles, FighterDraw, HudOpts,
-    Stage, View, COPPER, COPPER_DIM, CYAN, INK, LINEN, VH, VW,
+    draw_fighter, draw_hud, draw_input, draw_match_overlay, draw_projectiles, FighterDraw, Flash,
+    HudOpts, Stage, View, COPPER, COPPER_DIM, CYAN, INK, LINEN, VH, VW,
 };
 use replay::Replay;
 use sprites::SpriteSet;
@@ -91,6 +95,69 @@ struct Assets {
     raya: SpriteSet,
     stage: Stage,
     portraits: [Option<Texture2D>; 2],
+    flash: Flash,
+}
+
+/// Render-only state that rides along with a world: what was drawn lately
+/// (for crossfades and afterimages), impact effects, and the round's winner.
+#[derive(Default)]
+struct Presentation {
+    history: History,
+    effects: Effects,
+    win: Option<usize>,
+}
+
+impl Presentation {
+    fn reset(&mut self) {
+        self.history.reset();
+        self.effects.reset();
+        self.win = None;
+    }
+
+    /// Once after every simulation tick, frozen ticks included.
+    fn after_tick(&mut self, assets: &Assets, w: &World) {
+        self.effects.after_tick(w);
+        let cells = [0, 1].map(|i| {
+            let f = &w.fighters[i];
+            assets.sprites(f.id).cell_for(f, w.frame)
+        });
+        self.history.record(w, cells);
+    }
+
+    fn draw(&self, view: &View, assets: &Assets, w: &World, boxes: bool) {
+        self.effects.draw_behind(view, w);
+        // A defender's cape must not hide the attacking hands or weapon.
+        // When neither (or both) attacks, retain the height-based ordering.
+        let attacking = w.fighters.each_ref().map(|f| f.action.attacking().is_some());
+        let order = match attacking {
+            [true, false] => [1, 0],
+            [false, true] => [0, 1],
+            _ if w.fighters[0].pos.y > w.fighters[1].pos.y => [1, 0],
+            _ => [0, 1],
+        };
+        for i in order {
+            let sprites = assets.sprites(w.fighters[i].id);
+            let layers = anim::layers(
+                w,
+                i,
+                sprites,
+                &self.history,
+                &LayerOpts {
+                    win: self.win == Some(i),
+                    flash: self.effects.flash(i),
+                },
+            );
+            let fd = FighterDraw {
+                sprites: Some(sprites),
+                layers: &layers,
+                show_boxes: boxes,
+                flash: &assets.flash,
+            };
+            draw_fighter(view, w, i, &fd);
+        }
+        draw_projectiles(view, w, boxes, w.frame);
+        self.effects.draw(view, w);
+    }
 }
 
 impl Assets {
@@ -134,6 +201,7 @@ async fn main() {
             load_texture("assets/select/kogan.png").await.ok(),
             load_texture("assets/select/raya.png").await.ok(),
         ],
+        flash: Flash::load(),
     };
     if std::env::args().any(|a| a == "--polish-preview") {
         preview::run(&assets).await;
@@ -147,6 +215,7 @@ async fn main() {
         Mode::Title { cursor: Menu::Versus }
     };
     let mut clock = FixedClock::default();
+    let mut pres = Presentation::default();
     let mut inputs = [InputLatch::default(), InputLatch::default()];
     let mut frame: u32 = 0;
     let mut toast: Option<(String, u16)> = None;
@@ -184,6 +253,7 @@ async fn main() {
         inputs[1].sample(read_p2(&pads, true));
         if !matches!(mode, Mode::Versus { .. } | Mode::Training(_)) {
             clock.reset();
+            pres.reset();
             for input in &mut inputs { input.discard_edges(); }
         }
 
@@ -279,10 +349,16 @@ async fn main() {
                         ),
                     };
                     m.tick(p1, p2);
+                    pres.after_tick(&assets, &m.world);
                 }
+                pres.win = match m.phase {
+                    Phase::RoundEnd { outcome: RoundOutcome::Winner(i), frame } if frame >= 30 => Some(i),
+                    Phase::MatchOver { winner } => Some(winner),
+                    _ => None,
+                };
                 view.follow(&m.world);
                 assets.stage.draw(&view, m.world.frame);
-                draw_world(&view, &assets, &m.world, false, m.world.frame);
+                pres.draw(&view, &assets, &m.world, false);
                 draw_hud(&view, &m.world, &HudOpts { wins: Some(m.wins), round: Some(m.round) });
                 draw_match_overlay(&view, m, m.world.frame);
                 if let Phase::MatchOver { .. } = m.phase {
@@ -297,7 +373,7 @@ async fn main() {
                 }
             }
             Mode::Training(t) => {
-                training_keys(t, &mut toast);
+                training_keys(t, &mut toast, &mut pres);
                 let ticks = if t.paused {
                     clock.reset();
                     usize::from(t.step_once)
@@ -323,6 +399,7 @@ async fn main() {
                         )
                     };
                     t.world.tick(p1, p2);
+                    pres.after_tick(&assets, &t.world);
                     if t.playback.is_none() {
                         t.recording.push(p1, p2);
                     }
@@ -343,7 +420,7 @@ async fn main() {
                 }
                 view.follow(&t.world);
                 assets.stage.draw(&view, t.world.frame);
-                draw_world(&view, &assets, &t.world, t.show_boxes, t.world.frame);
+                pres.draw(&view, &assets, &t.world, t.show_boxes);
                 draw_hud(&view, &t.world, &HudOpts { wins: None, round: None });
                 draw_training_hud(&view, t, &pads);
                 if is_key_pressed(KeyCode::Escape) {
@@ -440,24 +517,7 @@ fn p2_edges(pads: &Pads) -> MenuEdges {
     e
 }
 
-fn draw_world(view: &View, assets: &Assets, w: &World, boxes: bool, frame: u32) {
-    // A defender's cape must not hide the attacking hands or weapon.
-    // When neither (or both) attacks, retain the height-based ordering.
-    let attacking = w.fighters.each_ref().map(|f| f.action.attacking().is_some());
-    let order = match attacking {
-        [true, false] => [1, 0],
-        [false, true] => [0, 1],
-        _ if w.fighters[0].pos.y > w.fighters[1].pos.y => [1, 0],
-        _ => [0, 1],
-    };
-    for i in order {
-        let fd = FighterDraw { sprites: Some(assets.sprites(w.fighters[i].id)), show_boxes: boxes };
-        draw_fighter(view, w, i, &fd);
-    }
-    draw_projectiles(view, w, boxes, frame);
-}
-
-fn training_keys(t: &mut Training, toast: &mut Option<(String, u16)>) {
+fn training_keys(t: &mut Training, toast: &mut Option<(String, u16)>, pres: &mut Presentation) {
     if is_key_pressed(KeyCode::F1) {
         t.world.dummy = t.world.dummy.next();
         t.recording.dummy = Some(t.world.dummy);
@@ -468,13 +528,16 @@ fn training_keys(t: &mut Training, toast: &mut Option<(String, u16)>) {
     if is_key_pressed(KeyCode::F3) {
         t.world.swap_p1();
         t.reset();
+        pres.reset();
     }
     if is_key_pressed(KeyCode::F4) {
         t.world.swap_p2();
         t.reset();
+        pres.reset();
     }
     if is_key_pressed(KeyCode::F5) {
         t.reset();
+        pres.reset();
     }
     if is_key_pressed(KeyCode::Space) {
         t.paused = !t.paused;
@@ -513,6 +576,7 @@ fn training_keys(t: &mut Training, toast: &mut Option<(String, u16)>) {
                 let p1 = rep.p1.unwrap_or(t.world.p1_char);
                 let p2 = rep.p2.unwrap_or(t.world.p2_char);
                 t.world = World::training(p1, p2);
+                pres.reset();
                 if let Some(d) = rep.dummy {
                     t.world.dummy = d;
                 }

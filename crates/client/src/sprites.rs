@@ -180,6 +180,16 @@ pub struct SpriteFrame<'a> {
     pub height: f32,
 }
 
+/// Which picture a fighter shows this frame: a keyed pose, an atlas cell, or
+/// a wide thrust cell. Cheap to copy, so the motion layer can remember what
+/// was on screen a few frames ago for crossfades and afterimages.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Cell {
+    Pose(Pose),
+    Atlas(usize),
+    Thrust(usize),
+}
+
 // Foot anchors measured from the generated sheets, including their uneven
 // row baselines. A single hardcoded sheet baseline would make poses jump.
 const KOGAN_ANCHORS: [(f32, f32); 16] = [
@@ -288,6 +298,17 @@ impl SpriteSet {
         }
     }
 
+    /// A set with no textures: cells resolve to pose names only.
+    #[cfg(test)]
+    pub fn empty(body: CharacterId) -> Self {
+        Self {
+            textures: HashMap::new(),
+            body,
+            atlas: None,
+            thrust: None,
+        }
+    }
+
     pub fn count(&self) -> usize {
         self.textures.len()
     }
@@ -307,15 +328,31 @@ impl SpriteSet {
         None
     }
 
-    pub fn sample(&self, fighter: &Fighter, tick: u32) -> Option<SpriteFrame<'_>> {
-        if let (Some(texture), Some(cell)) = (&self.thrust, animation_cell(fighter, tick)) {
-            if matches!(
+    /// The picture for this fighter on this simulation tick.
+    pub fn cell_for(&self, fighter: &Fighter, tick: u32) -> Cell {
+        if let Some(cell) = animation_cell(fighter, tick) {
+            let thrust = matches!(
                 fighter.action,
                 Action::Attack {
                     move_id: MoveId::Rekka3,
                     ..
                 }
-            ) {
+            );
+            if thrust && self.thrust.is_some() {
+                return Cell::Thrust(cell % 4);
+            }
+            if self.atlas.is_some() {
+                return Cell::Atlas(cell);
+            }
+        }
+        Cell::Pose(phase_pose(fighter))
+    }
+
+    /// Resolve a cell to its texture, source rectangle and foot anchor.
+    pub fn frame(&self, cell: Cell) -> Option<SpriteFrame<'_>> {
+        match cell {
+            Cell::Thrust(cell) => {
+                let texture = self.thrust.as_ref()?;
                 let cell = cell % 4;
                 // The lower thrust extends past the nominal half-width.
                 // Its dedicated source region retains the complete saber.
@@ -332,7 +369,7 @@ impl SpriteSet {
                     (0.2829, 0.7910),
                 ];
                 let (x, y, w, h) = regions[cell];
-                return Some(SpriteFrame {
+                Some(SpriteFrame {
                     texture,
                     source: Some(Rect::new(
                         x * texture.width(),
@@ -342,41 +379,44 @@ impl SpriteSet {
                     )),
                     anchor: vec2(anchors[cell].0, anchors[cell].1),
                     height: 1.20 / 0.72,
-                });
+                })
             }
-        }
-        if let (Some(texture), Some(cell)) = (&self.atlas, animation_cell(fighter, tick)) {
-            let side = texture.width() / 4.0;
-            let row_height = texture.height() / 4.0;
-            let (anchors, height) = match self.body {
-                CharacterId::Kogan => (&KOGAN_ANCHORS, 1.20 / 0.87),
-                CharacterId::Raya => (&RAYA_ANCHORS, 1.20 / 0.92),
-            };
-            let (x, y) = anchors[cell];
-            // Fractional grid boundaries and linear filtering can pick up
-            // a neighboring row's feet or blade. Keep a small row gutter,
-            // preserving scale and anchoring the visible sole to the floor.
-            let gutter = 3.0;
-            let source_height = row_height - gutter * 2.0;
-            return Some(SpriteFrame {
+            Cell::Atlas(cell) => {
+                let texture = self.atlas.as_ref()?;
+                let cell = cell % 16;
+                let side = texture.width() / 4.0;
+                let row_height = texture.height() / 4.0;
+                let (anchors, height) = match self.body {
+                    CharacterId::Kogan => (&KOGAN_ANCHORS, 1.20 / 0.87),
+                    CharacterId::Raya => (&RAYA_ANCHORS, 1.20 / 0.92),
+                };
+                let (x, y) = anchors[cell];
+                // Fractional grid boundaries and linear filtering can pick up
+                // a neighboring row's feet or blade. Keep a small row gutter,
+                // preserving scale and anchoring the visible sole to the floor.
+                let gutter = 3.0;
+                let source_height = row_height - gutter * 2.0;
+                Some(SpriteFrame {
+                    texture,
+                    source: Some(Rect::new(
+                        (cell % 4) as f32 * side,
+                        (cell / 4) as f32 * row_height + gutter,
+                        side,
+                        source_height,
+                    )),
+                    anchor: vec2(x, ((y * row_height - gutter) / source_height).min(1.0)),
+                    height: height * source_height / row_height,
+                })
+            }
+            Cell::Pose(pose) => self.get(pose).map(|texture| SpriteFrame {
                 texture,
-                source: Some(Rect::new(
-                    (cell % 4) as f32 * side,
-                    (cell / 4) as f32 * row_height + gutter,
-                    side,
-                    source_height,
-                )),
-                anchor: vec2(x, ((y * row_height - gutter) / source_height).min(1.0)),
-                height: height * source_height / row_height,
-            });
+                source: None,
+                anchor: vec2(0.5, 0.94),
+                height: 1.55,
+            }),
         }
-        self.get(phase_pose(fighter)).map(|texture| SpriteFrame {
-            texture,
-            source: None,
-            anchor: vec2(0.5, 0.94),
-            height: 1.55,
-        })
     }
+
 }
 
 /// Animation contact coincides with the move's active frames. Hitstop and

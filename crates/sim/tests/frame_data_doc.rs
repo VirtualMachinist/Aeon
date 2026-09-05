@@ -307,6 +307,7 @@ fn generate() -> String {
     writeln!(out, "| motion buffer | {MOTION_WINDOW}f for 236/214/623; {HCB_WINDOW}f for 63214; charge {CHARGE_FRAMES}f |").unwrap();
     writeln!(out, "| prejump / landing | {PREJUMP}f prejump; full jump {LANDING_RECOVERY}f landing, hop {HOP_LANDING_RECOVERY}f; move-specific landing recovery still applies |").unwrap();
     writeln!(out, "| backdash | {BACKDASH_FRAMES}f, punishable |").unwrap();
+    writeln!(out, "| pushback | one-shot on contact; what a cornered defender cannot absorb moves the attacker instead (shots excepted) |").unwrap();
     writeln!(out, "| normal throw (P+K) | tech window {THROW_TECH_WINDOW}f after the grab connects; tech = both pushed apart, {THROW_TECH_FRAMES}f each |").unwrap();
     writeln!(out, "| command grab (63214+FL) | untechable; {COMMAND_GRAB_HOLD}f hold then the throw resolves; whiff recovery is the move's own |").unwrap();
     writeln!(out, "| hard knockdown | {KNOCKDOWN_FRAMES}f down + {GETUP_FRAMES}f getup; downed body is strike-invulnerable (no OTG) |").unwrap();

@@ -1,0 +1,655 @@
+//! Motion on top of pose-hold sprites.
+//!
+//! Every state in both kits gets anticipation, contact and recovery motion:
+//! leans, stretch and squash, launch tumbles, the knockdown bounce, run and
+//! processional afterimages, and a short crossfade whenever the picture
+//! changes. All of it is a pure function of simulation state plus a few
+//! frames of what was drawn before, so hitstop, pause, frame-step and
+//! replays hold exactly. Geometry stays in the sim; nothing here is a box.
+
+use std::collections::VecDeque;
+use std::f32::consts::PI;
+
+use aeon_sim::{Action, CharacterId, Fighter, MoveDef, MoveId, World, SUB};
+use macroquad::prelude::*;
+
+use crate::sprites::{Cell, Pose, SpriteSet};
+
+/// Frames of drawn history kept per body (afterimages look back this far).
+const TRAIL: usize = 12;
+/// A changed picture fades the previous one out over this many frames.
+const CROSSFADE: u32 = 2;
+
+pub const GHOST_KOGAN: Color = Color::new(0.88, 0.52, 0.22, 1.0);
+pub const GHOST_RAYA: Color = Color::new(0.74, 0.96, 1.0, 1.0);
+pub const HURT_TINT: Color = Color::new(1.0, 0.85, 0.80, 1.0);
+
+fn sub(v: i32) -> f32 {
+    v as f32 / SUB as f32
+}
+
+fn ease_in(t: f32) -> f32 {
+    let t = t.clamp(0.0, 1.0);
+    t * t
+}
+
+fn ease_out(t: f32) -> f32 {
+    let t = t.clamp(0.0, 1.0);
+    1.0 - (1.0 - t) * (1.0 - t)
+}
+
+fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    a + (b - a) * t.clamp(0.0, 1.0)
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Snapshot {
+    pub frame: u32,
+    pub x: f32,
+    pub y: f32,
+    pub facing_right: bool,
+    pub cell: Cell,
+}
+
+/// What each body showed over the last few simulation frames.
+#[derive(Default)]
+pub struct History {
+    trail: [VecDeque<Snapshot>; 2],
+}
+
+impl History {
+    /// Record once per simulation tick, after the world stepped. Frozen ticks
+    /// (hitstop, RC) overwrite the same frame; a reset or replay that moves
+    /// the frame counter backwards clears the trail.
+    pub fn record(&mut self, w: &World, cells: [Cell; 2]) {
+        for (i, cell) in cells.into_iter().enumerate() {
+            let f = &w.fighters[i];
+            let snap = Snapshot {
+                frame: w.frame,
+                x: sub(f.pos.x),
+                y: sub(f.pos.y),
+                facing_right: f.facing_right,
+                cell,
+            };
+            let t = &mut self.trail[i];
+            match t.back().map(|s| s.frame) {
+                Some(last) if last == w.frame => {
+                    *t.back_mut().unwrap() = snap;
+                }
+                Some(last) if last + 1 == w.frame => t.push_back(snap),
+                Some(_) => {
+                    t.clear();
+                    t.push_back(snap);
+                }
+                None => t.push_back(snap),
+            }
+            while t.len() > TRAIL {
+                t.pop_front();
+            }
+        }
+    }
+
+    pub fn reset(&mut self) {
+        for t in &mut self.trail {
+            t.clear();
+        }
+    }
+
+    fn at(&self, i: usize, frame: u32) -> Option<Snapshot> {
+        self.trail[i].iter().rev().find(|s| s.frame == frame).copied()
+    }
+
+    /// The most recent picture that differs from `current`.
+    fn previous_cell(&self, i: usize, current: Cell) -> Option<Snapshot> {
+        self.trail[i].iter().rev().find(|s| s.cell != current).copied()
+    }
+}
+
+/// One drawn picture. `x`, `y` are the feet in world pixels; `rot` is
+/// radians, positive leaning toward the body's facing; scale is about the
+/// feet. `flash` mixes the sprite toward `flash_color` before tinting.
+#[derive(Clone, Copy, Debug)]
+pub struct Layer {
+    pub cell: Cell,
+    pub x: f32,
+    pub y: f32,
+    pub facing_right: bool,
+    pub rot: f32,
+    pub sx: f32,
+    pub sy: f32,
+    pub alpha: f32,
+    pub flash: f32,
+    pub flash_color: Color,
+    pub tint: Color,
+}
+
+pub struct LayerOpts {
+    /// Draw the win pose when the body is at rest (round end).
+    pub win: bool,
+    /// Body flash from the effects layer: strength and colour.
+    pub flash: (f32, Color),
+}
+
+#[derive(Clone, Copy)]
+struct Motion {
+    dx: f32,
+    dy: f32,
+    rot: f32,
+    sx: f32,
+    sy: f32,
+    alpha: f32,
+    /// Afterimages: colour, count, frames between them.
+    ghosts: Option<(Color, u32, u32)>,
+}
+
+impl Motion {
+    const REST: Self = Self {
+        dx: 0.0,
+        dy: 0.0,
+        rot: 0.0,
+        sx: 1.0,
+        sy: 1.0,
+        alpha: 1.0,
+        ghosts: None,
+    };
+}
+
+pub fn ghost_color(id: CharacterId) -> Color {
+    match id {
+        CharacterId::Kogan => GHOST_KOGAN,
+        CharacterId::Raya => GHOST_RAYA,
+    }
+}
+
+/// Everything to draw for fighter `i`, back to front: afterimages, the
+/// fading previous picture, then the body itself.
+pub fn layers(
+    w: &World,
+    i: usize,
+    sprites: &SpriteSet,
+    history: &History,
+    opts: &LayerOpts,
+) -> Vec<Layer> {
+    let f = &w.fighters[i];
+    let mut cell = sprites.cell_for(f, w.frame);
+    if opts.win
+        && !f.airborne
+        && matches!(f.action, Action::Stand | Action::Crouch | Action::Walk { .. })
+    {
+        cell = Cell::Pose(Pose::Win);
+    }
+    let mut m = motion(f, w);
+
+    // Hitstop: the struck body shudders in place, the striker leans on
+    // the hit. Amplitude follows the weight of the contact.
+    if w.hitstop > 0 {
+        if matches!(f.action, Action::Hit { .. } | Action::Block { .. }) {
+            let amp = if w.hitstop >= 8 { 2.2 } else { 1.3 };
+            m.dx += if w.hitstop.is_multiple_of(2) { amp } else { -amp };
+        } else if f.action.attacking().is_some_and(|(_, _, c)| c != aeon_sim::Connect::None) {
+            m.dx += 1.0;
+        }
+    }
+
+    let facing = if f.facing_right { 1.0 } else { -1.0 };
+    let x = sub(f.pos.x) + m.dx * facing;
+    let y = sub(f.pos.y) + m.dy;
+    let mut out = Vec::with_capacity(6);
+
+    if let Some((color, count, spacing)) = m.ghosts {
+        for k in (1..=count).rev() {
+            let Some(snap) = history.at(i, w.frame.saturating_sub(k * spacing)) else {
+                continue;
+            };
+            // A body that has not moved leaves no trail.
+            if (snap.x - sub(f.pos.x)).abs() + (snap.y - sub(f.pos.y)).abs() < 1.0 {
+                continue;
+            }
+            out.push(Layer {
+                cell: snap.cell,
+                x: snap.x,
+                y: snap.y,
+                facing_right: snap.facing_right,
+                rot: m.rot * 0.5,
+                sx: 1.0,
+                sy: 1.0,
+                alpha: 0.34 * (1.0 - (k - 1) as f32 / count as f32),
+                flash: 0.85,
+                flash_color: color,
+                tint: WHITE,
+            });
+        }
+    }
+
+    // The hurt tint yields to a flash so a clean hit reads white, not pink.
+    let tint = match f.action {
+        Action::Hit { .. } | Action::Thrown { .. } if opts.flash.0 < 0.3 => HURT_TINT,
+        _ => WHITE,
+    };
+
+    // A tumbling or floored body cuts rather than fades: the previous
+    // upright picture has no honest place over a body lying flat.
+    let cuts = matches!(f.action, Action::Knockdown { .. }) || (f.airborne && f.action.in_hitstun());
+    if let Some(prev) = history.previous_cell(i, cell).filter(|_| !cuts) {
+        let age = w.frame.saturating_sub(prev.frame);
+        if (1..=CROSSFADE).contains(&age) {
+            out.push(Layer {
+                cell: prev.cell,
+                x,
+                y,
+                facing_right: f.facing_right,
+                rot: m.rot,
+                sx: m.sx,
+                sy: m.sy,
+                alpha: m.alpha * 0.55 * (1.0 - (age - 1) as f32 / CROSSFADE as f32),
+                flash: 0.0,
+                flash_color: WHITE,
+                tint,
+            });
+        }
+    }
+
+    out.push(Layer {
+        cell,
+        x,
+        y,
+        facing_right: f.facing_right,
+        rot: m.rot,
+        sx: m.sx,
+        sy: m.sy,
+        alpha: m.alpha,
+        flash: opts.flash.0,
+        flash_color: opts.flash.1,
+        tint,
+    });
+    out
+}
+
+fn motion(f: &Fighter, w: &World) -> Motion {
+    let mut m = Motion::REST;
+    let d = f.data();
+    let ghost = ghost_color(f.id);
+    match &f.action {
+        Action::Stand => {
+            let breath = (w.frame as f32 * 0.055).sin();
+            m.sy = 1.0 + 0.004 * breath;
+            m.sx = 1.0 - 0.002 * breath;
+        }
+        Action::Crouch => {}
+        Action::Walk { .. } => {
+            m.dy = 0.8 * (w.frame as f32 * 0.26).sin().abs();
+        }
+        Action::Run => {
+            // A glide: the body leans and the copper streams behind it.
+            m.rot = 0.14;
+            m.sy = 0.98;
+            m.sx = 1.02;
+            m.ghosts = Some((ghost, 3, 2));
+        }
+        Action::BackDash { frame } => {
+            let t = *frame as f32 / 14.0;
+            m.rot = -0.10 * (1.0 - t);
+            m.alpha = if *frame < 8 { 0.9 } else { 1.0 };
+            if *frame < 8 {
+                m.ghosts = Some((ghost, 3, 2));
+            }
+        }
+        Action::Prejump { frame, .. } => {
+            let t = *frame as f32 / aeon_sim::PREJUMP as f32;
+            m.sx = 1.08 - 0.08 * t;
+            m.sy = 0.90 + 0.10 * t;
+        }
+        Action::Jump { hop, .. } => {
+            let jump_y = if *hop { d.hop_y } else { d.jump_y } as f32;
+            let rise = (f.vel.y as f32 / jump_y).clamp(-1.0, 1.0);
+            if rise > 0.0 {
+                m.sy = 1.0 + 0.05 * rise;
+                m.sx = 1.0 - 0.03 * rise;
+            }
+            let forward = f.vel.x.signum() * if f.facing_right { 1 } else { -1 };
+            m.rot = match forward {
+                1 => 0.05,
+                -1 => -0.03,
+                _ => 0.0,
+            };
+        }
+        Action::Landing { frame, total } => {
+            let t = (*frame as f32 + 1.0) / (*total as f32).max(1.0);
+            m.sx = lerp(1.07, 1.0, ease_out(t));
+            m.sy = lerp(0.91, 1.0, ease_out(t));
+        }
+        Action::Attack {
+            move_id, frame, ..
+        } => {
+            if let Some(mv) = d.move_def(*move_id) {
+                attack(f, mv, *frame, &mut m, ghost);
+            }
+        }
+        Action::Feint { frame } => {
+            m.alpha = if frame % 2 == 0 { 0.6 } else { 1.0 };
+            m.rot = -0.06 * (1.0 - *frame as f32 / 8.0);
+        }
+        Action::Block { stun, .. } => {
+            let k = (*stun as f32 / 12.0).min(1.0);
+            m.dx = -2.0 * k;
+            m.rot = -0.05 * k;
+        }
+        Action::Hit { stun, knockdown } => {
+            if f.airborne {
+                let lift = (sub(f.pos.y) / 70.0).clamp(0.0, 1.0);
+                m.rot = if *knockdown {
+                    -(0.35 + 1.0 * lift)
+                } else {
+                    -(0.2 + 0.4 * lift)
+                };
+                if *knockdown && f.vel.y < 0 {
+                    // Falling to the floor: nearly flat, so the lying pose
+                    // that follows is a continuation, not a cut.
+                    m.rot = m.rot.min(-1.25);
+                }
+            } else {
+                let k = (*stun as f32 / 16.0).min(1.0);
+                m.rot = -0.14 * k;
+                m.dx = -2.0 * k;
+                m.sx = 1.0 - 0.03 * k;
+            }
+        }
+        Action::Knockdown { frame } => {
+            if *frame < 8 {
+                let t = *frame as f32 / 8.0;
+                m.dy = 6.0 * (t * PI).sin() * (1.0 - t);
+                m.sx = 1.0 + 0.04 * (1.0 - t);
+            }
+        }
+        Action::Getup { .. } => {}
+        Action::Thrown { .. } => {
+            m.rot = -0.12;
+        }
+        Action::ThrowTech { frame } => {
+            let t = *frame as f32 / 16.0;
+            m.rot = -0.08 * (1.0 - t);
+        }
+    }
+    m
+}
+
+/// Anticipation, contact, recovery for every attack in both kits.
+fn attack(f: &Fighter, mv: &MoveDef, frame: u16, m: &mut Motion, ghost: Color) {
+    let s = mv.first_active() as f32;
+    let a = mv.last_active() as f32;
+    let tot = mv.total_frames() as f32;
+    let fr = frame as f32;
+    let rec = (tot - a).max(1.0);
+    let kogan = f.id == CharacterId::Kogan;
+    match mv.id {
+        MoveId::Throw | MoveId::CommandGrab => {
+            // Reach in, seize, hold; the recovery is the whiff.
+            if fr < s {
+                m.rot = 0.10 * ease_in(fr / s);
+                m.sx = 1.0 + 0.04 * (fr / s);
+            } else if fr < a {
+                m.rot = 0.10;
+                m.sx = 1.05;
+            } else {
+                m.rot = 0.10 * (1.0 - ease_out((fr - a) / rec));
+            }
+        }
+        MoveId::Uppercut => {
+            if f.vel.y > 0 {
+                m.rot = 0.18;
+                m.sy = 1.04;
+                m.sx = 0.97;
+                m.ghosts = Some((ghost, 3, 2));
+            } else {
+                m.rot = 0.08 * (sub(f.pos.y) / 60.0).clamp(0.0, 1.0);
+            }
+        }
+        MoveId::SpecialOverhead => {
+            m.rot = if f.vel.y > 0 { 0.10 } else { 0.26 };
+            m.ghosts = Some((ghost, 2, 2));
+        }
+        MoveId::Super => {
+            m.ghosts = Some((ghost, 4, 1));
+            m.rot = if fr < a { 0.12 } else { 0.12 * (1.0 - ease_out((fr - a) / rec)) };
+        }
+        MoveId::CommandDash => {
+            let t = fr / tot.max(1.0);
+            if kogan {
+                m.rot = 0.16 * (1.0 - t * t);
+                m.ghosts = Some((ghost, 3, 2));
+            } else {
+                // The processional passes through the body: she is written
+                // light for its duration, and floats.
+                m.alpha = 0.55;
+                m.dy = 2.0 * (t * PI).sin();
+                m.rot = 0.06;
+                m.ghosts = Some((ghost, 4, 2));
+            }
+        }
+        MoveId::Rekka1 | MoveId::Rekka2 | MoveId::Rekka3 => {
+            if !f.airborne && fr < mv.vel_frames as f32 {
+                m.ghosts = Some((ghost, 2, 3));
+            }
+            phase(mv, frame, m, false);
+        }
+        MoveId::ExA if kogan => {
+            if fr < mv.vel_frames as f32 {
+                m.ghosts = Some((ghost, 3, 2));
+            }
+            phase(mv, frame, m, false);
+        }
+        MoveId::ShotA | MoveId::ExB | MoveId::AirShot if kogan => {
+            // The revolver kicks after the shot leaves.
+            if fr >= s {
+                let t = ((fr - s) / 8.0).min(1.0);
+                m.dx = -4.0 * (1.0 - ease_out(t));
+                m.rot = -0.06 * (1.0 - t);
+            } else {
+                m.rot = 0.04 * (fr / s.max(1.0));
+            }
+        }
+        MoveId::ShotA | MoveId::ExB => {
+            // The crystal is tossed: a small underhand swing.
+            if fr < s {
+                m.rot = lerp(-0.04, 0.06, ease_in(fr / s.max(1.0)));
+            } else {
+                m.rot = 0.06 * (1.0 - ease_out((fr - s) / (tot - s).max(1.0)));
+            }
+        }
+        MoveId::ShotB | MoveId::ExA => {
+            // Voice and wave: gather, release, settle.
+            if fr < s {
+                m.rot = lerp(-0.05, 0.12, ease_in(fr / s.max(1.0)));
+            } else {
+                let t = (fr - s) / (tot - s).max(1.0);
+                m.rot = 0.07 * (1.0 - ease_out(t));
+                m.dx = 2.0 * (1.0 - t);
+            }
+        }
+        MoveId::Charge => {
+            let t = f.channel_frames as f32;
+            m.sy = 1.0 + 0.012 * (t * 0.35).sin();
+            m.dy = (t * 0.2).sin();
+        }
+        MoveId::Guard => {
+            // Plants against the shot: weight back, disc forward.
+            if fr < s {
+                m.rot = -0.08 * ease_in(fr / s.max(1.0));
+                m.sx = 0.96;
+            } else if fr < a {
+                m.rot = -0.10;
+                m.sx = 1.02;
+            } else {
+                m.rot = -0.10 * (1.0 - ease_out((fr - a) / rec));
+            }
+        }
+        MoveId::Detonate => {
+            m.sx = 1.0 + 0.05 * (1.0 - fr / tot.max(1.0));
+        }
+        id if id.is_crouching() => phase(mv, frame, m, true),
+        _ => phase(mv, frame, m, false),
+    }
+    if f.airborne && mv.id.is_normal() {
+        m.rot *= 0.6;
+        m.dx = 0.0;
+    }
+}
+
+/// Settle back through the wind-up, drive forward on contact, ease home.
+fn phase(mv: &MoveDef, frame: u16, m: &mut Motion, crouching: bool) {
+    let s = mv.first_active() as f32;
+    let a = mv.last_active() as f32;
+    let tot = mv.total_frames() as f32;
+    let fr = frame as f32;
+    let lean = if crouching { 0.05 } else { 0.09 };
+    if fr < s {
+        let t = fr / s.max(1.0);
+        m.rot = lerp(-0.04, lean, ease_in(t));
+        m.sx = 1.0 - 0.02 * (1.0 - t);
+    } else if fr < a {
+        let t = (fr - s) / (a - s).max(1.0);
+        m.rot = lean - 0.03 * t;
+        let first = frame == mv.first_active();
+        m.sx = if first { 1.06 } else { 1.03 };
+        m.dx = if first { 2.0 } else { 1.0 };
+    } else {
+        let t = (fr - a) / (tot - a).max(1.0);
+        m.rot = (lean - 0.03) * (1.0 - ease_out(t));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use aeon_sim::px;
+
+    fn set(id: CharacterId) -> SpriteSet {
+        SpriteSet::empty(id)
+    }
+
+    #[test]
+    fn every_state_of_both_kits_produces_a_finite_layer() {
+        for id in [CharacterId::Kogan, CharacterId::Raya] {
+            let sprites = set(id);
+            let history = History::default();
+            let opts = LayerOpts {
+                win: false,
+                flash: (0.0, WHITE),
+            };
+            for move_id in MoveId::ALL {
+                let Some(mv) = id.data().move_def(move_id) else { continue };
+                for frame in 0..mv.total_frames() {
+                    let mut w = World::new(id, id);
+                    w.fighters[0].start_move(move_id);
+                    w.fighters[0].action = Action::Attack {
+                        move_id,
+                        frame,
+                        connected: aeon_sim::Connect::None,
+                    };
+                    let out = layers(&w, 0, &sprites, &history, &opts);
+                    let body = out.last().unwrap();
+                    assert!(body.rot.is_finite() && body.sx.is_finite() && body.sy.is_finite());
+                    assert!(body.sx > 0.5 && body.sy > 0.5 && body.alpha > 0.0);
+                    assert!(body.rot.abs() < 0.5, "{id:?} {move_id:?} f{frame}");
+                }
+            }
+            for action in [
+                Action::Run,
+                Action::BackDash { frame: 3 },
+                Action::Prejump { frame: 1, dir_x: 1, hop: true },
+                Action::Landing { frame: 0, total: 2 },
+                Action::Feint { frame: 2 },
+                Action::Block { crouching: true, stun: 6 },
+                Action::Hit { stun: 10, knockdown: false },
+                Action::Knockdown { frame: 2 },
+                Action::Getup { frame: 9 },
+                Action::Thrown { frame: 1, techable: true, damage: 1, meter: 0 },
+                Action::ThrowTech { frame: 3 },
+            ] {
+                let mut w = World::new(id, id);
+                w.fighters[0].action = action;
+                let out = layers(&w, 0, &sprites, &history, &opts);
+                assert!(out.last().unwrap().rot.is_finite());
+            }
+        }
+    }
+
+    #[test]
+    fn a_launched_body_tumbles_and_lands_flat() {
+        let mut w = World::new(CharacterId::Kogan, CharacterId::Kogan);
+        w.fighters[0].pos.y = px(60);
+        w.fighters[0].airborne = true;
+        w.fighters[0].vel.y = -px(3);
+        w.fighters[0].action = Action::Hit { stun: 10, knockdown: true };
+        let out = layers(
+            &w,
+            0,
+            &set(CharacterId::Kogan),
+            &History::default(),
+            &LayerOpts { win: false, flash: (0.0, WHITE) },
+        );
+        assert!(out.last().unwrap().rot <= -1.25);
+    }
+
+    #[test]
+    fn afterimages_only_trail_a_moving_body_and_hold_through_hitstop() {
+        let sprites = set(CharacterId::Kogan);
+        let mut history = History::default();
+        let mut w = World::new(CharacterId::Kogan, CharacterId::Kogan);
+        let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
+        w.fighters[0].action = Action::Run;
+        for _ in 0..6 {
+            w.frame += 1;
+            history.record(&w, [Cell::Pose(Pose::Run), Cell::Pose(Pose::Idle)]);
+        }
+        assert_eq!(layers(&w, 0, &sprites, &history, &opts).len(), 1, "no motion, no trail");
+        for _ in 0..6 {
+            w.frame += 1;
+            w.fighters[0].pos.x += px(6);
+            history.record(&w, [Cell::Pose(Pose::Run), Cell::Pose(Pose::Idle)]);
+        }
+        let out = layers(&w, 0, &sprites, &history, &opts);
+        assert_eq!(out.len(), 4, "three ghosts and the body");
+        assert!(out[0].alpha < out[2].alpha);
+        // A frozen tick overwrites the same frame instead of growing the trail.
+        history.record(&w, [Cell::Pose(Pose::Run), Cell::Pose(Pose::Idle)]);
+        assert_eq!(layers(&w, 0, &sprites, &history, &opts).len(), 4);
+    }
+
+    #[test]
+    fn a_changed_picture_crossfades_for_two_frames_only() {
+        let sprites = set(CharacterId::Raya);
+        let mut history = History::default();
+        let mut w = World::new(CharacterId::Raya, CharacterId::Raya);
+        let opts = LayerOpts { win: false, flash: (0.0, WHITE) };
+        history.record(&w, [Cell::Pose(Pose::Idle); 2]);
+        w.frame += 1;
+        w.fighters[0].action = Action::Attack {
+            move_id: MoveId::StP,
+            frame: 4,
+            connected: aeon_sim::Connect::None,
+        };
+        let cell = sprites.cell_for(&w.fighters[0], w.frame);
+        assert_ne!(cell, Cell::Pose(Pose::Idle));
+        let out = layers(&w, 0, &sprites, &history, &opts);
+        assert_eq!(out.len(), 2);
+        assert_eq!(out[0].cell, Cell::Pose(Pose::Idle));
+        history.record(&w, [cell, Cell::Pose(Pose::Idle)]);
+        w.frame += 1;
+        history.record(&w, [cell, Cell::Pose(Pose::Idle)]);
+        w.frame += 1;
+        history.record(&w, [cell, Cell::Pose(Pose::Idle)]);
+        assert_eq!(layers(&w, 0, &sprites, &history, &opts).len(), 1);
+    }
+
+    #[test]
+    fn win_pose_only_replaces_a_body_at_rest() {
+        let sprites = set(CharacterId::Kogan);
+        let history = History::default();
+        let opts = LayerOpts { win: true, flash: (0.0, WHITE) };
+        let mut w = World::new(CharacterId::Kogan, CharacterId::Kogan);
+        assert_eq!(layers(&w, 0, &sprites, &history, &opts)[0].cell, Cell::Pose(Pose::Win));
+        w.fighters[0].action = Action::Knockdown { frame: 3 };
+        assert_eq!(layers(&w, 0, &sprites, &history, &opts)[0].cell, Cell::Pose(Pose::Down));
+    }
+}

@@ -77,7 +77,7 @@ Throws whiff on airborne, stunned and downed bodies.
 
 ## The uppercut
 
-623 on the slash buttons. Full invuln on frames 2–7. On hit: launch, hard knockdown, RC-able. Blocked or baited: landing recovery on top of a long whiff — max punish and a hard knockdown for the defender to eat.
+623 on the slash buttons. Full invuln on frames 2–7. On hit: launch, hard knockdown, RC-able. Blocked or baited: landing recovery on top of a long whiff — max punish and a hard knockdown for the defender to eat. A launched body has no air recovery: its hitstun rides the arc and ends on the floor, in the knockdown, and the combo counter holds through the fall.
 
 ## Meter
 
@@ -86,7 +86,7 @@ Throws whiff on airborne, stunned and downed bodies.
 
 ## Damage and knockdown
 
-Scaling 100 / 80 / 60 / 45 then 35. Natural five-hit routes are legal; evaluate execution, commitment and payoff. Kogan jab → jab xx full rekka is tested at 170 damage and knockdown. Hard knockdown is 32f down + 24f getup; downed bodies are strike-invulnerable (no OTG). Sweep, command grab, uppercut, rekka 3, crystal blast and super all knock down. Knockdown is the currency; oki is where rounds turn.
+Scaling 100 / 80 / 60 / 45 then 35. Natural five-hit routes are legal; evaluate execution, commitment and payoff. Kogan jab → jab xx full rekka is tested at 170 damage and knockdown. Hard knockdown is 32f down + 24f getup; downed bodies are strike-invulnerable (no OTG). Pushback is a one-shot shove on contact; what a cornered defender cannot absorb moves the attacker instead, so the corner still costs spacing (shots do not shove their owner). Sweep, command grab, uppercut, rekka 3, crystal blast and super all knock down. Knockdown is the currency; oki is where rounds turn.
 
 ## Sim contract
 

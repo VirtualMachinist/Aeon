@@ -3,11 +3,15 @@
 //! same. The sim is in subpixels; `View` turns them into canvas pixels.
 
 use aeon_sim::{
-    Aabb, Action, CharacterId, Fighter, Match, Phase, ProjectileKind, ShotState, World, METER_MAX,
-    STAGE_W, SUB,
+    Aabb, CharacterId, Fighter, Match, Phase, ProjectileKind, ShotState, World, METER_MAX, STAGE_W,
+    SUB,
+};
+use macroquad::miniquad::{
+    BlendFactor, BlendState, BlendValue, Equation, PipelineParams, UniformDesc, UniformType,
 };
 use macroquad::prelude::*;
 
+use crate::anim::Layer;
 use crate::sprites::SpriteSet;
 
 pub const VW: f32 = 1280.0;
@@ -232,9 +236,92 @@ impl Stage {
     }
 }
 
+/// Mixes a sprite toward a colour before tinting: the white of a clean
+/// hit, the cyan of an EX start, the copper of an afterimage. Falls back to
+/// a plain tinted draw if the shader will not compile on this box.
+pub struct Flash {
+    material: Option<Material>,
+}
+
+const FLASH_VERTEX: &str = r#"#version 100
+attribute vec3 position;
+attribute vec2 texcoord;
+attribute vec4 color0;
+varying lowp vec2 uv;
+varying lowp vec4 color;
+uniform mat4 Model;
+uniform mat4 Projection;
+void main() {
+    gl_Position = Projection * Model * vec4(position, 1);
+    color = color0 / 255.0;
+    uv = texcoord;
+}"#;
+
+const FLASH_FRAGMENT: &str = r#"#version 100
+varying lowp vec4 color;
+varying lowp vec2 uv;
+uniform sampler2D Texture;
+uniform lowp vec4 flash_color;
+uniform lowp float flash;
+void main() {
+    lowp vec4 t = texture2D(Texture, uv);
+    gl_FragColor = vec4(mix(t.rgb, flash_color.rgb, flash), t.a) * color;
+}"#;
+
+impl Flash {
+    pub fn load() -> Self {
+        let params = MaterialParams {
+            pipeline_params: PipelineParams {
+                color_blend: Some(BlendState::new(
+                    Equation::Add,
+                    BlendFactor::Value(BlendValue::SourceAlpha),
+                    BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
+                )),
+                alpha_blend: Some(BlendState::new(
+                    Equation::Add,
+                    BlendFactor::Zero,
+                    BlendFactor::One,
+                )),
+                ..Default::default()
+            },
+            uniforms: vec![
+                UniformDesc::new("flash", UniformType::Float1),
+                UniformDesc::new("flash_color", UniformType::Float4),
+            ],
+            textures: vec![],
+        };
+        match load_material(
+            ShaderSource::Glsl {
+                vertex: FLASH_VERTEX,
+                fragment: FLASH_FRAGMENT,
+            },
+            params,
+        ) {
+            Ok(m) => Self { material: Some(m) },
+            Err(e) => {
+                eprintln!("[aeon] flash shader unavailable ({e:?}); flat flashes");
+                Self { material: None }
+            }
+        }
+    }
+
+    /// Bind for the next draw. Returns false when there is no shader, so the
+    /// caller can approximate the flash with a tint instead.
+    fn bind(&self, strength: f32, color: Color) -> bool {
+        let Some(m) = &self.material else { return false };
+        m.set_uniform("flash", strength);
+        m.set_uniform("flash_color", [color.r, color.g, color.b, color.a]);
+        gl_use_material(m);
+        true
+    }
+}
+
 pub struct FighterDraw<'a> {
     pub sprites: Option<&'a SpriteSet>,
+    /// Back to front, from the motion layer.
+    pub layers: &'a [Layer],
     pub show_boxes: bool,
+    pub flash: &'a Flash,
 }
 
 pub fn draw_fighter(v: &View, w: &World, i: usize, fd: &FighterDraw) {
@@ -244,57 +331,32 @@ pub fn draw_fighter(v: &View, w: &World, i: usize, fd: &FighterDraw) {
     let stand_h = sub_to_px(d.stand_h) * WS;
     let facing = if f.facing_right { 1.0 } else { -1.0 };
 
-    // Shadow.
+    // Shadow: shrinks and fades as the body rises.
+    let lift = (sub_to_px(f.pos.y) / 120.0).clamp(0.0, 1.0);
     let sh = v.world(sub_to_px(f.pos.x), 0.0);
     draw_ellipse(
         v.sx(sh.x),
         v.sy(sh.y + 4.0),
-        44.0 * v.scale,
-        9.0 * v.scale,
+        (44.0 - 18.0 * lift) * v.scale,
+        (9.0 - 3.0 * lift) * v.scale,
         0.0,
-        Color::new(0.0, 0.0, 0.0, 0.5),
+        Color::new(0.0, 0.0, 0.0, 0.5 - 0.25 * lift),
     );
 
-    let hit_tint = match f.action {
-        Action::Hit { .. } | Action::Thrown { .. } => Color::new(1.0, 0.85, 0.8, 1.0),
-        _ => WHITE,
-    };
-
-    let sprite = fd.sprites.and_then(|s| s.sample(f, w.frame));
-    match sprite {
-        Some(sprite) => {
-            let breath = if matches!(f.action, Action::Stand) {
-                1.0 + 0.003 * (w.frame as f32 * 0.055).sin()
-            } else { 1.0 };
-            let h = stand_h * sprite.height * breath;
-            let aspect = sprite.source.map(|r| r.w / r.h)
-                .unwrap_or_else(|| sprite.texture.width() / sprite.texture.height());
-            let width = h * aspect;
-            let anchor_x = if f.facing_right { sprite.anchor.x } else { 1.0 - sprite.anchor.x };
-            let x = feet.x - width * anchor_x;
-            let y = feet.y - h * sprite.anchor.y;
-            draw_texture_ex(
-                sprite.texture,
-                v.sx(x),
-                v.sy(y),
-                hit_tint,
-                DrawTextureParams {
-                    source: sprite.source,
-                    dest_size: Some(vec2(width * v.scale, h * v.scale)),
-                    flip_x: !f.facing_right,
-                    ..Default::default()
-                },
-            );
+    let mut drew = false;
+    if let Some(sprites) = fd.sprites {
+        for layer in fd.layers {
+            drew |= draw_layer(v, sprites, layer, stand_h, fd.flash);
         }
-        None => {
-            // Box body: identity colour, facing tick.
-            let push = f.pushbox();
-            let bw = sub_to_px(push.right - push.left) * WS;
-            let bh = sub_to_px(push.top - push.bottom) * WS;
-            let color = argb(d.color);
-            v.rect(feet.x - bw / 2.0, feet.y - bh, bw, bh, Color { a: 0.9, ..color } );
-            v.rect(feet.x + facing * (bw / 2.0 - 6.0) - 3.0, feet.y - bh + 14.0, 6.0, 12.0, LINEN);
-        }
+    }
+    if !drew {
+        // Box body: identity colour, facing tick.
+        let push = f.pushbox();
+        let bw = sub_to_px(push.right - push.left) * WS;
+        let bh = sub_to_px(push.top - push.bottom) * WS;
+        let color = argb(d.color);
+        v.rect(feet.x - bw / 2.0, feet.y - bh, bw, bh, Color { a: 0.9, ..color });
+        v.rect(feet.x + facing * (bw / 2.0 - 6.0) - 3.0, feet.y - bh + 14.0, 6.0, 12.0, LINEN);
     }
 
     if fd.show_boxes {
@@ -318,8 +380,54 @@ pub fn draw_fighter(v: &View, w: &World, i: usize, fd: &FighterDraw) {
             v.text("INVULN", tl.x, tl.y - 4.0, 14.0, GOLD);
         }
     }
+}
 
-    // State label above the head (training) is drawn by the HUD.
+/// One picture at one place: scaled about the feet, rotated about the feet,
+/// flashed and tinted.
+fn draw_layer(v: &View, sprites: &SpriteSet, l: &Layer, stand_h: f32, flash: &Flash) -> bool {
+    let Some(frame) = sprites.frame(l.cell) else { return false };
+    let feet = v.world(l.x, l.y);
+    let base_h = stand_h * frame.height;
+    let aspect = frame
+        .source
+        .map(|r| r.w / r.h)
+        .unwrap_or_else(|| frame.texture.width() / frame.texture.height());
+    let h = base_h * l.sy;
+    let width = base_h * aspect * l.sx;
+    let anchor_x = if l.facing_right { frame.anchor.x } else { 1.0 - frame.anchor.x };
+    let x = feet.x - width * anchor_x;
+    let y = feet.y - h * frame.anchor.y;
+    let rotation = if l.facing_right { l.rot } else { -l.rot };
+    let bound = l.flash > 0.0 && flash.bind(l.flash, l.flash_color);
+    let color = if l.flash > 0.0 && !bound {
+        // No shader: lean the tint toward the flash colour instead.
+        Color::new(
+            l.tint.r + (l.flash_color.r - l.tint.r) * l.flash * 0.5,
+            l.tint.g + (l.flash_color.g - l.tint.g) * l.flash * 0.5,
+            l.tint.b + (l.flash_color.b - l.tint.b) * l.flash * 0.5,
+            l.tint.a * l.alpha,
+        )
+    } else {
+        Color { a: l.tint.a * l.alpha, ..l.tint }
+    };
+    draw_texture_ex(
+        frame.texture,
+        v.sx(x),
+        v.sy(y),
+        color,
+        DrawTextureParams {
+            source: frame.source,
+            dest_size: Some(vec2(width * v.scale, h * v.scale)),
+            flip_x: !l.facing_right,
+            rotation,
+            pivot: Some(vec2(v.sx(feet.x), v.sy(feet.y))),
+            ..Default::default()
+        },
+    );
+    if bound {
+        gl_use_default_material();
+    }
+    true
 }
 
 pub fn draw_projectiles(v: &View, w: &World, show_boxes: bool, frame: u32) {
