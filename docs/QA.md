@@ -85,8 +85,15 @@ These are evidence requirements, not an assertion that the full game has passed 
 | D3 | Natural five-hit routes permitted | `kogan_link_into_full_rekka_is_a_natural_five_hit_route`: jab link → full rekka, 170 damage, knockdown. The old automatic rejection by hit count is superseded; balance still needs play. |
 | ART4 | Animation contact/continuity | Client `sprites.rs` phase tests; `--polish-preview --capture` produces movement/rekka frames and state trace. Inspect both bodies in motion, foot anchoring, mirrored framing, startup/contact/recovery and hitstop. Existing pose coverage is not complete multi-frame animation. |
 | PLAY1 | Feel and competitive aspirations | Evan's stick play plus repeated versus sessions: input reliability, strict links, safe hops, full-jump tax, pressure/defense, whiff readability and animation quality. Record hardware and actual observations. Unperformed play stays pending. |
+| LAUNCH1 | Launched bodies ride the arc | `combat.rs::a_launched_body_rides_the_arc_into_the_hard_knockdown` (both bodies: never actionable before `Knockdown`, combo holds), `a_juggled_body_whose_stun_ended_in_the_air_lands_like_a_jump`. Uppercut on hit is a knockdown, not a race. |
+| CORNER1 | Corner pushback transfers | `combat.rs::cornered_pushback_moves_the_attacker_but_shots_do_not`; universal table row `pushback` in `FRAME-DATA.md`. |
+| MOTION1 | Every state moves | Client `anim.rs` tests: every move of both kits and every non-attack state yields a finite, bounded layer; launched bodies tumble and land flat; afterimages only trail a moving body and hold through hitstop; a changed picture crossfades two frames; the win pose only replaces a body at rest. Inspect `--polish-preview --capture` for both bodies. |
+| FX1 | Impact reads without the camera | `fx.rs`: sparks, dust, rings and flashes spawn from `World::events` and state transitions, live in simulation frames, hold through hitstop. Reaction scene test `preview.rs::reaction_review_launches_grabs_and_lands_the_super`. No camera shake, zoom or slowdown. |
+| FX2 | Frozen effects and training resets | `fx.rs::tests::frozen_cast_and_landing_spawn_once` reproduces a freeze on a cast/landing frame; one release makes one effect. `roman_cancel_on_an_unchanged_world_frame_still_spawns_once` covers RC without advancing `World::frame`. F3/F4/F5 and successful F11 playback clear presentation history immediately, including while paused; inspect reset/frame-step in training. |
 
 Animation atlas provenance: `crates/client/assets/animation/PROMPTS.md` and vault `art/fight-ready/animation/`. Generated sheets are keyed once in the client; original plates remain unsliced. Pass evidence: [[Aeon/notes/2026-09-05-polish-pass]].
+
+Latest independent review: crate `docs/QA-MOTION-2026-09-05.md` and vault [[Aeon/notes/2026-09-05-motion-qa]].
 
 ## Scripted trials
 

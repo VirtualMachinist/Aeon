@@ -25,6 +25,12 @@ Feel-targets these numbers must not violate:
 - No move damage, startup, active, recovery, cancel windows or gauge costs were retuned. The tested natural Kogan jab → jab xx full rekka is **five hits / 170 damage / knockdown**.
 - Airtime tables now follow the simulation's gravity-before-position integration. This corrects the documentation by two frames; it does not retune the arcs.
 
+## September 5 motion pass
+
+- A launched body's hitstun rides the arc and ends on the floor, in the knockdown (before: it expired mid-air and the defender landed free). A juggled body whose stun ended in the air lands like a full jump (2f).
+- Pushback a cornered defender cannot absorb moves the attacker instead; shots excepted. Recorded in the universal table below.
+- No move numbers changed.
+
 ## September 2 implementation (changes from the August 13 prototype)
 
 | Verb | Decision |
@@ -61,6 +67,7 @@ _Generated from `crates/sim/src/chars` by `tests/frame_data_doc.rs`. Do not edit
 | motion buffer | 12f for 236/214/623; 16f for 63214; charge 45f |
 | prejump / landing | 4f prejump; full jump 2f landing, hop 0f; move-specific landing recovery still applies |
 | backdash | 14f, punishable |
+| pushback | one-shot on contact; what a cornered defender cannot absorb moves the attacker instead (shots excepted) |
 | normal throw (P+K) | tech window 7f after the grab connects; tech = both pushed apart, 16f each |
 | command grab (63214+FL) | untechable; 4f hold then the throw resolves; whiff recovery is the move's own |
 | hard knockdown | 32f down + 24f getup; downed body is strike-invulnerable (no OTG) |

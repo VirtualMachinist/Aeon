@@ -5,7 +5,7 @@
 
 mod common;
 
-use aeon_sim::fighter::Action;
+use aeon_sim::fighter::{Action, LANDING_RECOVERY};
 use aeon_sim::geom::px;
 use aeon_sim::input::{Btn, Chord, InputFrame, CHARGE_FRAMES};
 use aeon_sim::moves::{MoveId, ShotBehavior, ThrowKind};
@@ -1429,4 +1429,86 @@ fn dummy_block_all_reads_hit_level_from_move_data() {
     hold(&mut w, 28, idle());
     drain_hitstop(&mut w);
     assert_eq!(w.fighters[1].health, hp, "dummy stand-blocks the overhead");
+}
+
+#[test]
+fn cornered_pushback_moves_the_attacker_but_shots_do_not() {
+    use aeon_sim::STAGE_W;
+    // Midscreen: a jab shoves only the defender.
+    let mut w = close_kogan();
+    let atk_x = w.fighters[0].pos.x;
+    tap(&mut w, press(Btn::P));
+    run_until(&mut w, 10, idle(), idle(), |w| has_event(w, EventKind::Hit)).unwrap();
+    assert_eq!(w.fighters[0].pos.x, atk_x, "midscreen attacker holds ground");
+
+    // Corner: the wall eats the shove, so the attacker takes it.
+    let mut w = close_kogan();
+    let half = w.fighters[1].data().push_w / 2;
+    w.fighters[1].pos.x = STAGE_W - half;
+    w.fighters[0].pos.x = STAGE_W - half - px(34);
+    let atk_x = w.fighters[0].pos.x;
+    let push = w.fighters[0].data().move_def(MoveId::StP).unwrap().pushback_hit;
+    tap(&mut w, press(Btn::P));
+    run_until(&mut w, 10, idle(), idle(), |w| has_event(w, EventKind::Hit)).unwrap();
+    assert_eq!(w.fighters[1].pos.x, STAGE_W - half, "defender stays on the wall");
+    assert_eq!(w.fighters[0].pos.x, atk_x - push, "attacker absorbs the lost pushback");
+
+    // A revolver round into the corner does not move the shooter.
+    let mut w = close_kogan();
+    w.fighters[1].pos.x = STAGE_W - half;
+    w.fighters[0].pos.x = STAGE_W - half - px(200);
+    motion(&mut w, &[2, 1, 4], Btn::S);
+    assert!(attacking(&w, 0, MoveId::ShotA));
+    let atk_x = w.fighters[0].pos.x;
+    run_until(&mut w, 90, idle(), idle(), |w| has_event(w, EventKind::Hit)).unwrap();
+    assert_eq!(w.fighters[0].pos.x, atk_x, "shots do not shove their owner");
+}
+
+#[test]
+fn a_launched_body_rides_the_arc_into_the_hard_knockdown() {
+    for id in [CharacterId::Kogan, CharacterId::Raya] {
+        let mut w = close(id, id);
+        motion(&mut w, &[6, 2, 3], Btn::S);
+        run_until(&mut w, 20, dir(3), idle(), |w| has_event(w, EventKind::Knockdown))
+            .expect("uppercut lands");
+        // The defender is never free again before the floor takes them.
+        let mut frames = 0;
+        loop {
+            w.tick(idle(), idle());
+            frames += 1;
+            assert!(frames < 200, "{id:?} never knocked down");
+            let d = &w.fighters[1];
+            assert!(
+                !d.action.actionable() && !matches!(d.action, Action::Landing { .. }),
+                "{id:?} defender freed in {} after {frames}f",
+                d.action.name()
+            );
+            if matches!(d.action, Action::Knockdown { .. }) {
+                break;
+            }
+            assert!(w.fighters[1].combo >= 1, "{id:?} combo counter holds through the arc");
+        }
+    }
+}
+
+#[test]
+fn a_juggled_body_whose_stun_ended_in_the_air_lands_like_a_jump() {
+    let mut w = close_kogan();
+    w.fighters[1].pos.y = px(40);
+    w.fighters[1].airborne = true;
+    w.fighters[1].apply_hit(3, false, 0, 0, false);
+    let mut landed = None;
+    for f in 0..60 {
+        w.tick(idle(), idle());
+        if !w.fighters[1].airborne {
+            landed = Some(f);
+            break;
+        }
+        assert!(matches!(w.fighters[1].action, Action::Hit { .. }));
+    }
+    landed.expect("came down");
+    assert!(matches!(
+        w.fighters[1].action,
+        Action::Landing { frame: 0, total } if total == u16::from(LANDING_RECOVERY)
+    ));
 }

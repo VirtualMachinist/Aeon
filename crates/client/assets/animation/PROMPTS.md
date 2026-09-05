@@ -23,3 +23,33 @@ Output: `kogan-thrust-v2-green.png`, built-in image generation, 1536×1024. The 
 ## Kogan thrust-margin correction
 
 Edit this exact Kogan 4x4 green-background sprite atlas. Keep the same art, identity, all four rows and 16 equal cells, and pure flat #00FF00 background. Fix ONLY the bottom-row thrust poses in columns TWO and THREE: their saber tips currently cross the right cell boundary into the neighboring frame. Redraw those two thrust poses so each FULL saber blade ends well inside its own cell, with at least 8% of cell width of clear green margin to the right. Keep the feet, hips, and head where they are; slightly shorten the perspective foreshortened blade and bend the elbow as needed while preserving a convincing forward thrust. Absolutely no sprite or effect may cross a grid boundary. The bottom row second saber must stop before 48% of total canvas width; third saber must stop before 73% of total canvas width. Preserve upper three rows unchanged. No grid lines or text. All backgrounds pure green.
+
+## Motion pass (2026-09-05) — cells the next generation pass should produce
+
+The client now sequences every state through anticipation, contact and recovery (`crates/client/src/anim.rs`), crossfades between pictures, and draws afterimages, hit sparks, dust and flashes. It selects pictures per simulation frame through `SpriteSet::cell_for`. New cells drop into that selector without touching the sim. Generate in this order; each is a 4×4 green atlas in the format of the first two atlases above, same camera, same identity references, feet baseline at 94% of the cell, no effects hiding the body.
+
+### Kogan (saber: Ukyo's stillness, Baiken's sudden weight)
+
+| Priority | Row family | Four cells, left to right |
+|---|---|---|
+| 1 | Reactions | stand hit (head snaps back, saber low) · crouch hit · launched (back arched, cape flares upward) · falling to floor (nearly horizontal, feet toward camera-right) |
+| 1 | Sunward cut 623 | coil with saber at 6 o'clock · rising cut 6→3 with the body leaving the ground · apex, saber at 12, cape a comet tail · descent, saber lowered |
+| 2 | Jump family | prejump crouch · rise (knees tucked, cape trailing down) · apex (long line of the saber) · fall (feet reaching) |
+| 2 | Lights and kicks | 5P jab (off hand) · 5K shin kick · 2P · 2K low kick |
+| 3 | Cape-snare 63214 | arms open · arms close on the body · hold, opponent inside the cape · release/step back |
+| 3 | Revolver and wave | draw (revolver rises, saber lowers) · fire (muzzle at chest height) · recoil · reholster; wave: saber raised overhead · overhead cut releasing the wave · follow-through · return |
+| 4 | Guard, feint, win | disc bloom kneel · disc held · feint (half-cut, weight settling back) · win (saber planted, hood raised) |
+
+### Raya (composed; the force is in the gesture, never the grimace)
+
+| Priority | Row family | Four cells, left to right |
+|---|---|---|
+| 1 | Reactions | stand hit (turns from the blow, hand to brow) · crouch hit · launched (linen and cloak rising above her) · falling (horizontal, arms open) |
+| 1 | Ascension 623 | gather at the sternum · rise with one palm lifting a crystal column · apex, column fully written · descent, hands folding |
+| 2 | Footsies | 5P palm · 2K low sweep of the sandal · 5S written arc · 2HS crystal rising from the floor |
+| 2 | Jump family | prejump · rise (cloak trailing) · apex · fall |
+| 3 | The rite 63214 | chains written from the wrist · chains bind the body · the rite spoken (head bowed) · release |
+| 3 | Glyph and crystal | glyph: palm opening · glyph placed · hold · withdraw; crystal: underhand toss · release · hands settle · rest |
+| 4 | Consecrate, feint, win | kneel with crystal at the brow · fill (light grows) · feint (gesture stopped mid-air) · win (crystal held out, the offering) |
+
+Row layout convention for the selector: row 0 = the four phases used for a single move, in temporal order; a family of four different moves uses one row per move. Foot anchors are measured per cell as with the first atlases; record them beside the asset.

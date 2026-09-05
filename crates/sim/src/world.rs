@@ -816,6 +816,26 @@ impl World {
             self.push_event(kind, atk, hit.move_id, dmg);
             self.check_ko(atk, def);
         }
+        if hit.move_id.is_some() {
+            self.transfer_corner_push(atk, def);
+        }
+    }
+
+    /// Pushback a cornered defender cannot absorb moves the attacker instead,
+    /// so corner pressure still costs spacing (Super Turbo law). Shots do not
+    /// shove their owner: only a body-to-body strike transfers.
+    fn transfer_corner_push(&mut self, atk: usize, def: usize) {
+        let def_half = self.fighters[def].data().push_w / 2;
+        let x = self.fighters[def].pos.x;
+        let clamped = x.clamp(def_half, STAGE_W - def_half);
+        let lost = x - clamped;
+        if lost == 0 {
+            return;
+        }
+        self.fighters[def].pos.x = clamped;
+        let atk_half = self.fighters[atk].data().push_w / 2;
+        let a = &mut self.fighters[atk];
+        a.pos.x = (a.pos.x - lost).clamp(atk_half, STAGE_W - atk_half);
     }
 
     fn check_ko(&mut self, atk: usize, def: usize) {

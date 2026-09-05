@@ -651,13 +651,13 @@ impl Fighter {
 
     fn step_hit(&mut self, stun: u8, knockdown: bool) {
         if stun == 0 {
-            if knockdown && !self.airborne {
+            if self.airborne {
+                // A launched body rides the arc: air hitstun ends on the
+                // floor, never in the air. There is no air recovery, so the
+                // uppercut's knockdown is a promise, not a race.
+                self.action = Action::Hit { stun: 0, knockdown };
+            } else if knockdown {
                 self.action = Action::Knockdown { frame: 0 };
-            } else if self.airborne {
-                self.action = Action::Jump {
-                    air_ok: false,
-                    hop: false,
-                };
             } else {
                 self.resume_control();
             }
@@ -1057,6 +1057,14 @@ impl Fighter {
                 match self.action {
                     Action::Hit { knockdown: true, .. } => {
                         self.action = Action::Knockdown { frame: 0 };
+                    }
+                    // A juggled body whose stun ran out in the air lands
+                    // like a full jump does.
+                    Action::Hit { stun: 0, .. } => {
+                        self.action = Action::Landing {
+                            frame: 0,
+                            total: LANDING_RECOVERY as u16,
+                        };
                     }
                     // Touching ground must not erase remaining air hitstun.
                     Action::Hit { .. } => {}

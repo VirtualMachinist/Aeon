@@ -1,6 +1,6 @@
 //! Reproducible movement and contact review through real simulation inputs.
 //! --polish-preview plays once; --capture also writes 30 fps PNGs and a trace.
-use super::{draw_world, Assets};
+use super::{Assets, Presentation};
 use crate::render::{draw_hud, HudOpts, View, INK, LINEN, VW};
 use crate::timing::FixedClock;
 use aeon_sim::{px, Btn, CharacterId, InputFrame, MoveId, World};
@@ -12,6 +12,8 @@ enum Kind {
     Movement,
     Rekka,
     Whiff,
+    /// Uppercut launch and knockdown, command grab, super: the reactions.
+    Reaction,
 }
 
 impl Kind {
@@ -20,6 +22,14 @@ impl Kind {
             Self::Movement => "walk · run · hop · full jump",
             Self::Rekka => "rekka contact and recovery",
             Self::Whiff => "heavy whiff · approach · punish",
+            Self::Reaction => "uppercut · command grab · super",
+        }
+    }
+
+    fn len(self) -> u32 {
+        match self {
+            Self::Reaction => 330,
+            _ => 240,
         }
     }
 }
@@ -47,6 +57,11 @@ impl Scene {
             world.fighters[0].pos.x = px(300);
             world.fighters[1].pos.x = px(326) + hit.x + hit.w;
         }
+        if kind == Kind::Reaction {
+            world.fighters[0].pos.x = px(300);
+            world.fighters[1].pos.x = px(336);
+            world.fighters[0].meter = 1000;
+        }
         Self {
             world,
             frame: 0,
@@ -57,6 +72,84 @@ impl Scene {
     }
 
     fn tick(&mut self) {
+        if self.kind == Kind::Reaction {
+            let f0 = &self.world.fighters[0];
+            let f1 = &self.world.fighters[1];
+            let both_free =
+                f0.action.actionable() && f1.action.actionable() && self.world.hitstop == 0;
+            let dist = f0.last_distance;
+            let input = match self.phase {
+                // 623+HS on a standing body: launch, fall, floor.
+                0 if self.frame >= 12 => {
+                    self.phase = 1;
+                    InputFrame::dir(6)
+                }
+                1 => {
+                    self.phase = 2;
+                    InputFrame::dir(2)
+                }
+                2 => {
+                    self.phase = 3;
+                    InputFrame::dir_press(3, Btn::HS)
+                }
+                // Walk in and take the command grab.
+                3 if self.frame > 40 && both_free => {
+                    if dist <= px(40) {
+                        self.phase = 4;
+                    }
+                    InputFrame::dir(6)
+                }
+                4 => {
+                    self.phase = 5;
+                    InputFrame::dir(3)
+                }
+                5 => {
+                    self.phase = 6;
+                    InputFrame::dir(2)
+                }
+                6 => {
+                    self.phase = 7;
+                    InputFrame::dir(1)
+                }
+                7 => {
+                    self.phase = 8;
+                    InputFrame::dir_press(4, Btn::FL)
+                }
+                // Close again and spend the bar.
+                8 if self.frame > 100 && both_free => {
+                    if dist <= px(90) {
+                        self.phase = 9;
+                        InputFrame::dir(2)
+                    } else {
+                        InputFrame::dir(6)
+                    }
+                }
+                9 => {
+                    self.phase = 10;
+                    InputFrame::dir(3)
+                }
+                10 => {
+                    self.phase = 11;
+                    InputFrame::dir(6)
+                }
+                11 => {
+                    self.phase = 12;
+                    InputFrame::dir(2)
+                }
+                12 => {
+                    self.phase = 13;
+                    InputFrame::dir(3)
+                }
+                13 => {
+                    self.phase = 14;
+                    InputFrame::dir_press(6, Btn::S)
+                }
+                _ => InputFrame::default(),
+            };
+            self.world.tick(input, InputFrame::default());
+            self.frame += 1;
+            return;
+        }
         if self.kind == Kind::Whiff {
             let input = if self.frame == 24 {
                 InputFrame::press(Btn::HS)
@@ -147,13 +240,17 @@ pub async fn run(assets: &Assets) {
         (CharacterId::Raya, Kind::Movement),
         (CharacterId::Raya, Kind::Rekka),
         (CharacterId::Raya, Kind::Whiff),
+        (CharacterId::Kogan, Kind::Reaction),
+        (CharacterId::Raya, Kind::Reaction),
     ]
     .into_iter()
     .enumerate()
     {
         let mut scene = Scene::new(body, kind);
+        let mut pres = Presentation::default();
         clock.reset();
-        while scene.frame < 240 {
+        let len = kind.len();
+        while scene.frame < len {
             if is_key_pressed(KeyCode::Escape) || is_quit_requested() {
                 return;
             }
@@ -162,14 +259,15 @@ pub async fn run(assets: &Assets) {
             } else {
                 clock.advance(get_frame_time() as f64)
             };
-            for _ in 0..ticks.min((240 - scene.frame) as usize) {
+            for _ in 0..ticks.min((len - scene.frame) as usize) {
                 scene.tick();
+                pres.after_tick(assets, &scene.world);
             }
             let w = &scene.world;
             let mut view = View::fit();
             view.follow(w);
             assets.stage.draw(&view, w.frame);
-            draw_world(&view, assets, w, false, w.frame);
+            pres.draw(&view, assets, w, false);
             draw_hud(
                 &view,
                 w,
@@ -251,6 +349,32 @@ mod tests {
                     assert!(punished, "{body:?} whiff punish");
                 }
             }
+        }
+    }
+
+    #[test]
+    fn reaction_review_launches_grabs_and_lands_the_super() {
+        for body in [CharacterId::Kogan, CharacterId::Raya] {
+            let mut scene = Scene::new(body, Kind::Reaction);
+            let mut knockdowns = 0;
+            let mut throws = 0;
+            let mut super_hit = false;
+            for _ in 0..Kind::Reaction.len() {
+                scene.tick();
+                for ev in &scene.world.events {
+                    match ev.kind {
+                        EventKind::Knockdown => {
+                            knockdowns += 1;
+                            super_hit |= ev.move_id == Some(MoveId::Super);
+                        }
+                        EventKind::Throw => throws += 1,
+                        _ => {}
+                    }
+                }
+            }
+            assert!(knockdowns >= 2, "{body:?} uppercut and super knock down");
+            assert_eq!(throws, 1, "{body:?} command grab lands once");
+            assert!(super_hit, "{body:?} super connects");
         }
     }
 }
