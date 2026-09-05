@@ -96,6 +96,39 @@ pub const KOGAN_REACTIONS: [Spec; 12] = [
     ([0, 700, 365, 1086], 220, 311), ([365, 700, 720, 1086], 565, 311),
     ([720, 700, 1075, 1086], 901, 311), ([1075, 700, 1448, 1086], 1228, 319),
 ];
+// Airborne fist, boot and knee share a chamber and gathered withdrawal.
+// Anatomical scale and projected roots remain independent of tucked silhouette size.
+pub const KOGAN_AIR_LIGHTS: [Spec; 6] = [
+    ([0, 0, 512, 510], 330, 430), ([512, 0, 1024, 510], 805, 430),
+    ([0, 510, 535, 960], 295, 430), ([535, 510, 1024, 960], 800, 430),
+    ([0, 960, 512, 1536], 300, 430), ([512, 960, 1024, 1536], 800, 430),
+];
+// Corrected lower fist/boot/knee paths; the knee carries the hips into its shorter reach.
+pub const KOGAN_AIR_LIGHTS_CONTACT: [Spec; 3] = [
+    ([512, 0, 1024, 510], 805, 430),
+    ([0, 510, 535, 960], 295, 430),
+    ([535, 510, 1024, 960], 760, 430),
+];
+pub const KOGAN_AIR_LIGHTS_ROOT_Y: [Option<u16>; 6] = [
+    Some(535), Some(555), Some(980), Some(980), Some(1420), Some(1460),
+];
+
+pub fn air_lights_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan || !f.airborne { return None; }
+    if matches!(f.action, Action::Jump { air_ok: false, .. })
+        && matches!(f.last_move, Some(MoveId::JP | MoveId::JK | MoveId::JFL)) {
+        return Some(Cell::AirLights(5));
+    }
+    if let Action::Attack { move_id, frame, .. } = f.action {
+        let contact = match move_id { MoveId::JP => 1, MoveId::JK => 2, MoveId::JFL => 3, _ => return None };
+        let mv = f.data().move_def(move_id)?;
+        return Some(Cell::AirLights(if frame < mv.first_active() { 0 }
+            else if mv.is_active(frame) { contact }
+            else if frame < mv.total_frames().saturating_sub(2) { 4 } else { 5 }));
+    }
+    None
+}
+
 // Short, long and steep downward cuts share a gather and two withdrawal drawings.
 // Measured gaps and shared anatomy preserve full blades and consistent scale.
 pub const KOGAN_AIR_SABER: [Spec; 6] = [
@@ -504,6 +537,8 @@ mod tests {
             ("kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL[..]),
             ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
+            ("kogan-air-lights-v1-green.png", (1024, 1536), &KOGAN_AIR_LIGHTS[..]),
+            ("kogan-air-lights-v4-green.png", (1024, 1536), &KOGAN_AIR_LIGHTS_CONTACT[..]),
             ("kogan-air-saber-v2-green.png", (1024, 1536), &KOGAN_AIR_SABER[..]),
             ("kogan-disc-v2-green.png", (1536, 1024), &KOGAN_DISC[..]),
             ("kogan-standing-poke-v1-green.png", (1536, 1024), &KOGAN_POKE[..]),
@@ -565,6 +600,31 @@ mod tests {
         raya.airborne = true;
         raya.action = Action::Attack { move_id: MoveId::JS, frame: 6, connected: Connect::None };
         assert_eq!(air_saber_cell(&raya), None);
+    }
+
+    #[test]
+    fn airborne_light_return_survives_attack_expiry_but_yields_to_every_new_state() {
+        for right in [false, true] {
+            for move_id in [MoveId::JP, MoveId::JK, MoveId::JFL] {
+                let mut f = Fighter::spawn(CharacterId::Kogan, px(200), right);
+                f.airborne = true;
+                f.last_move = Some(move_id);
+                f.action = Action::Jump { air_ok: false, hop: false };
+                assert_eq!(air_lights_cell(&f), Some(Cell::AirLights(5)));
+                for action in [Action::Jump { air_ok: true, hop: false }, Action::Stand,
+                    Action::Landing { frame: 0, total: 2 }, Action::Hit { stun: 8, knockdown: false }] {
+                    f.action = action;
+                    assert_eq!(air_lights_cell(&f), None);
+                }
+                f.action = Action::Jump { air_ok: false, hop: false };
+                f.airborne = false;
+                assert_eq!(air_lights_cell(&f), None);
+            }
+        }
+        let mut raya = Fighter::spawn(CharacterId::Raya, px(200), true);
+        raya.airborne = true;
+        raya.action = Action::Attack { move_id: MoveId::JP, frame: 6, connected: Connect::None };
+        assert_eq!(air_lights_cell(&raya), None);
     }
 
     #[test]

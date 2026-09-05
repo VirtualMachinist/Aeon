@@ -179,6 +179,8 @@ pub struct SpriteSet {
     judgment: Option<crate::sequences::Atlas>,
     air_shot: Option<crate::sequences::Atlas>,
     air_saber: Option<crate::sequences::Atlas>,
+    air_lights: Option<crate::sequences::Atlas>,
+    air_lights_contact: Option<crate::sequences::Atlas>,
     air_shot_return: Option<crate::sequences::Atlas>,
     floor: Option<crate::sequences::Atlas>,
     recoil: Option<crate::sequences::Atlas>,
@@ -214,6 +216,7 @@ pub enum Cell {
     Judgment(usize),
     AirShot(usize),
     AirSaber(usize),
+    AirLights(usize),
     Floor(usize),
     Recoil(usize),
     Ground(usize),
@@ -406,6 +409,15 @@ impl SpriteSet {
         let ground = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND).await
         } else { None };
+        let air_lights = if body == CharacterId::Kogan {
+            Atlas::load_with_roots("assets/animation/kogan-air-lights-v1-green.png", (1024, 1536),
+                &KOGAN_AIR_LIGHTS, &KOGAN_AIR_LIGHTS_ROOT_Y).await
+        } else { None };
+        // Keep the reviewed V1 gather/return; only the contact limbs use the corrected atlas.
+        let air_lights_contact = if body == CharacterId::Kogan {
+            Atlas::load_with_roots("assets/animation/kogan-air-lights-v4-green.png", (1024, 1536),
+                &KOGAN_AIR_LIGHTS_CONTACT, &KOGAN_AIR_LIGHTS_ROOT_Y[1..4]).await
+        } else { None };
         let air_saber = if body == CharacterId::Kogan {
             Atlas::load_with_roots("assets/animation/kogan-air-saber-v2-green.png", (1024, 1536),
                 &KOGAN_AIR_SABER, &KOGAN_AIR_SABER_ROOT_Y).await
@@ -428,7 +440,7 @@ impl SpriteSet {
         let recoil = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, floor, recoil, ground, walk, coil, movement, ranged, utility }
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, floor, recoil, ground, walk, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -448,6 +460,8 @@ impl SpriteSet {
             judgment: None,
             air_shot: None,
             air_saber: None,
+            air_lights: None,
+            air_lights_contact: None,
             air_shot_return: None,
             floor: None,
             recoil: None,
@@ -489,6 +503,9 @@ impl SpriteSet {
 
     /// The picture for this fighter on this simulation tick.
     pub fn cell_for(&self, fighter: &Fighter, tick: u32) -> Cell {
+        if self.air_lights.is_some() && self.air_lights_contact.is_some() {
+            if let Some(cell) = crate::sequences::air_lights_cell(fighter) { return cell; }
+        }
         if self.air_saber.is_some() {
             if let Some(cell) = crate::sequences::air_saber_cell(fighter) { return cell; }
         }
@@ -557,6 +574,8 @@ impl SpriteSet {
             Cell::Ranged(cell) => self.ranged.as_ref()?.frame(cell),
             Cell::Utility(cell) => self.utility.as_ref()?.frame(cell),
             Cell::AirSaber(cell) => self.air_saber.as_ref()?.frame(cell),
+            Cell::AirLights(cell @ 1..=3) => self.air_lights_contact.as_ref()?.frame(cell - 1),
+            Cell::AirLights(cell) => self.air_lights.as_ref()?.frame(cell),
             Cell::AirShot(3) => self.air_shot_return.as_ref()?.frame(0),
             Cell::AirShot(cell) => self.air_shot.as_ref()?.frame(cell),
             Cell::Judgment(cell) => self.judgment.as_ref()?.frame(cell),
