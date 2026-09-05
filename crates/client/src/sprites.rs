@@ -1,7 +1,5 @@
-//! Keyed poses. One readable silhouette per state, held for the state's
-//! duration; the sim drives smears and afterimages. Files live in
-//! `assets/<body>/<pose>.png`, edit-chained from the identity plates.
-//! Missing poses fall back along a chain and finally to the box body.
+//! Authored animation cells selected by simulation phase. Existing keyed
+//! poses cover the rest of each kit and provide a complete fallback.
 
 use std::collections::HashMap;
 
@@ -145,7 +143,9 @@ impl Pose {
     fn fallback(self) -> Option<Pose> {
         Some(match self {
             Pose::Idle => return None,
-            Pose::Walk | Pose::Run | Pose::Block | Pose::Feint | Pose::Win | Pose::Getup => Pose::Idle,
+            Pose::Walk | Pose::Run | Pose::Block | Pose::Feint | Pose::Win | Pose::Getup => {
+                Pose::Idle
+            }
             Pose::CrouchBlock | Pose::CrLight | Pose::CrHeavy | Pose::Sweep => Pose::Crouch,
             Pose::Hop => Pose::Jump,
             Pose::Jump | Pose::AirLight | Pose::AirSaber | Pose::AirShot => Pose::Idle,
@@ -168,6 +168,71 @@ impl Pose {
 pub struct SpriteSet {
     textures: HashMap<Pose, Texture2D>,
     body: CharacterId,
+    atlas: Option<Texture2D>,
+    thrust: Option<Texture2D>,
+}
+
+/// A source rectangle and its foot anchor. Geometry stays in the sim.
+pub struct SpriteFrame<'a> {
+    pub texture: &'a Texture2D,
+    pub source: Option<Rect>,
+    pub anchor: Vec2,
+    pub height: f32,
+}
+
+// Foot anchors measured from the generated sheets, including their uneven
+// row baselines. A single hardcoded sheet baseline would make poses jump.
+const KOGAN_ANCHORS: [(f32, f32); 16] = [
+    (0.509, 0.976),
+    (0.531, 0.973),
+    (0.405, 0.970),
+    (0.360, 0.970),
+    (0.549, 0.928),
+    (0.458, 0.928),
+    (0.399, 0.928),
+    (0.345, 0.928),
+    (0.496, 0.928),
+    (0.421, 0.925),
+    (0.340, 0.928),
+    (0.351, 0.928),
+    (0.487, 0.869),
+    (0.409, 0.869),
+    (0.331, 0.873),
+    (0.444, 0.869),
+];
+const RAYA_ANCHORS: [(f32, f32); 16] = [
+    (0.439, 0.998),
+    (0.389, 0.995),
+    (0.370, 0.989),
+    (0.372, 0.989),
+    (0.412, 0.998),
+    (0.335, 0.995),
+    (0.368, 0.998),
+    (0.354, 0.998),
+    (0.410, 0.998),
+    (0.359, 0.998),
+    (0.362, 0.998),
+    (0.337, 0.998),
+    (0.389, 0.992),
+    (0.351, 0.995),
+    (0.364, 1.000),
+    (0.356, 1.000),
+];
+
+/// Extract the technical green background once at load, preserving cyan
+/// writing and Raya's linen. Source sheets and provenance remain intact.
+fn key_green(image: &mut Image) {
+    for rgba in image.bytes.chunks_exact_mut(4) {
+        let other = rgba[0].max(rgba[2]);
+        let dominance = i16::from(rgba[1]) - i16::from(other);
+        if dominance > 90 && rgba[1] > 140 {
+            rgba[3] = 0;
+        } else if dominance > 35 && rgba[1] > 110 {
+            let coverage = 1.0 - (dominance - 35) as f32 / 55.0;
+            rgba[3] = (rgba[3] as f32 * coverage.clamp(0.0, 1.0)) as u8;
+            rgba[1] = other;
+        }
+    }
 }
 
 impl SpriteSet {
@@ -185,7 +250,42 @@ impl SpriteSet {
             }
         }
         eprintln!("[aeon] {} sprites: {} poses", body.name(), textures.len());
-        Self { textures, body }
+        let atlas = match load_image(&format!("assets/animation/{dir}-v1-green.png")).await {
+            Ok(mut image) => {
+                key_green(&mut image);
+                let texture = Texture2D::from_image(&image);
+                texture.set_filter(FilterMode::Linear);
+                eprintln!("[aeon] {} animation: 16 cells", body.name());
+                Some(texture)
+            }
+            Err(e) => {
+                eprintln!("[aeon] {} animation fallback: {e}", body.name());
+                None
+            }
+        };
+        let thrust = if body == CharacterId::Kogan {
+            match load_image("assets/animation/kogan-thrust-v2-green.png").await {
+                Ok(mut image) => {
+                    key_green(&mut image);
+                    let texture = Texture2D::from_image(&image);
+                    texture.set_filter(FilterMode::Linear);
+                    eprintln!("[aeon] KOGAN thrust animation: 4 wide cells");
+                    Some(texture)
+                }
+                Err(e) => {
+                    eprintln!("[aeon] KOGAN thrust fallback: {e}");
+                    None
+                }
+            }
+        } else {
+            None
+        };
+        Self {
+            textures,
+            body,
+            atlas,
+            thrust,
+        }
     }
 
     pub fn count(&self) -> usize {
@@ -206,10 +306,168 @@ impl SpriteSet {
         }
         None
     }
+
+    pub fn sample(&self, fighter: &Fighter, tick: u32) -> Option<SpriteFrame<'_>> {
+        if let (Some(texture), Some(cell)) = (&self.thrust, animation_cell(fighter, tick)) {
+            if matches!(
+                fighter.action,
+                Action::Attack {
+                    move_id: MoveId::Rekka3,
+                    ..
+                }
+            ) {
+                let cell = cell % 4;
+                // The lower thrust extends past the nominal half-width.
+                // Its dedicated source region retains the complete saber.
+                let regions = [
+                    (0.0, 0.0, 0.5, 0.5),
+                    (0.5, 0.0, 0.5, 0.5),
+                    (0.0, 0.5, 845.0 / 1536.0, 0.5),
+                    (845.0 / 1536.0, 0.5, 691.0 / 1536.0, 0.5),
+                ];
+                let anchors = [
+                    (0.3809, 0.8359),
+                    (0.3262, 0.8340),
+                    (0.3385, 0.7754),
+                    (0.2829, 0.7910),
+                ];
+                let (x, y, w, h) = regions[cell];
+                return Some(SpriteFrame {
+                    texture,
+                    source: Some(Rect::new(
+                        x * texture.width(),
+                        y * texture.height(),
+                        w * texture.width(),
+                        h * texture.height(),
+                    )),
+                    anchor: vec2(anchors[cell].0, anchors[cell].1),
+                    height: 1.20 / 0.72,
+                });
+            }
+        }
+        if let (Some(texture), Some(cell)) = (&self.atlas, animation_cell(fighter, tick)) {
+            let side = texture.width() / 4.0;
+            let row_height = texture.height() / 4.0;
+            let (anchors, height) = match self.body {
+                CharacterId::Kogan => (&KOGAN_ANCHORS, 1.20 / 0.87),
+                CharacterId::Raya => (&RAYA_ANCHORS, 1.20 / 0.92),
+            };
+            let (x, y) = anchors[cell];
+            // Fractional grid boundaries and linear filtering can pick up
+            // a neighboring row's feet or blade. Keep a small row gutter,
+            // preserving scale and anchoring the visible sole to the floor.
+            let gutter = 3.0;
+            let source_height = row_height - gutter * 2.0;
+            return Some(SpriteFrame {
+                texture,
+                source: Some(Rect::new(
+                    (cell % 4) as f32 * side,
+                    (cell / 4) as f32 * row_height + gutter,
+                    side,
+                    source_height,
+                )),
+                anchor: vec2(x, ((y * row_height - gutter) / source_height).min(1.0)),
+                height: height * source_height / row_height,
+            });
+        }
+        self.get(phase_pose(fighter)).map(|texture| SpriteFrame {
+            texture,
+            source: None,
+            anchor: vec2(0.5, 0.94),
+            height: 1.55,
+        })
+    }
+}
+
+/// Animation contact coincides with the move's active frames. Hitstop and
+/// pause naturally freeze these samples because the sim frame stays still.
+fn animation_cell(f: &Fighter, tick: u32) -> Option<usize> {
+    match f.action {
+        Action::Walk { forward } => {
+            let cell = (tick / 6 % 4) as usize;
+            Some(if forward { cell } else { 3 - cell })
+        }
+        Action::Attack { move_id, frame, .. } => {
+            let row = match move_id {
+                MoveId::StS | MoveId::Rekka1 => 1,
+                MoveId::ExA if f.id == CharacterId::Kogan => 1,
+                MoveId::Rekka2 => 2,
+                MoveId::Rekka3 => 3,
+                MoveId::StHS | MoveId::StHSClose => {
+                    if f.id == CharacterId::Kogan {
+                        2
+                    } else {
+                        3
+                    }
+                }
+                _ => return None,
+            };
+            let mv = f.data().move_def(move_id)?;
+            if frame < mv.first_active() {
+                return Some(row * 4);
+            }
+            if mv.is_active(frame) {
+                return Some(row * 4 + if frame == mv.first_active() { 1 } else { 2 });
+            }
+            let recovery = frame.saturating_sub(mv.last_active() + 1);
+            if recovery < u16::from(mv.recovery) / 3 {
+                Some(row * 4 + 2)
+            } else {
+                // Raya chant I's last cell is an extended glyph, so its
+                // gathered-hands frame supplies her withdrawal instead.
+                Some(
+                    row * 4
+                        + if f.id == CharacterId::Raya && row == 1 {
+                            0
+                        } else {
+                            3
+                        },
+                )
+            }
+        }
+        _ => None,
+    }
+}
+
+fn phase_pose(f: &Fighter) -> Pose {
+    if let Action::Attack { move_id, frame, .. } = f.action {
+        if let Some(mv) = f.data().move_def(move_id) {
+            let rest = if f.airborne {
+                if f.hop {
+                    Pose::Hop
+                } else {
+                    Pose::Jump
+                }
+            } else if move_id.is_crouching() {
+                Pose::Crouch
+            } else {
+                Pose::Idle
+            };
+            if frame < mv.first_active() / 3 {
+                return rest;
+            }
+        }
+    }
+    if let Action::Getup { frame } = f.action {
+        return if frame < 8 {
+            Pose::Down
+        } else if frame < 18 {
+            Pose::Crouch
+        } else {
+            Pose::Idle
+        };
+    }
+    pose_for(f)
 }
 
 pub fn pose_for(f: &Fighter) -> Pose {
-    let crouch_block = |crouching: bool| if crouching { Pose::CrouchBlock } else { Pose::Block };
+    let crouch_block = |crouching: bool| {
+        if crouching {
+            Pose::CrouchBlock
+        } else {
+            Pose::Block
+        }
+    };
     match &f.action {
         Action::Stand => Pose::Idle,
         Action::Crouch => Pose::Crouch,
@@ -248,12 +506,77 @@ pub fn pose_for(f: &Fighter) -> Pose {
             MoveId::CommandGrab => Pose::Grab,
             MoveId::CommandDash => Pose::Dash,
             MoveId::ShotA | MoveId::ExB | MoveId::Detonate => Pose::ShotA,
-            MoveId::ShotB | MoveId::ExA => Pose::ShotB,
+            MoveId::ShotB => Pose::ShotB,
+            MoveId::ExA => {
+                if f.id == CharacterId::Kogan {
+                    Pose::Rekka1
+                } else {
+                    Pose::ShotB
+                }
+            }
             MoveId::Guard => Pose::Guard,
             MoveId::SpecialOverhead => Pose::SpecialOverhead,
             MoveId::AirShot => Pose::AirShot,
             MoveId::Charge => Pose::Charge,
             MoveId::Super => Pose::Super,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use aeon_sim::px;
+
+    #[test]
+    fn signature_animation_contact_matches_sim_active_frames() {
+        for id in [CharacterId::Kogan, CharacterId::Raya] {
+            for move_id in [
+                MoveId::StS,
+                MoveId::StHS,
+                MoveId::Rekka1,
+                MoveId::Rekka2,
+                MoveId::Rekka3,
+            ] {
+                let mut f = Fighter::spawn(id, px(200), true);
+                f.start_move(move_id);
+                let mv = id.data().move_def(move_id).unwrap();
+                for frame in 0..mv.total_frames() {
+                    f.action = Action::Attack {
+                        move_id,
+                        frame,
+                        connected: aeon_sim::Connect::None,
+                    };
+                    let cell = animation_cell(&f, 0);
+                    if mv.is_active(frame) {
+                        assert!(matches!(cell.map(|n| n % 4), Some(1 | 2)));
+                    } else if frame < mv.first_active() {
+                        assert_eq!(cell.unwrap() % 4, 0);
+                    }
+                    // Render count cannot advance an attack or hitstop pose.
+                    assert_eq!(cell, animation_cell(&f, 999));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn kogan_ex_rekka_uses_saber_pose() {
+        let mut f = Fighter::spawn(CharacterId::Kogan, px(200), true);
+        f.start_move(MoveId::ExA);
+        assert_eq!(pose_for(&f), Pose::Rekka1);
+        assert_eq!(animation_cell(&f, 0), Some(4));
+    }
+
+    #[test]
+    fn green_key_preserves_cyan_and_white() {
+        let mut image = Image {
+            width: 3,
+            height: 1,
+            bytes: vec![0, 230, 0, 255, 70, 230, 255, 255, 245, 245, 240, 255],
+        };
+        key_green(&mut image);
+        assert_eq!(image.bytes[3], 0);
+        assert_eq!(&image.bytes[4..], &[70, 230, 255, 255, 245, 245, 240, 255]);
     }
 }

@@ -1,10 +1,10 @@
-# Aeon — design (as implemented, 2026-09-02)
+# Aeon — design (as implemented, 2026-09-05)
 
 A 1v1 2D fighter whose game is the space between two bodies, and whose soul is the tension when that space collapses. Super Turbo footsies at the base; Samurai Shodown's tax on the heavy buttons; then a measured layer of Guilty Gear (Roman Cancel, Flash/Style), King of Fighters (hop, run) and Fatal Fury (feint).
 
 One sentence: **footsies earns the knockdown; the knockdown opens the pressure web; the uppercut punishes arrogance; RC is how meter refuses the tax once.**
 
-Not an anime fighter. Combos are 2–3 hits. No air dash, no double jump, no same-frame 50/50, no fullscreen fireball war. The vault copy of this law (`Aeon/DESIGN.md`) is canon; this file is the crate's summary of what the code enforces. Numbers: `docs/FRAME-DATA.md`. Grading: `docs/QA.md`.
+Not an anime fighter. Combos are typically 2–3 hits; natural 3–5-hit routes are acceptable. Narrow links are intentional, rewarding execution without making combos necessary to win. No air dash, no double jump, no same-frame 50/50, no fullscreen fireball war. The vault copy of this law (`Aeon/DESIGN.md`) is canon; this file is the crate's summary of what the code enforces. Numbers: `docs/FRAME-DATA.md`. Grading: `docs/QA.md`.
 
 ## The loop
 
@@ -50,6 +50,10 @@ Chord window is 3f. A normal that started inside the window is kara-cancelled in
 
 Walk, backdash (14f, shared, punishable), dash, **run** (66 then hold; a glide in the client, no leg cycle), **hop** (tap up: release within the 4f prejump), jump (hold up), feint. Hop is a lower, shorter, faster arc that shares the jump normals; hop-in normals are High.
 
+Run immediately stops, blocks, crouches, jumps or attacks. Hop landing adds 0f recovery; full-jump landing adds 2f. Move-specific landing taxes remain. Air normals keep horizontal travel and hop identity; touchdown does not erase hitstun. The first free frame accepts its input, without buffering an early normal through recovery.
+
+Blocking does not automatically end the attacker's pressure; gaps, recovery, reversals and baits still decide turns.
+
 ## Rekkas
 
 Every body's signature grammar. Part one engages (safest), part two confirms, part three is the tax (knockdown) or the reset. Follow-ups are legal on hit, block and whiff inside a press window per part; any part is RC-able; stopping after part one is a different frame situation than finishing. Special cancels from normals open on the first active frame and close 2f after the last active frame.
@@ -82,11 +86,11 @@ Throws whiff on airborne, stunned and downed bodies.
 
 ## Damage and knockdown
 
-Scaling 100 / 80 / 60 / 45 then 35. A 5-hit route is a design error. Hard knockdown is 32f down + 24f getup; downed bodies are strike-invulnerable (no OTG). Sweep, command grab, uppercut, rekka 3, crystal blast and super all knock down. Knockdown is the currency; oki is where rounds turn.
+Scaling 100 / 80 / 60 / 45 then 35. Natural five-hit routes are legal; evaluate execution, commitment and payoff. Kogan jab → jab xx full rekka is tested at 170 damage and knockdown. Hard knockdown is 32f down + 24f getup; downed bodies are strike-invulnerable (no OTG). Sweep, command grab, uppercut, rekka 3, crystal blast and super all knock down. Knockdown is the currency; oki is where rounds turn.
 
 ## Sim contract
 
-`aeon-sim` is a pure 60 Hz integer function: `World::step(&mut self, p1: InputFrame, p2: InputFrame)`. 256 subpixels per pixel. No floats in `World`, no clock, no filesystem, no renderer, input or audio crates (`crates/sim/tests/purity.rs`). Facing-relative numpad input, 16f buffer, 12f motion window (16f for 63214), charge 45f. Back = stand block (High/Mid), down-back = crouch block (Low/Mid), airborne cannot block. Advantage = `hitstun − (active − 1) − recovery` on first-active contact. Kogan's aura is a render-only box and never a hurtbox. `state_hash()` exists for replays and a future rollback layer; the client is macroquad and replaceable.
+`aeon-sim` is a pure 60 Hz integer function: `World::tick(&mut self, p1: InputFrame, p2: InputFrame)`. 256 subpixels per pixel. No floats in `World`, no clock, no filesystem, no renderer, input or audio crates (`crates/sim/tests/purity.rs`). Facing-relative numpad input, 16f buffer, 12f motion window (16f for 63214), charge 45f. Back = stand block (High/Mid), down-back = crouch block (Low/Mid), airborne cannot block. Advantage = `hitstun − (active − 1) − recovery` on first-active contact. Kogan's aura is a render-only box and never a hurtbox. `state_hash()` exists for replays and a future rollback layer; the client is macroquad and replaceable.
 
 ## Characters
 

@@ -16,7 +16,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use aeon_sim::fighter::{
-    BACKDASH_FRAMES, COMMAND_GRAB_HOLD, LANDING_RECOVERY, THROW_TECH_FRAMES,
+    BACKDASH_FRAMES, COMMAND_GRAB_HOLD, HOP_LANDING_RECOVERY, LANDING_RECOVERY, THROW_TECH_FRAMES,
 };
 use aeon_sim::input::{CHARGE_FRAMES, CHORD_WINDOW, HCB_WINDOW, MOTION_WINDOW};
 use aeon_sim::moves::CancelRule;
@@ -249,8 +249,8 @@ fn body(out: &mut String, id: CharacterId) {
         let mut v = vy as i64;
         let mut f = 0;
         loop {
-            y += v;
             v -= c.gravity as i64;
+            y += v;
             f += 1;
             if y <= 0 {
                 break;
@@ -258,7 +258,7 @@ fn body(out: &mut String, id: CharacterId) {
         }
         f
     };
-    writeln!(out, "| jump airtime / hop airtime | {}f / {}f (+{PREJUMP}f prejump, +{LANDING_RECOVERY}f landing) |", air(c.jump_y), air(c.hop_y)).unwrap();
+    writeln!(out, "| jump airtime / hop airtime | {}f / {}f (+{PREJUMP}f prejump; full jump landing {LANDING_RECOVERY}f, hop landing {HOP_LANDING_RECOVERY}f) |", air(c.jump_y), air(c.hop_y)).unwrap();
     writeln!(out, "| pushbox w, stand h, crouch h | {} / {} / {} px |", pxf(c.push_w), pxf(c.stand_h), pxf(c.crouch_h)).unwrap();
     writeln!(out, "| throw range / close range | {} / {} px |", pxf(c.throw_range), pxf(c.close_range)).unwrap();
     let g = c.gauge;
@@ -305,7 +305,7 @@ fn generate() -> String {
     writeln!(out, "| chord window | {CHORD_WINDOW}f; a normal started inside the window kara-cancels into the chord |").unwrap();
     writeln!(out, "| special cancel window | from first active frame to last active + {CANCEL_LATE_FRAMES}f |").unwrap();
     writeln!(out, "| motion buffer | {MOTION_WINDOW}f for 236/214/623; {HCB_WINDOW}f for 63214; charge {CHARGE_FRAMES}f |").unwrap();
-    writeln!(out, "| prejump / landing | {PREJUMP}f / {LANDING_RECOVERY}f; tap up = hop, hold up = jump |").unwrap();
+    writeln!(out, "| prejump / landing | {PREJUMP}f prejump; full jump {LANDING_RECOVERY}f landing, hop {HOP_LANDING_RECOVERY}f; move-specific landing recovery still applies |").unwrap();
     writeln!(out, "| backdash | {BACKDASH_FRAMES}f, punishable |").unwrap();
     writeln!(out, "| normal throw (P+K) | tech window {THROW_TECH_WINDOW}f after the grab connects; tech = both pushed apart, {THROW_TECH_FRAMES}f each |").unwrap();
     writeln!(out, "| command grab (63214+FL) | untechable; {COMMAND_GRAB_HOLD}f hold then the throw resolves; whiff recovery is the move's own |").unwrap();

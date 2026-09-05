@@ -1,6 +1,19 @@
-# Aeon — QA
+---
+file: QA.md
+layer: atrium-project
+domain: aeon
+nature: "QA rubric — Grok / GLM / Kimi fail the Fable pass against this file"
+operator: Grok — interview lock under Sovereign Evan; Fable 5.1 bound each gate to its evidence 2026-09-02
+created: 2026-09-02
+last_verified: 2026-09-05
+hal_version: "1.1"
+authority: "Sovereign-direct 2026-09-02 — interview lock; Fable 5.1 implements"
+---
+<!-- hal:authoritative:yaml -->
 
-Reviewers: **Grok, GLM, Kimi.** Implementer: Fable 5.1 (pass of 2026-09-02).
+# AEON — QA
+
+Current direction: [[Aeon/notes/2026-09-05-consultation]]. The September 2 rubric remains the baseline with the explicit September 5 rule changes below. Evidence from earlier passes is historical until checked against the current tree.
 
 This is a fail-closed rubric. A gate is **pass** only when the evidence column has been inspected against the *current* tree on **citadel** (`~/hedronite_repos/elio/aeon`). Intent, chat memory, and "the test file exists" are not evidence. Uncertain, indirect, or missing evidence = **not done**.
 
@@ -9,8 +22,8 @@ Run, on citadel, after `source ~/.cargo/env` and `export PATH="/opt/homebrew/bin
 ```
 cd ~/hedronite_repos/elio/aeon
 rustc --version              # 1.96.0 via rust-toolchain.toml
-cargo test -p aeon-sim       # every gate below that names a test
-cargo clippy --workspace --all-targets   # zero warnings
+cargo test --workspace      # simulation plus client timing/animation checks
+cargo clippy --workspace --all-targets -- -D warnings
 cargo run -p aeon            # title → versus
 cargo run -p aeon -- --smoke # headless-ish launch evidence: writes shots/smoke-*.png and exits
 ```
@@ -25,11 +38,11 @@ Test files: `crates/sim/tests/combat.rs` (law), `crates/sim/tests/trials.rs` (sc
 |---|---|---|
 | S1 | Sim purity | `purity.rs`: `sim_has_no_dependencies`, `sim_sources_have_no_floats_clock_fs_or_randomness`. `crates/sim/Cargo.toml` has an empty `[dependencies]`. `sub_to_px` (f32) lives in the client (`crates/client/src/render.rs`). |
 | S2 | Toolchain | `rust-toolchain.toml` = `1.96.0`. `rustc --version` on citadel prints 1.96.0. Tests were run **on citadel** (see the implementation note for the run). |
-| S3 | Determinism | `World::step(&mut self, p1: InputFrame, p2: InputFrame)`; `same_inputs_replay_to_the_same_state` replays an input log and compares `state_hash()`. Client replays (`F9` save / `F11` play in training) reuse the same log format. |
+| S3 | Determinism | `World::tick(&mut self, p1: InputFrame, p2: InputFrame)`; `same_inputs_replay_to_the_same_state` replays an input log and compares `state_hash()`. Client replays (`F9` save / `F11` play in training) reuse the same log format. |
 | B1 | Buttons rebadged | `Btn` / `Buttons` are P/K/S/HS/FL/ST (`crates/sim/src/input.rs`). HUD input display and help panel print those names. No LP/MP/HP anywhere in `crates/`. |
 | B2 | Chords | `roman_cancel_spends_250_and_cancels_a_whiff`, `roman_cancel_works_after_hit_or_block`, `roman_cancel_requires_meter`, `roman_cancel_cannot_burst_from_hitstun_or_blockstun`, `feint_cancels_special_startup_to_nothing`, `overhead_chord_is_high`, `ex_chord_spends_character_gauge_not_the_bar`, `ex_without_gauge_does_not_come_out`, `ex_chord_can_land_a_frame_apart`, `throw_chord_is_a_throw`, `chord_same_frame_and_within_window`. |
 | M1 | Walk / dash / backdash | `backdash_is_punishable`. Walk speeds per body in `FRAME-DATA.md`. |
-| M2 | Hop | `hop_is_a_lower_shorter_arc_than_jump`, `hop_overhead_beats_stand_block_and_loses_to_crouch_block`. Tap/hold split: release up within prejump = hop. |
+| M2 | Hop | `hop_is_a_lower_shorter_arc_than_jump`, `hop_overhead_beats_crouch_block_and_loses_to_stand_block`. Tap/hold split: release up within prejump = hop. |
 | M3 | Run-glide | `run_is_universal_and_faster_than_walk`. Client draws `run.png` (a single glide pose, no leg cycle) for `Action::Run`. |
 | M4 | Feint | `feint_cancels_special_startup_to_nothing`, `feint_does_not_apply_to_normals_or_after_active`, `feinted_dp_is_punishable_before_a_baited_dp_recovers`. |
 | R1 | Rekka machinery | `rekka_parts_follow_and_stopping_early_is_a_different_situation`, `rekka_part_is_roman_cancellable`, `special_cancel_window_is_tight`. |
@@ -59,6 +72,22 @@ Test files: `crates/sim/tests/combat.rs` (law), `crates/sim/tests/trials.rs` (sc
 | DOC2 | This file | Vault `Aeon/QA.md` and crate `docs/QA.md` list the same gates (disc on 214+HS in both). |
 | DOC3 | Implementation note | `Aeon/notes/2026-09-02-fable-pass.md` (vault) describes what landed, what was authored, and what was verified on citadel. |
 
+## September 5 polish checks
+
+These are evidence requirements, not an assertion that the full game has passed manual QA.
+
+| ID | Gate | Evidence |
+|---|---|---|
+| FLOW1 | Run responds immediately | `polish.rs::run_immediately_stops_blocks_crouches_attacks_or_jumps`, both bodies/facings. |
+| FLOW2 | Hop/full-jump distinction survives attacks | `air_normals_preserve_travel_and_hop_identity_through_recovery`, `hop_landing_accepts_a_ground_button_and_full_jump_owes_recovery`, `uppercuts_keep_their_authored_landing_tax`, `landing_does_not_erase_air_hitstun`, `hop_touchdown_flash_is_a_ground_normal_without_spending_air_gun_gauge`. |
+| FLOW3 | Strict legal input timing | `first_free_frame_accepts_a_link_but_an_early_press_is_not_buffered`, `wakeup_and_blockstun_expiry_accept_the_current_input`. No normal-chain rule changes. |
+| FLOW4 | Render-rate-independent delivery | Client `timing.rs`: 30–240 Hz schedules, pause/suspension, brief button/up taps, chords/facing. Physical stick event delivery remains a manual check. |
+| D3 | Natural five-hit routes permitted | `kogan_link_into_full_rekka_is_a_natural_five_hit_route`: jab link → full rekka, 170 damage, knockdown. The old automatic rejection by hit count is superseded; balance still needs play. |
+| ART4 | Animation contact/continuity | Client `sprites.rs` phase tests; `--polish-preview --capture` produces movement/rekka frames and state trace. Inspect both bodies in motion, foot anchoring, mirrored framing, startup/contact/recovery and hitstop. Existing pose coverage is not complete multi-frame animation. |
+| PLAY1 | Feel and competitive aspirations | Evan's stick play plus repeated versus sessions: input reliability, strict links, safe hops, full-jump tax, pressure/defense, whiff readability and animation quality. Record hardware and actual observations. Unperformed play stays pending. |
+
+Animation atlas provenance: `crates/client/assets/animation/PROMPTS.md` and vault `art/fight-ready/animation/`. Generated sheets are keyed once in the client; original plates remain unsliced. Pass evidence: [[Aeon/notes/2026-09-05-polish-pass]].
+
 ## Scripted trials
 
 Each trial is a headless test in `crates/sim/tests/trials.rs` **and** a thing you can do in training. A trial fails if the described outcome does not happen.
@@ -67,7 +96,7 @@ Each trial is a headless test in `crates/sim/tests/trials.rs` **and** a thing yo
 2. **Whiff tax.** `trial_02_whiff_tax` — far 5HS whiffs, 5S punishes before recovery ends.
 3. **Disc vs voice.** `trial_03_disc_vs_voice` — Raya glyph, Kogan 214+HS destroys it and keeps his turn.
 4. **Sandwich.** `trial_04_sandwich` — Raya knockdown → crystal in front → 236+FL behind; defender wakes between body and armed crystal.
-5. **Hop mix.** `trial_05_hop_mix` — hop j.HS hits stand-block, is blocked crouching; empty hop 2K hits stand-block.
+5. **Hop mix.** `trial_05_hop_mix` — hop j.HS hits crouch-block, is blocked standing; empty hop 2K hits stand-block.
 6. **Oki triangle.** `trial_06_oki_triangle` — command grab beats a blocking dummy; uppercut beats the grab; meaty beats a wakeup button; blocked wakeup DP is punished.
 7. **Uppercut xx RC.** `trial_07_uppercut_rc` — 623 hits, S+FL spends 250 and continues; without meter the tax lands.
 8. **Feint DP.** `trial_08_feint_dp` — feinted rekka baits a DP; attacker punishes.
@@ -81,4 +110,6 @@ Each trial is a headless test in `crates/sim/tests/trials.rs` **and** a thing yo
 3. Launch versus. Play trials 1–10 or run `cargo run -p aeon -- --smoke` and read `shots/`. Note which trials were not performed by hand.
 4. Read `docs/FRAME-DATA.md` against `crates/sim/src/chars/{kogan,raya}.rs` (or trust `frame_data_doc_matches_code`, which does that read).
 5. File findings as **blocker** (a gate fails), **tune** (law holds, numbers feel wrong — expected; we tune later unless a feel-target in `DESIGN.md` is violated), **nits**.
-6. A feel-target violation (weapon-heavies plus on block, 5-hit confirms, cape in the hurtbox, Raya as a fullscreen zoner, hop indistinguishable from jump) is a **blocker**, not a tune.
+6. A feel-target violation (weapon-heavies plus on block, normal chains, cape in the hurtbox, Raya as a fullscreen zoner, hop indistinguishable from jump) is a **blocker**, not a tune.
+
+Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/INFRA]] · [[Aeon/notes/2026-09-02-fable-pass]] · [[Aeon/notes/2026-09-03-grok-qa]]

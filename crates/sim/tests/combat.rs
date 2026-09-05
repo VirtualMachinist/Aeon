@@ -420,7 +420,7 @@ fn hop_is_a_lower_shorter_arc_than_jump() {
 }
 
 #[test]
-fn hop_overhead_beats_stand_block_and_loses_to_crouch_block() {
+fn hop_overhead_beats_crouch_block_and_loses_to_stand_block() {
     fn hop_in(p2: InputFrame) -> (i32, i32) {
         let mut w = free(CharacterId::Kogan, CharacterId::Kogan);
         w.fighters[0].pos.x = px(360);

@@ -2,16 +2,19 @@
 
 A grounded 1v1 2D fighter in Rust. Two bodies of the Sanctum — **Kogan** (saber, revolver, disc-shield) and **Raya** (voice glyphs, crystals, the rite). Super Turbo footsies, Samurai Shodown's tax on the heavy buttons, then a measured layer of Roman Cancel, hop, run and feint.
 
-Lights link. Weapon-heavies are minus. There are no normal chains. Damage lives in 2–3 hits. The knockdown is the currency.
+Lights link. Weapon-heavies are minus. There are no normal chains. Two or three hits are typical; natural three-to-five-hit routes are allowed. Execution stays strict. The knockdown is the currency.
 
 - Law: `DESIGN.md`. Numbers: `docs/FRAME-DATA.md` (generated from the code, checked by a test). Grading: `docs/QA.md`.
 - Toolchain is pinned to **Rust 1.96.0** by `rust-toolchain.toml`.
+- On macOS, double-click `Play-Aeon.command` for the optimized playtest build. Its build cache lives under `~/Library/Caches/AeonBuild`, outside this source tree.
 
 ```sh
 cargo run -p aeon                # title → versus / training / remap
 cargo run -p aeon -- --smoke     # scripted launch; writes shots/smoke-*.png and exits
-cargo test -p aeon-sim           # the law, the ten QA trials, purity, frame-data doc
-cargo clippy --workspace --all-targets
+cargo test --workspace          # simulation law plus client timing/animation checks
+cargo run -p aeon -- --polish-preview  # repeatable 24-second movement/rekka/whiff review
+cargo run -p aeon -- --polish-preview --capture # 30 fps PNGs + trace in shots/polish
+cargo clippy --workspace --all-targets -- -D warnings
 ```
 
 ## Layout
@@ -21,12 +24,13 @@ crates/sim      aeon-sim: deterministic 60 Hz match. Integer subpixels. Zero dep
                 No floats in World, no clock, no filesystem, no renderer (tests/purity.rs).
 crates/client   aeon: macroquad + gilrs client. Versus, training, stick remap, replays.
 crates/client/assets/{kogan,raya}/*.png   one keyed 800×800 pose per state
+crates/client/assets/animation/*.png     authored walk/attack cells, keyed at load
 crates/client/assets/stage/sanctum.png    the Sanctum honeycomb vault
 docs/           QA.md (fail-closed rubric), FRAME-DATA.md
 tools/keyout.py chroma-keys a generated pose onto the sprite canvas
 ```
 
-The sim is `World::step(&mut self, p1: InputFrame, p2: InputFrame)`. Same inputs replay to the same `state_hash()`. That is the contract a later rollback layer (GGRS) consumes; the client is replaceable.
+The sim is `World::tick(&mut self, p1: InputFrame, p2: InputFrame)`. Same inputs replay to the same `state_hash()`. That is the contract a later rollback layer (GGRS) consumes; the client is replaceable.
 
 ## Controls
 
@@ -45,7 +49,7 @@ Six buttons in a 2×3, the same shape on stick and keyboard:
 
 The default pad map is the Street-Fighter-on-Xbox convention, which is where a Mayflash F700 in Android mode lands. **F8** opens the in-game remap (records raw HID codes, saved to `~/.config/aeon/stick.cfg`). Startup prints every pad gilrs sees and the live map.
 
-Tap up = **hop**, hold up = jump. `66` then hold = **run** (a glide). `44` = backdash.
+Tap up = **hop**, hold up = jump. `66` then hold = **run** (a glide). `44` = backdash. Run immediately stops, blocks, jumps or attacks. Hops add no landing recovery; full jumps add 2f, while committed moves keep their own landing tax.
 
 | Chord | Verb |
 |---|---|
@@ -67,4 +71,6 @@ Character select (any pairing, mirrors included) → best of three rounds, 99 s 
 
 ## Out of scope this pass
 
-Netcode, audio, other bodies, and anything that puts a float in the sim.
+Netcode, audio, camera effects, other bodies, and anything that puts a float in the sim.
+
+September 5 flow changes and remaining playtest/animation work: `docs/POLISH-2026-09-05.md`. The full kits are playable; their complete animation and competitive balance are ongoing work.
