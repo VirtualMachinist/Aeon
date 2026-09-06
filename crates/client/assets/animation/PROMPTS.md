@@ -136,3 +136,5 @@ Raya normal throw/escape: new empty-hand reach and approved utility/recoil phase
 Raya ranged and EX use eight V2 low-crystal/spoken-glyph phases. V1 retained as rejected calibration. [Exact prompts and review](RAYA-RANGED-2026-09-06.md).
 
 Raya consecrate and manual shatter use eight V1 supported knee/rise and empty-command phases. [Exact prompt and review](RAYA-RITUAL-2026-09-06.md).
+
+Raya Convergence uses four V1 gather,expanded orbit,dismissal and ready phases. [Exact prompt and review](RAYA-CONVERGENCE-2026-09-06.md).

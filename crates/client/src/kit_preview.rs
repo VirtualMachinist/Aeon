@@ -240,12 +240,15 @@ fn saber_cases(body: CharacterId) -> Vec<Case> {
     result
 }
 
-fn judgment_cases() -> Vec<Case> {
+fn judgment_cases(body: CharacterId) -> Vec<Case> {
     let mut result = Vec::new();
-    for response in [Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff] {
+    let responses = if body == CharacterId::Raya {
+        &[Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::CrouchHit, Response::Whiff][..]
+    } else { &[Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff][..] };
+    for &response in responses {
         for corner in [false, true] {
             for right in [true, false] {
-                result.push(Case { body: CharacterId::Kogan, move_id: MoveId::Super, response,
+                result.push(Case { body, move_id: MoveId::Super, response,
                     right, corner, jump: None, air: false, ranged: false, utility: false, saber: true,
                     disc: false, reaction: false, ground: None, feint: None });
             }
@@ -787,8 +790,7 @@ pub async fn run(assets: &Assets) {
     } else if args.iter().any(|a| a == "--kit-reaction") {
         reaction_cases(body)
     } else if args.iter().any(|a| a == "--kit-super") {
-        assert!(body == CharacterId::Kogan, "judgment cases cover Kogan");
-        judgment_cases()
+        judgment_cases(body)
     } else if args.iter().any(|a| a == "--kit-ground") {
         ground_cases(body)
     } else if args.iter().any(|a| a == "--kit-disc") {
@@ -1153,7 +1155,7 @@ mod tests {
 
     #[test]
     fn judgment_preview_uses_legal_metered_input_and_covers_hit_guard_and_miss() {
-        for case in judgment_cases() {
+        for case in judgment_cases(CharacterId::Kogan) {
             let mut w = case.world();
             let initial_x = w.fighters[0].pos.x;
             let hp = w.fighters[1].health;
@@ -1193,6 +1195,52 @@ mod tests {
             }
             assert!(w.fighters[0].pos.x != initial_x, "rush advances at authored velocity");
             assert!(w.fighters.iter().all(|f| f.action.actionable()), "{case:?}: both recover");
+        }
+    }
+
+    #[test]
+    fn convergence_preview_uses_legal_metered_input_and_covers_hit_guard_and_miss() {
+        let cases = judgment_cases(CharacterId::Raya);
+        assert_eq!(cases.len(), 20);
+        for case in cases {
+            let mut w = case.world();
+            let initial_x = w.fighters[0].pos.x;
+            let hp = w.fighters[1].health;
+            let mut seen = false;
+            let mut block = false;
+            let mut down = false;
+            let mut drawings = std::collections::HashSet::new();
+            let mut frozen = None;
+            for tick in 0..case.duration() {
+                let [a,b] = case.inputs_for_world(tick,&w); w.tick(a,b);
+                let f = &w.fighters[0];
+                let cell = crate::sequences::judgment_cell(f);
+                if let Some(cell) = cell { drawings.insert(cell); }
+                if let Some((world_frame, previous)) = frozen {
+                    if w.frame == world_frame { assert_eq!(cell,previous,"super hitstop holds the drawing"); }
+                }
+                frozen = Some((w.frame,cell));
+                if let Action::Attack {move_id:MoveId::Super,frame,..}=f.action {
+                    assert_eq!(cell==Some(crate::sprites::Cell::Judgment(1)),f.data().move_def(MoveId::Super).unwrap().is_active(frame));
+                }
+                if matches!(w.fighters[0].action, Action::Attack { move_id: MoveId::Super, .. }) {
+                    seen = true;
+                    assert!(w.fighters[0].meter < 1000, "super spends the prepared bar");
+                }
+                block |= matches!(w.fighters[1].action, Action::Block { .. });
+                down |= matches!(w.fighters[1].action, Action::Knockdown { .. });
+            }
+            assert!(seen, "{case:?}: double quarter-circle starts convergence");
+            assert_eq!(drawings.len(),4,"gather, expansion, dismissal and ready");
+            assert_eq!(crate::sequences::judgment_cell(&w.fighters[0]),None,"control immediately clears the super drawing");
+            match case.response {
+                Response::Hit | Response::CrouchHit => assert!(down && hp-w.fighters[1].health==340, "{case:?}"),
+                Response::StandBlock | Response::CrouchBlock => assert!(block && !down && hp-w.fighters[1].health==28, "{case:?}"),
+                Response::Whiff => assert!(w.fighters[1].health==hp && !down && !block, "{case:?}"),
+                _ => unreachable!(),
+            }
+            assert_ne!(w.fighters[0].pos.x, initial_x, "authored rush travel");
+            assert!(w.fighters.iter().all(|f| f.action.actionable()), "{case:?}: full return");
         }
     }
 

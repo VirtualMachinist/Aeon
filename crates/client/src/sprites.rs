@@ -540,6 +540,8 @@ impl SpriteSet {
         } else { None };
         let judgment = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-judgment-v3-green.png", (1536, 1024), &KOGAN_JUDGMENT).await
+        } else if !std::env::args().any(|a|a=="--kit-legacy-super") {
+            Atlas::load("assets/animation/raya-convergence-v1-green.png", (1536,1024), &RAYA_CONVERGENCE).await
         } else { None };
         let floor = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-floor-v1-green.png", (1536, 1024), &KOGAN_FLOOR).await
