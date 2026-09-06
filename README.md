@@ -196,3 +196,5 @@ ART57: dark key spill reviewed with unchanged alpha;185 workspace tests,clippy/r
 ART58: quiet Kogan Stand shares the approved drawn ready pose. Replay, integration, corner/freeze and smoke reviewed; 185 tests, clippy/release pass. Legacy walk/contact finish, StK/CrK and actual training-key dispatch remain open.
 
 ART59: four larger Kogan walking drawings retain the existing step rhythm and improve dark armor detail. Full focused/integration motion reviewed; 185 tests, clippy/release pass. Legacy contact finish, StK/CrK and direct training keys remain open.
+
+ART61: four larger Kogan first-cut drawings improve armor clarity with unchanged choreography. Complete sword/feint/integration motion reviewed;185 tests,clippy/release pass. Legacy backcut/thrust/jab finish,StK/CrK and actual training keys remain open.
