@@ -181,6 +181,26 @@ pub fn standing_lights_cell(f: &Fighter) -> Option<Cell> {
     Some(Cell::StandingLights(base + phase))
 }
 
+// Distinct low palm and supported ankle kick; the existing action owns timing.
+pub const RAYA_CROUCH_LIGHTS: [Spec; 8] = [
+    ([0, 0, 500, 385], 285, 450), ([500, 0, 1024, 385], 705, 450),
+    ([0, 385, 500, 750], 285, 450), ([500, 385, 1024, 750], 725, 450),
+    ([0, 750, 475, 1105], 190, 450), ([475, 750, 1024, 1105], 620, 450),
+    ([0, 1105, 480, 1536], 280, 450), ([480, 1105, 1024, 1536], 695, 450),
+];
+
+pub fn crouch_lights_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Raya || f.airborne { return None; }
+    let Action::Attack { move_id, frame, .. } = f.action else { return None; };
+    let base = match move_id { MoveId::CrP => 0, MoveId::CrK => 4, _ => return None };
+    let mv = f.data().move_def(move_id)?;
+    let phase = if frame < mv.first_active() { 0 }
+        else if mv.is_active(frame) { 1 }
+        else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+        else { 3 };
+    Some(Cell::CrouchLights(base + phase))
+}
+
 // The low fist has a gathered arm, contact, bent-elbow withdrawal and low ready.
 pub const KOGAN_CROUCH_PUNCH: [Spec; 4] = [
     ([0, 0, 625, 620], 355, 510),
@@ -759,6 +779,8 @@ mod tests {
             ("raya-recoil-v1-green.png", (941, 1672), &RAYA_RECOIL[..]),
             ("raya-standing-lights-v1-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[..]),
             ("raya-standing-lights-v2-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[1..2]),
+            ("raya-crouch-lights-v1-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[..]),
+            ("raya-crouch-lights-v2-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[5..6]),
             ("kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH[..]),
             ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),

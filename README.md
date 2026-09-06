@@ -137,3 +137,5 @@ Raya ground review: `cargo run --release -p aeon -- --kit-preview --kit-ground -
 Raya grounded hit/guard and retained floor recovery are reviewed across36 cases /90 s, with eight Kogan low-return regression cases and complete35 s integration. 171 workspace tests, clippy and release pass; simulation traces unchanged. Full-kit work continues; see [review evidence](docs/FULL-KIT-2026-09-05.md).
 
 Raya standing palm and low kick now have four reviewed phases each, with corrected contact height and clean return. All40 cases /40 s and complete35 s integration reviewed;171 tests, clippy/release and unchanged simulation traces. Use `--kit-preview --kit-raya --kit-move=StP` or `StK`. See [full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
+
+Raya crouching palm and ankle kick now have four reviewed phases and clean low returns. All40 cases /40 s and complete35 s integration reviewed;171 tests, clippy/release and unchanged simulation traces. Use `--kit-preview --kit-raya --kit-crp` or `--kit-move=CrK`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.

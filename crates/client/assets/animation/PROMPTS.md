@@ -108,3 +108,5 @@ Raya ground movement: eight V1 glide/crouch/retreat drawings, measured original 
 Raya grounded recoil V1: eight defensive impact/release drawings, clean retained floor recovery and corrected low return. [Exact prompt, source, calibration and review](RAYA-RECOIL-2026-09-05.md).
 
 Raya standing palm/low kick: seven V1 cells plus corrected V2 palm contact, complete40-case final2 and integration review. [Exact prompts, source and calibration](RAYA-STANDING-LIGHTS-2026-09-05.md).
+
+Raya crouching palm and ankle kick: seven V1 cells plus corrected V2 kick contact; complete40-case accepted union and integration review. [Exact prompts, source and calibration](RAYA-CROUCH-LIGHTS-2026-09-05.md).
