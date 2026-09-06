@@ -110,12 +110,26 @@ pub fn victory_cell(f: &Fighter, age: u32) -> Option<Cell> {
 /// A canceled startup withdraws its own equipment, then regains ready.
 /// The existing eight-frame state owns the clock; landing/new actions take over.
 pub fn feint_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan { return None; }
     let Action::Feint { frame } = f.action else { return None; };
     let move_id = f.last_move?;
     if !f.data().move_def(move_id)?.feintable { return None; }
     let phase = usize::from(frame >= aeon_sim::fighter::FEINT_RECOVERY / 2);
     if f.airborne { return Some([Cell::AirSaber(4), Cell::AirSaber(5)][phase]); }
+    if f.id == aeon_sim::CharacterId::Raya {
+        if move_id == MoveId::Charge {
+            return Some(Cell::Ritual(match frame { 0..=2 => 3, 3..=5 => 4, _ => 5 }));
+        }
+        let cells = match move_id {
+            MoveId::ShotA | MoveId::ExB => [Cell::Ranged(2), Cell::Ranged(3)],
+            MoveId::ShotB | MoveId::ExA => [Cell::Ranged(6), Cell::Ranged(7)],
+            MoveId::Rekka1 => [Cell::Signature(6), Cell::Signature(9)],
+            MoveId::Rekka2 => [Cell::Chant(2), Cell::Chant(3)],
+            MoveId::Rekka3 => [Cell::Chant(6), Cell::Chant(7)],
+            MoveId::CommandGrab | MoveId::Uppercut => [Cell::Utility(2), Cell::Utility(3)],
+            _ => return None,
+        };
+        return Some(cells[phase]);
+    }
     let cells = match move_id {
         MoveId::ShotA | MoveId::ExB => [Cell::Ranged(3), Cell::Ranged(7)],
         MoveId::ShotB => [Cell::Ranged(6), Cell::Ranged(7)],
@@ -1087,8 +1101,8 @@ mod tests {
                     for frame in 0..aeon_sim::fighter::FEINT_RECOVERY {
                         f.action = Action::Feint { frame };
                         let cell = feint_cell(&f);
-                        assert_eq!(cell.is_some(), id == CharacterId::Kogan && mv.feintable);
-                        if id == CharacterId::Kogan && mv.feintable && airborne {
+                        assert_eq!(cell.is_some(), mv.feintable);
+                        if mv.feintable && airborne {
                             assert!(matches!(cell, Some(Cell::AirSaber(4 | 5))));
                         }
                     }

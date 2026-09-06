@@ -90,11 +90,15 @@ fn throw_cases(body: CharacterId) -> Vec<Case> {
     cases
 }
 
-fn feint_cases() -> Vec<Case> {
-    let base = saber_cases(CharacterId::Kogan).into_iter().chain(ranged_cases(CharacterId::Kogan)).chain(utility_cases(CharacterId::Kogan))
-        .chain(disc_cases()).chain(overhead_cases(CharacterId::Kogan))
+fn feint_cases(body: CharacterId) -> Vec<Case> {
+    let extra = if body == CharacterId::Kogan { disc_cases() } else {
+        ritual_cases().into_iter().filter(|c| c.move_id == MoveId::Charge && c.response == Response::ChargeMax)
+            .map(|mut c| { c.response = Response::Hit; c }).collect()
+    };
+    let base = saber_cases(body).into_iter().chain(ranged_cases(body)).chain(utility_cases(body))
+        .chain(extra).chain(overhead_cases(body))
         .filter(|c| c.response == Response::Hit
-            && CharacterId::Kogan.data().move_def(c.move_id).is_some_and(|m| m.feintable))
+            && body.data().move_def(c.move_id).is_some_and(|m| m.feintable))
         .collect::<Vec<_>>();
     [true, false].into_iter().flat_map(|early| base.iter().copied().map(move |mut c| {
         c.feint = Some(early); c
@@ -309,9 +313,8 @@ fn reaction_cases(victim: CharacterId) -> Vec<Case> {
 
 impl Case {
     fn duration(self) -> u32 {
-        if matches!(self.move_id, MoveId::Charge | MoveId::Detonate) { 120 }
+        if self.feint.is_some() || matches!(self.move_id, MoveId::Charge | MoveId::Detonate) { 120 }
         else if self.body == CharacterId::Raya && self.ranged { 210 }
-        else if self.feint.is_some() { 120 }
         else if self.reaction || self.move_id == MoveId::Throw { 150 }
         else if self.disc || self.ground.is_some() { 90 }
         else if self.saber && self.move_id == MoveId::Rekka3 { 180 }
@@ -322,7 +325,7 @@ impl Case {
 
     fn label(self) -> String {
         if let Some(early) = self.feint {
-            return format!("KOGAN {:?} feint · {} · {} · {}", self.move_id,
+            return format!("{} {:?} feint · {} · {} · {}", self.body.name(), self.move_id,
                 if early { "early" } else { "late" }, if self.right { "right" } else { "left" },
                 if self.corner { "corner" } else { "center" });
         }
@@ -500,10 +503,22 @@ impl Case {
         }
         if let Some(early) = self.feint {
             let f = &world.fighters[0];
+            // Release the held channel button after canceling; otherwise the
+            // next edge would issue an unrelated normal during the return.
+            if self.move_id == MoveId::Charge && f.last_move == Some(MoveId::Charge)
+                && !matches!(f.action, aeon_sim::Action::Attack { move_id: MoveId::Charge, .. }) {
+                inputs[0] = InputFrame::dir(5);
+            }
             if world.hitstop == 0 {
                 if let aeon_sim::Action::Attack { move_id, frame: action_frame, .. } = f.action {
                     let mv = f.data().move_def(move_id).unwrap();
                     let cancel_frame = if early { 0 } else { mv.first_active() - 1 };
+                    // A held FL is outside the chord window by late Charge startup.
+                    // Release for one startup tick, then press FL+ST together.
+                    if move_id == MoveId::Charge && self.move_id == move_id
+                        && action_frame + 1 == cancel_frame {
+                        inputs[0] = InputFrame::dir(5);
+                    }
                     if move_id == self.move_id && action_frame == cancel_frame {
                         inputs[0] = InputFrame::chord(aeon_sim::Chord::Feint);
                     }
@@ -774,8 +789,7 @@ pub async fn run(assets: &Assets) {
     } else if args.iter().any(|a| a == "--kit-crp") {
         normal_cases(body, &[MoveId::CrP])
     } else if args.iter().any(|a| a == "--kit-feint") {
-        assert!(body == CharacterId::Kogan, "feint cases currently cover Kogan");
-        feint_cases()
+        feint_cases(body)
     } else if args.iter().any(|a| a == "--kit-throw") {
         throw_cases(body)
     } else if args.iter().any(|a| a == "--kit-overhead") {
@@ -960,8 +974,12 @@ mod tests {
 
     #[test]
     fn feint_preview_covers_every_legal_special_at_first_and_last_startup_tick() {
-        let all = feint_cases();
-        assert_eq!(all.len(), 88);
+        for body in [CharacterId::Kogan, CharacterId::Raya] {
+        let all = feint_cases(body);
+        assert_eq!(all.len(), if body == CharacterId::Kogan {88} else {80});
+        for mv in body.data().moves.iter().filter(|m| m.feintable) {
+            assert_eq!(all.iter().filter(|c| c.move_id == mv.id).count(), 8, "every legal special: {:?}", mv.id);
+        }
         for case in all {
             let mut world = case.world();
             let mut seen = false;
@@ -984,16 +1002,23 @@ mod tests {
                     assert!(world.events.iter().all(|e| !matches!(e.kind, EventKind::Hit | EventKind::Grab)), "{case:?}: canceled commitment cannot contact");
                     assert!(world.projectiles.iter().all(|p| p.owner != 0), "{case:?}: canceled shot cannot release");
                 }
+                if seen {
+                    assert!(!matches!(world.fighters[0].action, Action::Attack { .. }), "{case:?}: no unintended attack after cancel");
+                }
                 if seen && tick > feint_tick.unwrap() + 20 {
                     assert!(!matches!(world.fighters[0].action, Action::Feint { .. }), "{case:?}: cancel must finish");
                 }
             }
             assert!(seen, "{case:?}: must reach feint through legal input");
+            if case.move_id == MoveId::Charge {
+                assert_eq!(world.fighters[0].gauge, 0, "startup cancel never channels");
+            }
             assert_eq!(frames.first(), Some(&0));
             assert!(frames.len() <= usize::from(aeon_sim::fighter::FEINT_RECOVERY));
             assert_eq!(frames, (0..frames.len() as u16).collect::<Vec<_>>(), "{case:?}: uninterrupted phase clock until legal landing or return");
             assert!(matches!(world.fighters[0].action, Action::Stand));
             assert!(!world.fighters[0].airborne);
+        }
         }
     }
 

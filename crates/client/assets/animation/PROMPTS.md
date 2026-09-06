@@ -138,3 +138,5 @@ Raya ranged and EX use eight V2 low-crystal/spoken-glyph phases. V1 retained as 
 Raya consecrate and manual shatter use eight V1 supported knee/rise and empty-command phases. [Exact prompt and review](RAYA-RITUAL-2026-09-06.md).
 
 Raya Convergence uses four V1 gather,expanded orbit,dismissal and ready phases. [Exact prompt and review](RAYA-CONVERGENCE-2026-09-06.md).
+
+Raya feints reuse approved withdrawal/ready drawings,with supported Charge rise and airborne descent. [Exact reuse and review](RAYA-FEINT-2026-09-06.md). No new generation.
