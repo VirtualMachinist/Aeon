@@ -434,3 +434,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART46 | Empty-hand throw reach, withdrawal and ready; deliberate escape release | All 32 before/accepted cases / 80s each at 1×, both facings/corners; exact four-phase, brief whiff and three escape-phase PNGs inspected. A1/G2 refraction. |
 
 176 tests (89 sim + 87 client), clean clippy and locked/offline release pass. All 4,800 focused / 2,100 integration ticks equal baseline. New 35s integration video and all 71 diagnostics equal fully reviewed ART45 evidence. Eight smoke PNGs: seven identical, changed select pair inspected. Evidence: `raya-throw-verification.json`, full-kit report and `RAYA-THROW-2026-09-06.md`. Remaining full kits, close idle overlap and physical play remain open.
+
+## September 6 Raya ranged and EX review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART47 | Crystal/EX low release and empty withdrawal; glyph/EX spoken gesture and separate effect lifetime | All64 before/accepted cases /224s each at1×, both facings/corners, hit/both guards/miss; exact release/recovery/return, blast and expiry PNGs inspected. A2/S2 refraction plus reopened original AC. |
+
+177 tests (89 sim +88 client), clippy and locked/offline release pass. All13,440 focused and2,100 integration ticks equal baseline. Integration video/all71 diagnostics byte-identical to fully reviewed ART45; seven smoke images equal and changed versus-glyph pair inspected. Evidence: `raya-ranged-verification.json` and `RAYA-RANGED-2026-09-06.md`. Remaining kit, shared polish and physical play open.

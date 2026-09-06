@@ -18,7 +18,7 @@ fn cases() -> Vec<VictoryCase> {
             Ending::Standing => (saber_cases(CharacterId::Kogan), MoveId::StS),
             Ending::Air => (saber_cases(CharacterId::Kogan), MoveId::Uppercut),
             Ending::NextRound => (crouching_saber_cases(CharacterId::Kogan), MoveId::CrHS),
-            Ending::Rematch => (ranged_cases(), MoveId::ShotA),
+            Ending::Rematch => (ranged_cases(CharacterId::Kogan), MoveId::ShotA),
         };
         for setup in base.into_iter().filter(|c| c.move_id == mv && c.response == Response::Hit) {
             out.push(VictoryCase { setup, ending });

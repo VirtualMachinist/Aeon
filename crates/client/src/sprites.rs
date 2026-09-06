@@ -414,11 +414,12 @@ impl SpriteSet {
             };
             Atlas::load_with_roots(&format!("assets/animation/{file}"), (1672, 941), specs, roots).await
         };
-        let ranged = if body == CharacterId::Kogan
-            && !std::env::args().any(|a| a == "--kit-legacy-ranged") {
-            Atlas::load("assets/animation/kogan-ranged-v5-green.png",
-                (1448, 1086), &KOGAN_RANGED).await
-        } else { None };
+        let ranged = if std::env::args().any(|a| a == "--kit-legacy-ranged") { None } else {
+            match body {
+                CharacterId::Kogan => Atlas::load("assets/animation/kogan-ranged-v5-green.png", (1448,1086), &KOGAN_RANGED).await,
+                CharacterId::Raya => Atlas::load("assets/animation/raya-ranged-v2-green.png", (1536,1024), &RAYA_RANGED).await,
+            }
+        };
         let throw_contact = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-throw-contact-v1-green.png",
                 (1254, 1254), &RAYA_THROW_CONTACT).await
