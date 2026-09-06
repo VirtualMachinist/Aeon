@@ -194,6 +194,7 @@ pub struct SpriteSet {
     crouch_kick_contact: Option<crate::sequences::Atlas>,
     crouch_punch: Option<crate::sequences::Atlas>,
     crouch_saber: Option<crate::sequences::Atlas>,
+    crouch_saber_contact: Option<crate::sequences::Atlas>,
     crouch_low: Option<crate::sequences::Atlas>,
     air_lights: Option<crate::sequences::Atlas>,
     air_lights_contact: Option<crate::sequences::Atlas>,
@@ -482,6 +483,9 @@ impl SpriteSet {
             CharacterId::Kogan => Atlas::load("assets/animation/kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER).await,
             CharacterId::Raya => Atlas::load("assets/animation/raya-crouch-crystals-v1-green.png", (1024, 1536), &RAYA_CROUCH_CRYSTALS).await,
         };
+        let crouch_saber_contact = if body == CharacterId::Raya {
+            Atlas::load("assets/animation/raya-anti-crystal-v1-green.png", (1024, 1536), &RAYA_ANTI_CRYSTAL).await
+        } else { None };
         let (flash_file, flash_specs) = match body {
             CharacterId::Kogan => ("kogan-flash-v2-green.png", &KOGAN_FLASH),
             CharacterId::Raya => ("raya-flash-style-v1-green.png", &RAYA_FLASH),
@@ -547,7 +551,7 @@ impl SpriteSet {
         let chant_finisher = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-chant3-v1-green.png", (1254, 1254), &RAYA_CHANT_III).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_saber_contact, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -582,6 +586,7 @@ impl SpriteSet {
             crouch_kick_contact: None,
             crouch_punch: None,
             crouch_saber: None,
+            crouch_saber_contact: None,
             crouch_low: None,
             air_lights: None,
             air_lights_contact: None,
@@ -737,6 +742,7 @@ impl SpriteSet {
             Cell::CrouchLights(cell) => self.crouch_lights.as_ref()?.frame(cell),
             Cell::CrouchPunch(cell) => self.crouch_punch.as_ref()?.frame(cell),
             Cell::CrouchSaber(cell @ 8..=15) => self.crouch_low.as_ref()?.frame(cell - 8),
+            Cell::CrouchSaber(5) if self.body == CharacterId::Raya && self.crouch_saber_contact.is_some() => self.crouch_saber_contact.as_ref()?.frame(0),
             Cell::CrouchSaber(cell) => self.crouch_saber.as_ref()?.frame(cell),
             Cell::Flash(5) if self.body == CharacterId::Raya => self.flash_contact.as_ref()?.frame(0),
             Cell::Flash(cell) => self.flash.as_ref()?.frame(cell),
