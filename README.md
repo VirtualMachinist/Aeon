@@ -175,3 +175,14 @@ Raya victory now retains supported recovery into a four-phase quiet offering. `-
 Kogan jab now uses drawn gather/contact/withdrawal/ready. `--kit-preview --kit-move=StP` selects20 reviewed cases.179 tests/clippy/release pass;simulation unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Shared polish and remaining kicks stay open.
 
 Freeze comparison: `cargo run --release -p aeon -- --kit-preview --kit-freeze --capture --capture-1x`. Twenty-four legal hit, block and RC cases include exact paused redraws and single ticks; capture mode is required. Flash, drawing and effect lifetime share the world clock. Training replay validation and shared art polish remain ongoing.
+
+### Saved replay comparison
+
+After building release, run `--replay-review --capture --capture-1x` from a new empty directory. It saves four real input logs and captures recorded/loaded pairs (32 seconds at60fps); all960 loaded world hashes must match. The fixture covers both character orders and attacking slots, hit/guard, full jump/landing and presentation reset from hitstop. PNG hashes can compare every corresponding output image. See ART54 in `docs/FULL-KIT-2026-09-05.md` for inspected evidence and limits. This does not verify physical F9/F11 dispatch or record changes made through training health/meter/dummy controls.
+
+```sh
+aeon_review_bin="$(pwd)/target/release/aeon"
+aeon_review_dir="$(mktemp -d)"
+cd "$aeon_review_dir"
+"$aeon_review_bin" --replay-review --capture --capture-1x
+```
