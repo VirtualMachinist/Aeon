@@ -190,6 +190,7 @@ pub struct SpriteSet {
     air_lights_contact: Option<crate::sequences::Atlas>,
     air_shot_return: Option<crate::sequences::Atlas>,
     floor: Option<crate::sequences::Atlas>,
+    air_recovery: Option<crate::sequences::Atlas>,
     recoil: Option<crate::sequences::Atlas>,
     ground: Option<crate::sequences::Atlas>,
     walk: Option<crate::sequences::Atlas>,
@@ -231,6 +232,7 @@ pub enum Cell {
     ThrowTech(usize),
     Victory(usize),
     Floor(usize),
+    AirRecovery(usize),
     Recoil(usize),
     Ground(usize),
     Movement(usize),
@@ -471,10 +473,14 @@ impl SpriteSet {
         let floor = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-floor-v1-green.png", (1536, 1024), &KOGAN_FLOOR).await
         } else { None };
+        let air_recovery = if body == CharacterId::Kogan {
+            Atlas::load_with_roots("assets/animation/kogan-air-recovery-v1-green.png", (1254, 1254),
+                &KOGAN_AIR_RECOVERY, &KOGAN_AIR_RECOVERY_ROOT_Y).await
+        } else { None };
         let recoil = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, overhead, throw_tech, victory, crouch_punch, crouch_saber, crouch_low, floor, recoil, ground, walk, coil, movement, ranged, utility }
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, overhead, throw_tech, victory, crouch_punch, crouch_saber, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -505,6 +511,7 @@ impl SpriteSet {
             air_lights_contact: None,
             air_shot_return: None,
             floor: None,
+            air_recovery: None,
             recoil: None,
             ground: None,
             walk: None,
@@ -577,6 +584,9 @@ impl SpriteSet {
         if self.floor.is_some() {
             if let Some(cell) = crate::sequences::floor_cell(fighter) { return cell; }
         }
+        if self.air_recovery.is_some() {
+            if let Some(cell) = crate::sequences::air_recovery_cell(fighter) { return cell; }
+        }
         if self.recoil.is_some() {
             if let Some(cell) = crate::sequences::recoil_cell(fighter) { return cell; }
         }
@@ -646,6 +656,7 @@ impl SpriteSet {
             Cell::AirShot(cell) => self.air_shot.as_ref()?.frame(cell),
             Cell::Judgment(cell) => self.judgment.as_ref()?.frame(cell),
             Cell::Floor(cell) => self.floor.as_ref()?.frame(cell),
+            Cell::AirRecovery(cell) => self.air_recovery.as_ref()?.frame(cell),
             Cell::Recoil(cell) => self.recoil.as_ref()?.frame(cell),
             Cell::Reaction(cell) => self.reactions.as_ref()?.frame(cell),
             Cell::Poke(cell) => self.poke.as_ref()?.frame(cell),

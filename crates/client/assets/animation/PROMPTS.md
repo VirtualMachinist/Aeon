@@ -96,3 +96,5 @@ Kogan victory V1: four complete draw/raise/settle/hold drawings. [Exact prompt, 
 Both-body KO reuses existing recoil, airborne and floor/support drawings with no new generation. [Exact reuse and review](KO-CONTINUITY-2026-09-05.md). Grounded collapse, actual landing, sustained floor and reset reviewed without simulation changes.
 
 Kogan crouching punch uses four V1 full-body drawings: [exact prompt and review](KOGAN-CROUCH-PUNCH-2026-09-05.md). Independent CrP request; original blocked standing-light/kick batch remains un-retried.
+
+Kogan non-knockdown airborne recovery uses four V1 defensive drawings: [exact prompt and review](KOGAN-AIR-RECOVERY-2026-09-05.md).
