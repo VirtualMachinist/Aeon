@@ -505,7 +505,10 @@ impl SpriteSet {
         let air_saber = if body == CharacterId::Kogan {
             Atlas::load_with_roots("assets/animation/kogan-air-saber-v2-green.png", (1024, 1536),
                 &KOGAN_AIR_SABER, &KOGAN_AIR_SABER_ROOT_Y).await
-        } else { None };
+        } else {
+            Atlas::load_with_roots("assets/animation/raya-air-crystals-v1-green.png", (1024, 1536),
+                &RAYA_AIR_CRYSTALS, &RAYA_AIR_CRYSTALS_ROOT_Y).await
+        };
         let air_shot = if body == CharacterId::Kogan {
             Atlas::load_with_roots("assets/animation/kogan-air-shot-v3-green.png", (1254, 1254),
                 &KOGAN_AIR_SHOT[..3], &KOGAN_AIR_SHOT_ROOT_Y[..3]).await
@@ -657,7 +660,7 @@ impl SpriteSet {
         if self.air_lights.is_some() && (self.body == CharacterId::Raya || self.air_lights_contact.is_some()) {
             if let Some(cell) = crate::sequences::air_lights_cell(fighter) { return cell; }
         }
-        if self.air_saber.is_some() {
+        if self.air_saber.is_some() && (self.body == CharacterId::Kogan || self.air_lights.is_some()) {
             if let Some(cell) = crate::sequences::air_saber_cell(fighter) { return cell; }
         }
         if self.air_shot.is_some() && self.air_shot_return.is_some() {
@@ -737,6 +740,8 @@ impl SpriteSet {
             Cell::CrouchSaber(cell) => self.crouch_saber.as_ref()?.frame(cell),
             Cell::Flash(5) if self.body == CharacterId::Raya => self.flash_contact.as_ref()?.frame(0),
             Cell::Flash(cell) => self.flash.as_ref()?.frame(cell),
+            Cell::AirSaber(cell @ (0 | 4 | 5)) if self.body == CharacterId::Raya => self.air_lights.as_ref()?.frame(cell),
+            Cell::AirSaber(cell @ 1..=3) if self.body == CharacterId::Raya => self.air_saber.as_ref()?.frame(cell - 1),
             Cell::AirSaber(cell) => self.air_saber.as_ref()?.frame(cell),
             Cell::AirLights(cell @ 1..=3) if self.body == CharacterId::Kogan => self.air_lights_contact.as_ref()?.frame(cell - 1),
             Cell::AirLights(cell) => self.air_lights.as_ref()?.frame(cell),
