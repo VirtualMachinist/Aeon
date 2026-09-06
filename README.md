@@ -153,3 +153,5 @@ Raya CrS/CrHS/CrFL/CrST now have complete drawn preparation, contact, withdrawal
 Raya JP/JK/JFL now use three distinct low contacts and drawn gather/withdrawal/ready. All144 grounded-target/miss cases360s reviewed;175 tests,clippy/release,unchanged traces. Use `--kit-preview --kit-air --kit-raya --kit-move=JP`, optionally `--kit-air-rising`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
 
 Raya JS/JHS/JST now use three distinct low crystal contacts and drawn gather/withdrawal/ready. All144 grounded-target/miss cases360s reviewed;175 tests,clippy/release,unchanged traces. Use `--kit-preview --kit-air --kit-raya --kit-move=JS`, optionally `--kit-air-rising`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
+
+Raya CrHS now visibly meets full-jump targets and retains clear grounded guards. All16 anti-air cases,20 ground regressions and24 normal juggles reviewed;175 tests,clippy/release and unchanged traces. Use `--kit-preview --kit-air-exchange --kit-raya --kit-move=CrHS`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.

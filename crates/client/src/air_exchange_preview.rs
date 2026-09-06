@@ -15,13 +15,11 @@ struct Driver { canceled: Option<u32>, fired: bool }
 
 fn cases(body: CharacterId) -> Vec<AirCase> {
     let mut result = Vec::new();
-    if body == CharacterId::Kogan {
-        for hop in [true, false] {
-            for falling in [false, true] {
-                result.extend(normal_cases(body, &[MoveId::CrHS]).into_iter()
-                    .filter(|c| c.response == Response::Hit)
-                    .map(|setup| AirCase { setup, route: Route::Anti { hop, falling } }));
-            }
+    for hop in [true, false] {
+        for falling in [false, true] {
+            result.extend(normal_cases(body, &[MoveId::CrHS]).into_iter()
+                .filter(|c| c.response == Response::Hit)
+                .map(|setup| AirCase { setup, route: Route::Anti { hop, falling } }));
         }
     }
     for setup in normal_cases(body, &[MoveId::JP, MoveId::JK, MoveId::JS, MoveId::JHS, MoveId::JFL, MoveId::JST])
@@ -60,7 +58,8 @@ impl AirCase {
     fn inputs(self, tick: u32, w: &World, driver: &mut Driver) -> [InputFrame; 2] {
         match self.route {
             Route::Anti { hop, falling } => {
-                let offset = match (hop, falling) { (true, false) => 1, (true, true) => 9, (false, false) => 3, (false, true) => 20 };
+                // Raya meets Kogan's taller full jump earlier on rise and later on fall.
+                let offset = match (hop, falling) { (true, false) => 1, (true, true) => 9, (false, false) => if self.setup.body == CharacterId::Raya { 1 } else { 3 }, (false, true) => if self.setup.body == CharacterId::Raya { 26 } else { 20 } };
                 let a = if tick == PRESS + offset { InputFrame::dir_press(2, Btn::HS) } else { InputFrame::dir(2) };
                 let b = InputFrame::dir(if (PRESS..PRESS + if hop { 1 } else { 9 }).contains(&tick) { 8 } else { 5 });
                 [a, b]
@@ -145,7 +144,7 @@ mod tests {
     #[test]
     fn real_jumps_and_rc_inputs_produce_air_hits_and_scaled_juggles() {
         for body in [CharacterId::Kogan, CharacterId::Raya] {
-            let all = cases(body); assert_eq!(all.len(), if body == CharacterId::Kogan { 40 } else { 24 });
+            let all = cases(body); assert_eq!(all.len(), 40);
             for case in all {
                 let mut w = case.world(); let mut driver = Driver::default();
                 let mut hits = 0; let mut target_hit = false; let mut canceled = false; let mut legal_landing = false;

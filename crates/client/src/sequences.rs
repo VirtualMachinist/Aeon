@@ -301,6 +301,9 @@ pub const RAYA_CROUCH_CRYSTALS: [Spec; 8] = [
     ([0, 1110, 490, 1536], 280, 450), ([490, 1110, 1024, 1536], 695, 450),
 ];
 
+// Longer vertical tip meets rising/falling airborne bodies at the existing CrHS reach.
+pub const RAYA_ANTI_CRYSTAL: [Spec; 1] = [([100, 400, 920, 1200], 570, 900)];
+
 // Low palm and one-hand-supported sweep have full sandals and distinct returns.
 pub const RAYA_CROUCH_LOW: [Spec; 8] = [
     ([0, 0, 480, 420], 285, 500), ([480, 0, 1024, 420], 715, 500),
@@ -898,6 +901,7 @@ mod tests {
             ("raya-standing-lights-v2-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[1..2]),
             ("raya-crouch-lights-v1-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[..]),
             ("raya-crouch-crystals-v1-green.png", (1024, 1536), &RAYA_CROUCH_CRYSTALS[..]),
+            ("raya-anti-crystal-v1-green.png", (1024, 1536), &RAYA_ANTI_CRYSTAL[..]),
             ("raya-crouch-low-v1-green.png", (1024, 1536), &RAYA_CROUCH_LOW[..]),
             ("raya-crouch-lights-v2-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[5..6]),
             ("raya-flash-style-v1-green.png", (1024, 1536), &RAYA_FLASH[..]),

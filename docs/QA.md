@@ -402,3 +402,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART42 | Distinct medium/heavy/steep contacts, folded withdrawal and clean legal landing | All144 accepted cases/360s (medium/heavy final2 plus Style final1) at1×1280×720; exact phases, both facings/corners and hit/guard/miss; S1/S2/A2 refraction. |
 
 175 tests (89 sim +86 client), clippy and locked/offline release pass. All21,600 focused/2,100 integration ticks equal baseline. New 35s integration played completely; two changed recovery/ready PNGs inspected. Eight smoke PNGs match inspected evidence byte for byte. Standing-block evidence rejected the initial roots; corrected candidate3 includes real standing guard and hit. Accepted evidence uses final2 medium/heavy and restored final1 Style; rejected roots and partial reviews remain labeled. Details: raya-air-crystals-verification.json, full-kit report and RAYA-AIR-CRYSTALS-2026-09-06.md. Airborne targets, remaining kit and physical play stay open.
+
+## September 6 Raya airborne exchange review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART43 | CrHS meets airborne targets; six normal juggles retain readable contact and landing | All 16 corrected anti-airs / 40s, 20 fresh ground regressions / 30s, and 24 unchanged juggles / 60s reviewed at 1×; exact contacts, guard, whiff and corner landings inspected. G1/G2/S2 refraction. |
+
+175 tests (89 sim + 86 client), clippy-Dwarnings and locked/offline release pass. All 7,800 accepted and 2,100 integration ticks equal baseline. Fresh 35s integration video and 71 PNGs are byte-identical to the completely reviewed ART42 evidence; eight smoke images also match. Root 510 rejected for hiding the crouch visor; corrected root 570 accepted. Details: `raya-air-exchange-verification.json`, full-kit report and `RAYA-AIR-EXCHANGES-2026-09-06.md`. Shared close-standing overlap, remaining kit and physical play stay open.
