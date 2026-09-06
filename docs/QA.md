@@ -458,3 +458,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART49 | Distinct Super gather, expanded contact, dismissal and ready | All20 before/accepted cases,50s each at1×;both facings/corners,hit/both guards/crouched hit/miss. Exact contact,recovery and return PNGs inspected. Original AC84.229–93.469s and A1/A2/S2 refraction. |
 
 179 tests (89 sim +90 client),clippy and locked/offline release pass. All3,000 focused and2,100 integration ticks equal baseline. New35s integration fully reviewed;two changed diagnostic pairs inspected. All8 smoke PNGs equal inspected ART48. Evidence:`raya-super-verification.json` and `RAYA-CONVERGENCE-2026-09-06.md`. Remaining kit/shared polish and physical play open.
+
+## September 6 Raya feint review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART50 | Coherent grounded withdrawal and supported airborne cancel | All80 first/last startup cases,160s before/final at1x,both facings/corners;exact withdrawal/ready and late landing PNGs inspected. Garou387.747–389.956s plus G1/G2/S2 refraction. |
+
+179 tests(89 sim+90 client),clippy and locked/offline release pass;9,600 focused and2,100 integration ticks unchanged. Complete35s integration video,71 diagnostics and8 smoke PNGs equal inspected ART49 evidence. Approved art reuse recorded in `RAYA-FEINT-2026-09-06.md`. Shared overlap/key polish and remaining kit stay open.

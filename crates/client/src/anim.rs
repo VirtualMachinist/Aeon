@@ -201,7 +201,7 @@ impl History {
     // withdrawal across that legal Jump state, using adjacent drawing history.
     fn feint_descent(&self, w: &World, i: usize) -> bool {
         let f = &w.fighters[i];
-        f.id == CharacterId::Kogan && f.airborne && matches!(f.action, Action::Jump { .. })
+        f.airborne && matches!(f.action, Action::Jump { .. })
             && f.last_move.and_then(|id| f.data().move_def(id)).is_some_and(|m| m.feintable)
             && self.trail[i].back().is_some_and(|s| {
                 (s.frame == w.frame || s.frame.checked_add(1) == Some(w.frame))
@@ -524,12 +524,7 @@ fn motion(f: &Fighter, w: &World) -> Motion {
                 attack(f, mv, *frame, &mut m, ghost);
             }
         }
-        Action::Feint { frame } => {
-            if f.id != CharacterId::Kogan {
-                m.alpha = if frame % 2 == 0 { 0.6 } else { 1.0 };
-                m.rot = -0.06 * (1.0 - *frame as f32 / 8.0);
-            }
-        }
+        Action::Feint { .. } => {}
         Action::Block { stun, .. } => {
             let k = (*stun as f32 / 12.0).min(1.0);
             m.dx = -2.0 * k;
@@ -1080,7 +1075,8 @@ mod tests {
 
     #[test]
     fn feint_descent_keeps_adjacent_withdrawal_and_yields_on_landing_reset_or_new_action() {
-        let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
+        for body in [CharacterId::Kogan, CharacterId::Raya] {
+        let mut w = World::new(body, CharacterId::Raya);
         let mut history = History::default();
         w.frame = 23;
         w.fighters[0].airborne = true;
@@ -1101,19 +1097,21 @@ mod tests {
         w.fighters[0].airborne = false;
         w.fighters[0].action = Action::Landing { frame: 0, total: 2 };
         assert!(!history.feint_descent(&w, 0));
-        assert!(history.saber_landing(&w, 0), "the supported front-blade landing follows");
+        assert_eq!(history.saber_landing(&w, 0), body == CharacterId::Kogan, "Kogan retains its front-blade landing; Raya uses its existing landing");
         w.frame += 10;
         w.fighters[0].airborne = true;
         w.fighters[0].action = Action::Jump { air_ok: true, hop: false };
         assert!(!history.feint_descent(&w, 0), "stale last_move cannot change a later jump");
         history.reset();
         assert!(!history.feint_descent(&w, 0));
+        }
     }
 
     #[test]
-    fn kogan_feint_reuse_is_opaque_and_untransformed() {
-        let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
-        for mv in CharacterId::Kogan.data().moves.iter().filter(|m| m.feintable) {
+    fn feint_reuse_is_opaque_and_untransformed() {
+        for body in [CharacterId::Kogan, CharacterId::Raya] {
+        let mut w = World::new(body, CharacterId::Raya);
+        for mv in body.data().moves.iter().filter(|m| m.feintable) {
             for airborne in [false, true] {
                 for frame in 0..aeon_sim::fighter::FEINT_RECOVERY {
                     w.fighters[0].last_move = Some(mv.id);
@@ -1121,10 +1119,11 @@ mod tests {
                     w.fighters[0].airborne = airborne;
                     let cell = crate::sequences::feint_cell(&w.fighters[0]).unwrap();
                     let mut m = motion(&w.fighters[0], &w);
-                    respect_authored_drawing(CharacterId::Kogan, cell, &mut m);
+                    respect_authored_drawing(body, cell, &mut m);
                     assert_eq!((m.dx, m.dy, m.rot, m.sx, m.sy, m.alpha), (0.0, 0.0, 0.0, 1.0, 1.0, 1.0));
                 }
             }
+        }
         }
     }
 
