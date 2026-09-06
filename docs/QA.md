@@ -291,3 +291,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART28 | Crouching punch has readable drawn contact/withdrawal and a coherent low return | Four complete V1 drawings. All 20 before/final cases/20 s each viewed at 1× in 1280×720; hit/both guards/crouched hit/whiff, both facings and corners. Selected phase/contact/support/return frames stepped. |
 
 166 tests (89 sim +77 client), clean clippy and locked/offline release. All 1,200 final and 2,100 integration ticks equal baseline; complete new 35 s integration reviewed. Eight smoke images equal preceding inspected evidence. G2/S2 informs the arm's outbound/return and deliberate hold. Original 4/2/6 and all sim values fixed. Remaining grounded lights/kicks, airborne-target/juggle coverage, Raya and physical play stay open. Full-kit report and crp-verification.json hold exact evidence.
+
+## September 5 Kogan airborne exchange review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART29 | Airborne contact and non-knockdown recovery retain readable bodies and legal support | All64 before/final cases /160 s each viewed at1× in1280×720: sixteen CrHS anti-airs,24 Kogan normal juggles and24 Kogan-receiver juggles. Four new V1 recoil/tuck/feet/compression drawings; selected contacts and complete landing stepped in both facings/corners. |
+
+169 tests (89 sim +80 client), clippy and locked/offline release pass. All9,600 final and2,100 integration ticks equal baseline; complete new35 s integration reviewed. Fresh repeat smoke contains eight PNGs equal to inspected CrP evidence; first seven-PNG run retained as incomplete. G2/G1/S2/S1 informs consequence, gathered descent and intact weapon continuity. Original timing and all sim values remain fixed. Remaining grounded lights/kicks, Raya and physical play stay open. Exact review: full-kit report and air-recovery-verification.json.

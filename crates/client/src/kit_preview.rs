@@ -12,6 +12,8 @@ use std::io::Write;
 mod victory;
 #[path = "ko_preview.rs"]
 mod ko;
+#[path = "air_exchange_preview.rs"]
+mod air_exchange;
 
 const LENGTH: u32 = 60;
 const PRESS: u32 = 12;
@@ -670,6 +672,7 @@ impl Case {
 
 pub async fn run(assets: &Assets) {
     let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--kit-air-exchange") { return air_exchange::run(assets, &args).await; }
     if args.iter().any(|a| a == "--kit-ko") { return ko::run(assets, &args).await; }
     if args.iter().any(|a| a == "--kit-victory") { return victory::run(assets, &args).await; }
     let capture = args.iter().any(|a| a == "--capture");

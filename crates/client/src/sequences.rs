@@ -340,6 +340,25 @@ pub fn floor_cell(f: &Fighter) -> Option<Cell> {
     }
 }
 
+// Non-knockdown air recoil releases into a tuck and feet-down descent.
+// Anatomical scale is shared; air roots project below the tucked boots.
+pub const KOGAN_AIR_RECOVERY: [Spec; 4] = [
+    ([0, 0, 625, 600], 400, 500), ([625, 0, 1254, 600], 972, 500),
+    ([0, 600, 625, 1254], 375, 500), ([625, 600, 1254, 1254], 950, 500),
+];
+pub const KOGAN_AIR_RECOVERY_ROOT_Y: [Option<u16>; 4] = [
+    Some(540), Some(540), Some(1150), None,
+];
+
+pub fn air_recovery_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Kogan || !f.airborne { return None; }
+    let Action::Hit { stun, knockdown: false } = f.action else { return None; };
+    // A continuing knockdown keeps its established tumble. A normal juggle
+    // retains recoil until the final four stun ticks; this never returns control.
+    Some(Cell::AirRecovery(if f.vel.y > 0 || stun >= 4 { 0 }
+        else if f.pos.y > aeon_sim::px(24) { 1 } else { 2 }))
+}
+
 // Contact / release pairs retain a shared anatomical scale. The narrow
 // second-row gutter is measured rather than split at the nominal midpoint.
 pub const KOGAN_RECOIL: [Spec; 8] = [
@@ -677,6 +696,7 @@ mod tests {
             ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
             ("kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW[..]),
+            ("kogan-air-recovery-v1-green.png", (1254, 1254), &KOGAN_AIR_RECOVERY[..]),
             ("kogan-crouch-punch-v1-green.png", (1254, 1254), &KOGAN_CROUCH_PUNCH[..]),
             ("kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER[..]),
             ("kogan-flash-v2-green.png", (1024, 1536), &KOGAN_FLASH[..]),
