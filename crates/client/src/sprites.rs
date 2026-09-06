@@ -170,6 +170,7 @@ pub struct SpriteSet {
     body: CharacterId,
     atlas: Option<Texture2D>,
     thrust: Option<Texture2D>,
+    thrust_style: Option<crate::sequences::Atlas>,
     reactions: Option<crate::sequences::Atlas>,
     uppercut: Option<crate::sequences::Atlas>,
     compact_uppercut: Option<crate::sequences::Atlas>,
@@ -459,6 +460,10 @@ impl SpriteSet {
             Atlas::load("assets/animation/kogan-backcut-style-v1-green.png",
                 (1254, 1254), &KOGAN_BACKCUT).await
         } else { None };
+        let thrust_style = if body == CharacterId::Kogan {
+            Atlas::load("assets/animation/kogan-thrust-style-v2-green.png",
+                (1774, 887), &KOGAN_THRUST_STYLE).await
+        } else { None };
         let poke = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-standing-poke-v1-green.png", (1536, 1024), &KOGAN_POKE).await
         } else { None };
@@ -583,7 +588,7 @@ impl SpriteSet {
         let chant_finisher = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-chant3-v1-green.png", (1254, 1254), &RAYA_CHANT_III).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, first_cut, backcut, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, throw_contact, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_saber_contact, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, ritual, utility }
+        Self { textures, body, atlas, thrust, thrust_style, reactions, uppercut, compact_uppercut, cuts, first_cut, backcut, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, throw_contact, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_saber_contact, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, ritual, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -594,6 +599,7 @@ impl SpriteSet {
             body,
             atlas: None,
             thrust: None,
+            thrust_style: None,
             reactions: None,
             uppercut: None,
             compact_uppercut: None,
@@ -774,7 +780,7 @@ impl SpriteSet {
                     ..
                 }
             );
-            if thrust && self.thrust.is_some() {
+            if thrust && (self.thrust_style.is_some() || self.thrust.is_some()) {
                 return Cell::Thrust(cell % 4);
             }
             if self.atlas.is_some() {
@@ -837,6 +843,7 @@ impl SpriteSet {
             Cell::UppercutCompact(cell) => self.compact_uppercut.as_ref()?.frame(cell),
             Cell::Uppercut(0) if self.coil.is_some() => self.coil.as_ref()?.frame(0),
             Cell::Uppercut(cell) => self.uppercut.as_ref()?.frame(cell),
+            Cell::Thrust(cell) if self.thrust_style.is_some() => self.thrust_style.as_ref()?.frame(cell),
             Cell::Thrust(cell) => {
                 let texture = self.thrust.as_ref()?;
                 let (region, anchor, height) = thrust_layout(cell);
