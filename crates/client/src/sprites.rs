@@ -320,6 +320,9 @@ pub(crate) fn key_green(image: &mut Image) {
         let dominance = i16::from(rgba[1]) - i16::from(other);
         if dominance > 90 && rgba[1] > 140 {
             rgba[3] = 0;
+            // Linear filtering still interpolates invisible RGB. Remove the
+            // technical green so it cannot tint adjacent visible silhouette.
+            rgba[1] = other;
         } else if dominance > 18 && rgba[1] > 85 {
             let coverage = 1.0 - (dominance - 18) as f32 / 72.0;
             rgba[3] = (rgba[3] as f32 * coverage.clamp(0.0, 1.0)) as u8;
@@ -1075,6 +1078,26 @@ mod tests {
         let mut interior = Image { width: 3, height: 3, bytes: copper_edge.repeat(9) };
         key_green(&mut interior);
         assert_eq!(&interior.bytes[16..20], &copper_edge);
+    }
+
+    #[test]
+    fn transparent_key_cannot_reintroduce_green_through_linear_filtering() {
+        let copper = [184, 115, 51, 255];
+        let mut image = Image { width: 2, height: 1,
+            bytes: [copper, [0, 230, 0, 255]].concat() };
+        key_green(&mut image);
+        assert_eq!(&image.bytes[..4], &copper, "opaque copper is untouched");
+        assert_eq!(image.bytes[7], 0);
+        // Straight-alpha texture filtering interpolates RGB even for the
+        // transparent texel. Sample near the outside edge over black.
+        for fraction in [0.25_f32, 0.5, 0.75] {
+            let sample: [f32; 4] = std::array::from_fn(|c|
+                f32::from(image.bytes[c]) * (1.0-fraction)
+                    + f32::from(image.bytes[c+4]) * fraction);
+            let rgb = [0, 1, 2].map(|c| sample[c] * sample[3] / 255.0);
+            assert!(rgb[0] > rgb[1] && rgb[1] > rgb[2], "copper edge became green: {rgb:?}");
+            assert!((sample[3] - 255.0 * (1.0-fraction)).abs() < 0.01);
+        }
     }
 
     #[test]

@@ -500,3 +500,7 @@ Four real saved/loaded input logs reproduce960 world/image pairs exactly, includ
 ### ART55 mixed neutral visibility
 
 Quiet mixed-character Stand/Walk/Run depth corrected and reviewed for both slots/facings at center/corners, with existing action priorities preserved.24 freeze cases/33.6s, affected16s of saved play and full35s integration inspected;1,440/1,920/2,100 trace rows unchanged,576 exact paused redraws and960 saved/loaded pixel pairs.183 tests,clippy/release pass. Four changed integration pairs and changed training smoke pair inspected; seven smoke images equal. Shared key/style and Kogan StK/CrK remain open; training-key dispatch and physical play pending.
+
+### ART56 transparent key filtering
+
+Invisible green RGB is neutralized with unchanged alpha/visible source pixels. Regression fails before and passes after;184 tests (89sim+95client),clippy/release pass. Full32s replay and35s integration reviewed at1x1280x720;1,920/2,100 trace rows unchanged and960 saved/loaded PNG pairs exact. Exact replay0240 before/after and allsix changed smoke scenes inspected;two menus equal ART55. Fine legacy edge residue and old/new style remain open, alongside Kogan StK/CrK and production training keys. Full evidence in the full-kit report; whole milestone incomplete.

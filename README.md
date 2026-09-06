@@ -188,3 +188,5 @@ cd "$aeon_review_dir"
 ```
 
 ART55: mixed neutral visibility reviewed;183 workspace tests pass with clippy/release. See `docs/FULL-KIT-2026-09-05.md` for evidence and remaining art/physical-play gates.
+
+ART56: transparent key filtering reviewed;184 workspace tests,clippy/release pass. Remaining source-art and physical-play gates are in `docs/FULL-KIT-2026-09-05.md`.
