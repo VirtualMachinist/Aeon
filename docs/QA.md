@@ -306,3 +306,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART30 | Compact hop and full-size jump preserve support, identity and legal return | All 24 before/final jumps / 24 s each and 64 shared airborne exchanges / 160 s viewed at 1× in 1280×720; preparation, full arc, clean landing and mirrored/corner phases stepped. G1/K1/S1 refraction recorded. |
 
 170 tests (89 sim + 81 client), clippy and locked/offline release pass. All 1,440 movement, 9,600 shared exchange and 2,100 integration ticks equal baseline. Complete new 35 s integration viewed, including stepped uppercut landing. Eight smoke PNGs: seven match prior inspected evidence, changed training tick pair directly inspected. Original failed candidate is retained as incomplete; fresh candidate2 is the unchanged accepted V1. Broader Raya attack/reaction families and physical play remain open. Exact evidence: full-kit report and raya-movement-verification.json.
+
+## September 5 Raya airborne recovery review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART31 | Non-knockdown recoil regains supported form within existing control rules | All 40 affected before/final cases / 100 s each at 1× in 1280×720, candidate 10 s and selected contact/descent/corner landing steps; four V1 defensive drawings, G2/G1/S1. |
+
+170 tests (89 sim + 81 client), clippy and locked/offline release pass. All 6,000 final, 600 candidate and 2,100 integration ticks equal baseline. New 35 s integration video is byte-identical to fully reviewed movement evidence, reused explicitly. Eight smoke PNGs: seven identical, changed training tick pair directly inspected. First old-binary capture labeled invalid; corrected candidate2/final accepted. Broader Raya grounded/knockdown reactions, attacks and physical play remain open. Exact evidence: full-kit report and raya-air-recovery-verification.json.

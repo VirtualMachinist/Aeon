@@ -100,3 +100,5 @@ Kogan crouching punch uses four V1 full-body drawings: [exact prompt and review]
 Kogan non-knockdown airborne recovery uses four V1 defensive drawings: [exact prompt and review](KOGAN-AIR-RECOVERY-2026-09-05.md).
 
 Raya standalone movement uses eight V1 preparation/hop/full-jump/landing drawings: [exact prompt, source, calibration and review](RAYA-MOVEMENT-2026-09-05.md).
+
+Raya airborne non-knockdown recovery uses four V1 defensive drawings: [exact prompt, source, calibration and review](RAYA-AIR-RECOVERY-2026-09-05.md).

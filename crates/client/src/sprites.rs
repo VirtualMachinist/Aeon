@@ -476,10 +476,12 @@ impl SpriteSet {
         let floor = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-floor-v1-green.png", (1536, 1024), &KOGAN_FLOOR).await
         } else { None };
-        let air_recovery = if body == CharacterId::Kogan {
-            Atlas::load_with_roots("assets/animation/kogan-air-recovery-v1-green.png", (1254, 1254),
-                &KOGAN_AIR_RECOVERY, &KOGAN_AIR_RECOVERY_ROOT_Y).await
-        } else { None };
+        let (air_file, air_specs, air_roots) = match body {
+            CharacterId::Kogan => ("kogan-air-recovery-v1-green.png", &KOGAN_AIR_RECOVERY, &KOGAN_AIR_RECOVERY_ROOT_Y),
+            CharacterId::Raya => ("raya-air-recovery-v1-green.png", &RAYA_AIR_RECOVERY, &RAYA_AIR_RECOVERY_ROOT_Y),
+        };
+        let air_recovery = Atlas::load_with_roots(&format!("assets/animation/{air_file}"),
+            (1254, 1254), air_specs, air_roots).await;
         let recoil = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL).await
         } else { None };
