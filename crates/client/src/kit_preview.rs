@@ -87,7 +87,7 @@ fn throw_cases(body: CharacterId) -> Vec<Case> {
 }
 
 fn feint_cases() -> Vec<Case> {
-    let base = saber_cases(CharacterId::Kogan).into_iter().chain(ranged_cases()).chain(utility_cases(CharacterId::Kogan))
+    let base = saber_cases(CharacterId::Kogan).into_iter().chain(ranged_cases(CharacterId::Kogan)).chain(utility_cases(CharacterId::Kogan))
         .chain(disc_cases()).chain(overhead_cases(CharacterId::Kogan))
         .filter(|c| c.response == Response::Hit
             && CharacterId::Kogan.data().move_def(c.move_id).is_some_and(|m| m.feintable))
@@ -166,13 +166,14 @@ fn rising_air_cases(body: CharacterId) -> Vec<Case> {
     early_air_cases(body).into_iter().map(|mut c| { c.response = Response::RisingWhiff; c }).collect()
 }
 
-fn ranged_cases() -> Vec<Case> {
+fn ranged_cases(body: CharacterId) -> Vec<Case> {
     let mut result = Vec::new();
-    for move_id in [MoveId::ShotA, MoveId::ShotB, MoveId::ExB] {
+    for move_id in [MoveId::ShotA, MoveId::ShotB, MoveId::ExA, MoveId::ExB] {
+        if body == CharacterId::Kogan && move_id == MoveId::ExA { continue; }
         for response in [Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff] {
             for corner in [false, true] {
                 for right in [true, false] {
-                    result.push(Case { body: CharacterId::Kogan, move_id, response,
+                    result.push(Case { body, move_id, response,
                         right, corner, jump: None, air: false, ranged: true, utility: false, saber: false, disc: false, reaction: false, ground: None, feint: None });
                 }
             }
@@ -286,7 +287,8 @@ fn reaction_cases(victim: CharacterId) -> Vec<Case> {
 
 impl Case {
     fn duration(self) -> u32 {
-        if self.feint.is_some() { 120 }
+        if self.body == CharacterId::Raya && self.ranged { 210 }
+        else if self.feint.is_some() { 120 }
         else if self.reaction || self.move_id == MoveId::Throw { 150 }
         else if self.disc || self.ground.is_some() { 90 }
         else if self.saber && self.move_id == MoveId::Rekka3 { 180 }
@@ -346,6 +348,7 @@ impl Case {
             CharacterId::Raya => CharacterId::Kogan,
         };
         let mut world = World::new(self.body, opponent);
+        if self.body == CharacterId::Raya && self.ranged { world.fighters[0].gauge = if matches!(self.move_id, MoveId::ExA | MoveId::ExB) { 50 } else { 0 }; }
         if self.move_id == MoveId::Super { world.fighters[0].meter = 1000; }
         if self.body == CharacterId::Kogan && self.air && self.move_id == MoveId::JFL { world.fighters[0].gauge = 0; }
         let gap = if self.response == Response::Whiff { 150 } else { 40 };
@@ -390,7 +393,9 @@ impl Case {
             let defender = if self.corner { 740 } else { 400 };
             (defender - distance, defender)
         } else if self.ranged {
-            let distance = if self.response == Response::Whiff && self.move_id == MoveId::ShotB { 340 } else { 140 };
+            let distance = if self.body == CharacterId::Raya {
+                if self.response == Response::Whiff { 300 } else { match self.move_id { MoveId::ShotA => 70, MoveId::ExB => 150, _ => 90 } }
+            } else if self.response == Response::Whiff && self.move_id == MoveId::ShotB { 340 } else { 140 };
             let defender = if self.corner { 740 } else { 480 };
             (defender - distance, defender)
         } else if self.jump.is_some() {
@@ -406,6 +411,17 @@ impl Case {
     // cannot make a fixed wall-clock script skip the later rekka actions.
     fn inputs_for_world(self, frame: u32, world: &World) -> [InputFrame; 2] {
         let mut inputs = self.inputs(frame);
+        if self.body == CharacterId::Raya && self.ranged && self.response == Response::StandBlock {
+            // Begin holding back at the real release/arming boundary so the
+            // fixture does not walk out of a stationary glyph or planted trap.
+            let glyph_release = matches!(self.move_id, MoveId::ShotB | MoveId::ExA)
+                && world.fighters[0].action.attacking().is_some_and(|(id, age, _)|
+                    id == self.move_id && age + 1 >= u16::from(self.body.data().move_def(id).unwrap().startup));
+            let live = world.projectiles.iter().any(|p| p.owner == 0 && (p.live()
+                || matches!(p.state, aeon_sim::ShotState::Planted { armed: false, timer } if timer + 1 >= p.arm_after)));
+            inputs[1] = InputFrame::dir(if glyph_release || live { 4 } else { 5 });
+        }
+
         if self.air {
             let f = &world.fighters[0];
             let attack_height = if self.response == Response::EarlyWhiff { 999 }
@@ -635,7 +651,7 @@ impl Case {
             return [attacker, defender];
         }
         if self.ranged {
-            let wave = self.move_id == MoveId::ShotB;
+            let wave = matches!(self.move_id, MoveId::ShotB | MoveId::ExA);
             let direction = match frame {
                 n if n == PRESS - 3 => 2,
                 n if n == PRESS - 2 => if wave { 3 } else { 1 },
@@ -645,7 +661,7 @@ impl Case {
             let mut attacker = InputFrame::dir(direction);
             if frame == PRESS {
                 attacker.buttons = match self.move_id {
-                    MoveId::ExB => Buttons::two(Btn::S, Btn::HS),
+                    MoveId::ExA | MoveId::ExB => Buttons::two(Btn::S, Btn::HS),
                     MoveId::ShotB => Buttons::one(Btn::HS),
                     _ => Buttons::one(Btn::S),
                 };
@@ -655,7 +671,7 @@ impl Case {
             let defense = match self.response {
                 Response::StandBlock if frame >= guard_start => 4,
                 Response::CrouchBlock => 1,
-                Response::Whiff if !wave && (jump_start..jump_start + 7).contains(&frame) => 8,
+                Response::Whiff if self.body == CharacterId::Kogan && !wave && (jump_start..jump_start + 7).contains(&frame) => 8,
                 _ => 5,
             };
             return [attacker, InputFrame::dir(defense)];
@@ -733,8 +749,7 @@ pub async fn run(assets: &Assets) {
     } else if args.iter().any(|a| a == "--kit-utility") {
         utility_cases(body)
     } else if args.iter().any(|a| a == "--kit-ranged") {
-        assert!(body == CharacterId::Kogan, "ranged cases currently cover Kogan");
-        ranged_cases()
+        ranged_cases(body)
     } else if args.iter().any(|a| a == "--kit-movement") {
         movement_cases(body)
     } else { cases(body) };
@@ -1459,8 +1474,53 @@ mod tests {
     }
 
     #[test]
+    fn raya_ranged_preview_uses_real_glyphs_and_armed_crystals() {
+        let cases = ranged_cases(CharacterId::Raya);
+        assert_eq!(cases.len(), 64);
+        for case in cases {
+            let mut world = case.world();
+            let hp = world.fighters[1].health;
+            let mut started = false;
+            let mut spawned = false;
+            let mut armed = false;
+            let mut hits = 0;
+            let mut blocks = 0;
+            let mut drawings = std::collections::HashSet::new();
+            let mut frozen = None;
+            for tick in 0..case.duration() {
+                let [a,b] = case.inputs_for_world(tick, &world);
+                world.tick(a,b);
+                let cell = crate::sequences::ranged_cell(&world.fighters[0]);
+                if let Some(cell) = cell { drawings.insert(cell); }
+                if let Some((frame,previous)) = frozen { if world.frame == frame { assert_eq!(cell,previous,"freeze holds release drawing"); } }
+                frozen = Some((world.frame,cell));
+                started |= world.fighters[0].action.attacking().is_some_and(|(id,_,_)| id == case.move_id);
+                spawned |= !world.projectiles.is_empty();
+                for e in &world.events {
+                    armed |= e.kind == EventKind::Armed;
+                    hits += usize::from(matches!(e.kind, EventKind::Hit | EventKind::Knockdown | EventKind::Punish));
+                    blocks += usize::from(e.kind == EventKind::Block);
+                }
+            }
+            let base = if matches!(case.move_id, MoveId::ShotA | MoveId::ExB) { 0 } else { 4 };
+            for phase in 0..4 { assert!(drawings.contains(&crate::sprites::Cell::Ranged(base+phase)), "{case:?}: every drawn phase"); }
+            let miss = case.response == Response::Whiff;
+            let guard = matches!(case.response, Response::StandBlock | Response::CrouchBlock);
+            assert!(started && (spawned || hits + blocks > 0), "{case:?}: legal release");
+            let contacts = if matches!(case.move_id, MoveId::ShotA | MoveId::ExB) { 2 } else { 1 };
+            assert_eq!((hits,blocks), if miss {(0,0)} else if guard {(0,contacts)} else {(contacts,0)}, "{case:?}");
+            let def = case.body.data().move_def(case.move_id).unwrap().projectile.unwrap();
+            assert_eq!(hp-world.fighters[1].health, if miss {0} else if guard {def.chip * contacts as i32} else {def.damage + if contacts == 2 { def.damage * 80 / 100 } else { 0 }}, "{case:?}: unchanged damage");
+            assert_eq!(world.fighters[0].gauge, 0, "{case:?}: original gauge cost");
+            assert_eq!(armed, matches!(case.move_id, MoveId::ShotA | MoveId::ExB), "{case:?}: crystal must plant and arm");
+            assert!(world.projectiles.is_empty(), "{case:?}: complete contact or expiry");
+            assert!(world.fighters.iter().all(|f| f.action.actionable()), "{case:?}: complete recovery");
+        }
+    }
+
+    #[test]
     fn ranged_preview_exercises_release_guard_whiff_and_recovery() {
-        for case in ranged_cases() {
+        for case in ranged_cases(CharacterId::Kogan) {
             let mut world = case.world();
             let mut started = false;
             let mut hits = 0;

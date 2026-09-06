@@ -842,11 +842,26 @@ pub const KOGAN_RANGED: [Spec; 8] = [
     ([715, 535, 1050, 1086], 875, 400), ([1050, 535, 1448, 1086], 1250, 400),
 ];
 
+pub const RAYA_RANGED: [Spec; 8] = [
+    ([0,0,390,490],246,395), ([390,0,765,490],610,395),
+    ([765,0,1135,490],975,395), ([1135,0,1536,490],1290,395),
+    ([0,490,390,1024],235,414), ([390,490,765,1024],610,414),
+    ([765,490,1135,1024],970,414), ([1135,490,1536,1024],1290,414),
+];
+
 pub fn ranged_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan {
-        return None;
-    }
     let Action::Attack { move_id, frame, .. } = f.action else { return None };
+    if f.id == aeon_sim::CharacterId::Raya {
+        let base = match move_id { MoveId::ShotA | MoveId::ExB => 0, MoveId::ShotB | MoveId::ExA => 4, _ => return None };
+        let mv = f.data().move_def(move_id)?;
+        // Release the drawn object exactly when the actual projectile appears.
+        // The body withdraws while the hanging glyph or planted crystal persists.
+        let phase = if frame < mv.first_active() { 0 }
+            else if frame <= mv.last_active() + 2 { 1 }
+            else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+            else { 3 };
+        return Some(Cell::Ranged(base + phase));
+    }
     let base = match move_id {
         MoveId::ShotA | MoveId::ExB => 0,
         MoveId::ShotB => 4,
@@ -965,6 +980,7 @@ mod tests {
             ("raya-utility-v1-green.png", (1536, 1024), &RAYA_UTILITY[..]),
             ("raya-throw-contact-v1-green.png", (1254, 1254), &RAYA_THROW_CONTACT[..]),
             ("kogan-ranged-v5-green.png", (1448, 1086), &KOGAN_RANGED[..]),
+            ("raya-ranged-v2-green.png", (1536, 1024), &RAYA_RANGED[..]),
             ("raya-movement-v1-green.png", (1672, 941), &RAYA_MOVEMENT[..]),
             ("raya-air-lights-v1-green.png", (1024, 1536), &RAYA_AIR_LIGHTS[..]),
             ("raya-air-crystals-v1-green.png", (1024, 1536), &RAYA_AIR_CRYSTALS[..]),
