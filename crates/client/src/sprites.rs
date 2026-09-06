@@ -327,8 +327,8 @@ pub(crate) fn key_green(image: &mut Image) {
             let coverage = 1.0 - (dominance - 18) as f32 / 72.0;
             rgba[3] = (rgba[3] as f32 * coverage.clamp(0.0, 1.0)) as u8;
             rgba[1] = other;
-        } else if dominance > 4 && rgba[1] > 65 {
-            // Weak key spill can survive on already-antialiased copper edges.
+        } else if dominance > 4 {
+            // Weak or dark key spill survives on antialiased copper edges.
             // Desaturate the key channel without eroding their existing alpha.
             rgba[1] = other;
         }
@@ -1098,6 +1098,18 @@ mod tests {
             assert!(rgb[0] > rgb[1] && rgb[1] > rgb[2], "copper edge became green: {rgb:?}");
             assert!((sample[3] - 255.0 * (1.0-fraction)).abs() < 0.01);
         }
+    }
+
+    #[test]
+    fn dark_key_spill_is_neutralized_without_eroding_coverage() {
+        let pixels = [[21, 42, 15, 255], [0, 63, 0, 4], [14, 17, 22, 255],
+            [20, 60, 64, 255], [38, 27, 19, 255]];
+        let mut image = Image { width: 5, height: 1, bytes: pixels.concat() };
+        key_green(&mut image);
+        assert_eq!(&image.bytes[0..4], &[21, 21, 15, 255]);
+        assert_eq!(&image.bytes[4..8], &[0, 0, 0, 4]);
+        assert_eq!(&image.bytes[8..], &pixels[2..].concat(),
+            "dark blue, cyan writing and copper remain untouched");
     }
 
     #[test]
