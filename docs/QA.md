@@ -474,3 +474,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART51 | Supported offering after legal recovery;correct round/reset behavior |16 before/final cases,64s each at1x,both facings/corners;four phases,crouch rise,air landing and resets inspected. A1/A2/S2 and original AC104.795–110.230s refraction. |
 
 179 tests(89 sim+90 client),clippy and locked/offline release pass.3,840 focused and2,100 integration ticks unchanged;complete35s video/71 diagnostics equal inspected ART50/ART49. Seven smoke PNGs equal;changed winner pair inspected. New source and exact prompt recorded in `RAYA-VICTORY-2026-09-06.md`. Remaining Kogan attacks and shared polish stay open.
+
+## September 6 Kogan jab phase review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART52 | Drawn outbound/withdrawal inside original light timing |20 before/candidate2 cases,20s each at1x;exact phases,guard,duck,miss and corners inspected. G2/K2 plus fresh Garou387–391s refraction. |
+
+179 tests(89 sim+90 client),clippy/release pass.1,200 focused/2,100 integration ticks unchanged. Complete35s video,71 diagnostics and8 smoke PNGs equal inspected ART51. Approved reuse in `KOGAN-JAB-2026-09-06.md`. Shared old/new style/edge and close-neutral overlap gates remain open;StK/CrK drawing gaps remain.

@@ -142,3 +142,5 @@ Raya Convergence uses four V1 gather,expanded orbit,dismissal and ready phases. 
 Raya feints reuse approved withdrawal/ready drawings,with supported Charge rise and airborne descent. [Exact reuse and review](RAYA-FEINT-2026-09-06.md). No new generation.
 
 Raya victory:four V1 gather/cup/lift/settle drawings. [Exact prompt,source and review](RAYA-VICTORY-2026-09-06.md).
+
+Kogan jab:approved Flash gathered fist and ready bracket the original complete contact. [Reuse and review](KOGAN-JAB-2026-09-06.md). No new generation.

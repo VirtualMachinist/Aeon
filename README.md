@@ -171,3 +171,5 @@ Raya Convergence has reviewed drawn phases. Use `--kit-preview --kit-super --kit
 Raya feints now retain family-specific withdrawal and supported airborne return. `--kit-preview --kit-feint --kit-raya` selects80 reviewed early/late cases.179 tests/clippy/release pass;simulation unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
 
 Raya victory now retains supported recovery into a four-phase quiet offering. `--kit-preview --kit-victory --kit-raya` selects16 reviewed cases.179 tests/clippy/release pass;simulation unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
+
+Kogan jab now uses drawn gather/contact/withdrawal/ready. `--kit-preview --kit-move=StP` selects20 reviewed cases.179 tests/clippy/release pass;simulation unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Shared polish and remaining kicks stay open.

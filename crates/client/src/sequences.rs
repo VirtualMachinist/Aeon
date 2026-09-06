@@ -275,8 +275,9 @@ pub const RAYA_STANDING_LIGHTS: [Spec; 8] = [
 ];
 
 pub fn standing_lights_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Raya || f.airborne { return None; }
+    if f.airborne { return None; }
     let Action::Attack { move_id, frame, .. } = f.action else { return None; };
+    if f.id == aeon_sim::CharacterId::Kogan && move_id != MoveId::StP { return None; }
     let base = match move_id { MoveId::StP => 0, MoveId::StK => 4, _ => return None };
     let mv = f.data().move_def(move_id)?;
     let phase = if frame < mv.first_active() { 0 }

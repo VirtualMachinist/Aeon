@@ -668,7 +668,11 @@ impl SpriteSet {
         if self.signature.is_some() && self.signature_contacts.is_some() {
             if let Some(cell) = crate::sequences::signature_cell(fighter) { return cell; }
         }
-        if self.standing_lights.is_some() && self.standing_palm_contact.is_some() {
+        let standing_lights_ready = match self.body {
+            CharacterId::Kogan => self.flash.is_some() && self.textures.contains_key(&Pose::P),
+            CharacterId::Raya => self.standing_lights.is_some() && self.standing_palm_contact.is_some(),
+        };
+        if standing_lights_ready {
             if let Some(cell) = crate::sequences::standing_lights_cell(fighter) { return cell; }
         }
         if self.crouch_lights.is_some() && self.crouch_kick_contact.is_some() {
@@ -786,6 +790,16 @@ impl SpriteSet {
             Cell::Judgment(cell) => self.judgment.as_ref()?.frame(cell),
             Cell::Floor(cell) => self.floor.as_ref()?.frame(cell),
             Cell::AirRecovery(cell) => self.air_recovery.as_ref()?.frame(cell),
+            // Kogan's approved complete jab contact is bracketed by his
+            // existing drawn fist gather/withdrawal and relaxed ready.
+            Cell::StandingLights(cell) if self.body == CharacterId::Kogan => {
+                match cell {
+                    0 | 2 => self.flash.as_ref()?.frame(2),
+                    3 => self.flash.as_ref()?.frame(3),
+                    1 => self.frame(Cell::Pose(Pose::P)),
+                    _ => None,
+                }
+            }
             Cell::StandingLights(1) => self.standing_palm_contact.as_ref()?.frame(0),
             Cell::StandingLights(cell) => self.standing_lights.as_ref()?.frame(cell),
             Cell::Signature(cell @ 4..=5) => self.signature_contacts.as_ref()?.frame(cell - 4),

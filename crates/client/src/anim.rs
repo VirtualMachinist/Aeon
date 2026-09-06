@@ -109,14 +109,14 @@ impl History {
     /// crouching body must remain visible below the opponent's standing torso.
     /// Its two-frame rise keeps that order until the standing drawing returns.
     pub fn draw_order(&self, w: &World) -> [usize; 2] {
-        // Judgment's low arm and the legacy low kick's cape overlap the receiver.
-        // Keep the grounded low consequence visible through that cloth.
+        // Keep the low body visible under a high jab, and preserve the
+        // reviewed low consequences beneath Judgment/legacy kick cloth.
         for attacker in [0, 1] {
             let defender = 1 - attacker;
             let a = &w.fighters[attacker];
             let d = &w.fighters[defender];
             if a.id == CharacterId::Kogan && !a.airborne && !d.airborne
-                && matches!(a.action, Action::Attack { move_id: MoveId::Super | MoveId::CrK, .. })
+                && matches!(a.action, Action::Attack { move_id: MoveId::StP | MoveId::Super | MoveId::CrK, .. })
                 && (matches!(d.action, Action::Crouch | Action::Block { crouching: true, .. })
                     || (matches!(d.action, Action::Hit { .. }) && d.input().down())) {
                 return [attacker, defender];
@@ -1131,7 +1131,7 @@ mod tests {
     fn authored_kogan_return_has_one_body_and_no_extra_blade_rotation() {
         let sprites = set(CharacterId::Kogan);
         let opts = LayerOpts { win: None, defeat: None, flash: (0.0, WHITE) };
-        for previous in [Cell::AirRecovery(0), Cell::AirRecovery(1), Cell::AirRecovery(2), Cell::AirRecovery(3), Cell::CrouchPunch(0), Cell::CrouchPunch(1), Cell::CrouchPunch(2), Cell::CrouchPunch(3), Cell::Victory(0), Cell::Victory(1), Cell::Victory(2), Cell::Victory(3), Cell::ThrowTech(0), Cell::ThrowTech(1), Cell::Utility(0), Cell::Utility(1), Cell::Utility(2), Cell::Utility(3), Cell::Overhead(0), Cell::Overhead(1), Cell::Overhead(2), Cell::Overhead(3), Cell::CrouchSaber(8), Cell::CrouchSaber(9), Cell::CrouchSaber(10), Cell::CrouchSaber(11), Cell::CrouchSaber(12), Cell::CrouchSaber(13), Cell::CrouchSaber(14), Cell::CrouchSaber(15), Cell::CrouchSaber(0), Cell::CrouchSaber(1), Cell::CrouchSaber(2), Cell::CrouchSaber(3), Cell::CrouchSaber(4), Cell::CrouchSaber(5), Cell::CrouchSaber(6), Cell::CrouchSaber(7), Cell::Flash(0), Cell::Flash(1), Cell::Flash(2), Cell::Flash(3), Cell::Flash(4), Cell::Flash(5), Cell::Flash(6), Cell::Flash(7), Cell::AirLights(0), Cell::AirLights(1), Cell::AirLights(2), Cell::AirLights(3), Cell::AirLights(4), Cell::AirLights(5), Cell::AirSaber(0), Cell::AirSaber(1), Cell::AirSaber(2), Cell::AirSaber(3), Cell::AirSaber(4), Cell::AirSaber(5), Cell::AirShot(0), Cell::AirShot(1), Cell::AirShot(2), Cell::AirShot(3), Cell::Judgment(0), Cell::Judgment(1), Cell::Judgment(2), Cell::Judgment(3), Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
+        for previous in [Cell::StandingLights(0), Cell::StandingLights(1), Cell::StandingLights(2), Cell::StandingLights(3), Cell::AirRecovery(0), Cell::AirRecovery(1), Cell::AirRecovery(2), Cell::AirRecovery(3), Cell::CrouchPunch(0), Cell::CrouchPunch(1), Cell::CrouchPunch(2), Cell::CrouchPunch(3), Cell::Victory(0), Cell::Victory(1), Cell::Victory(2), Cell::Victory(3), Cell::ThrowTech(0), Cell::ThrowTech(1), Cell::Utility(0), Cell::Utility(1), Cell::Utility(2), Cell::Utility(3), Cell::Overhead(0), Cell::Overhead(1), Cell::Overhead(2), Cell::Overhead(3), Cell::CrouchSaber(8), Cell::CrouchSaber(9), Cell::CrouchSaber(10), Cell::CrouchSaber(11), Cell::CrouchSaber(12), Cell::CrouchSaber(13), Cell::CrouchSaber(14), Cell::CrouchSaber(15), Cell::CrouchSaber(0), Cell::CrouchSaber(1), Cell::CrouchSaber(2), Cell::CrouchSaber(3), Cell::CrouchSaber(4), Cell::CrouchSaber(5), Cell::CrouchSaber(6), Cell::CrouchSaber(7), Cell::Flash(0), Cell::Flash(1), Cell::Flash(2), Cell::Flash(3), Cell::Flash(4), Cell::Flash(5), Cell::Flash(6), Cell::Flash(7), Cell::AirLights(0), Cell::AirLights(1), Cell::AirLights(2), Cell::AirLights(3), Cell::AirLights(4), Cell::AirLights(5), Cell::AirSaber(0), Cell::AirSaber(1), Cell::AirSaber(2), Cell::AirSaber(3), Cell::AirSaber(4), Cell::AirSaber(5), Cell::AirShot(0), Cell::AirShot(1), Cell::AirShot(2), Cell::AirShot(3), Cell::Judgment(0), Cell::Judgment(1), Cell::Judgment(2), Cell::Judgment(3), Cell::Floor(0), Cell::Floor(1), Cell::Floor(2), Cell::Floor(3), Cell::Recoil(1), Cell::Recoil(3), Cell::Recoil(5), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(2), Cell::Ground(5), Cell::Atlas(2), Cell::Disc(2), Cell::Poke(2), Cell::Atlas(6), Cell::Atlas(10), Cell::Thrust(2), Cell::Uppercut(3), Cell::UppercutCompact(1), Cell::Reaction(8)] {
             let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
             let mut history = History::default();
             history.record(&w, [previous, Cell::Pose(Pose::Idle)]);
@@ -1147,13 +1147,13 @@ mod tests {
     }
 
     #[test]
-    fn judgment_and_low_kick_keep_a_crouched_receiver_visible_for_either_player() {
+    fn jab_judgment_and_low_kick_keep_a_crouched_receiver_visible_for_either_player() {
         for attacker in [0, 1] {
             let mut w = if attacker == 0 { World::new(CharacterId::Kogan, CharacterId::Raya) }
                 else { World::new(CharacterId::Raya, CharacterId::Kogan) };
             let defender = 1 - attacker;
             let history = History::default();
-            for move_id in [MoveId::Super, MoveId::CrK] {
+            for move_id in [MoveId::StP, MoveId::Super, MoveId::CrK] {
                 w.fighters[attacker].start_move(move_id);
                 for action in [Action::Crouch, Action::Block { crouching: true, stun: 8 }] {
                     w.fighters[defender].action = action;
