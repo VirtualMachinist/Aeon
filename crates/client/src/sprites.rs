@@ -746,6 +746,14 @@ impl SpriteSet {
                 return cell;
             }
         }
+        // Quiet neutral shares the authored ready pose used by attack returns.
+        if fighter.id == CharacterId::Kogan
+            && !fighter.airborne
+            && matches!(fighter.action, Action::Stand)
+            && self.flash.is_some()
+        {
+            return Cell::Flash(3);
+        }
         if let Some(cell) = animation_cell(fighter, tick) {
             let thrust = matches!(
                 fighter.action,
