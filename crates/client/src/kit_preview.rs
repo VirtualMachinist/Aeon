@@ -1632,9 +1632,17 @@ mod tests {
                 let mut hits = 0;
                 let mut blocks = 0;
                 let mut crouched_hit = false;
+                let mut seen = std::collections::HashSet::new();
+                let mut held = None;
                 for frame in 0..LENGTH {
                     let [p1, p2] = case.inputs_for_world(frame, &world);
                     world.tick(p1, p2);
+                    let cell = crate::sequences::standing_lights_cell(&world.fighters[0]);
+                    if let Some(cell) = cell { seen.insert(cell); }
+                    if let Some((tick, previous)) = held {
+                        if tick == world.frame { assert_eq!(cell, previous, "hitstop freezes the drawn phase"); }
+                    }
+                    held = Some((world.frame, cell));
                     started |= world.fighters[0].action.attacking()
                         .is_some_and(|(id, _, _)| id == case.move_id);
                     for event in &world.events {
@@ -1644,6 +1652,9 @@ mod tests {
                     crouched_hit |= matches!(world.fighters[1].action, Action::Hit { .. })
                         && world.fighters[1].input().down();
                 }
+                assert_eq!(seen.len(), if body == CharacterId::Raya && matches!(case.move_id, MoveId::StP | MoveId::StK) { 4 } else { 0 },
+                    "{case:?}: all four Raya phases appear without affecting the other body or move");
+                assert_eq!(crate::sequences::standing_lights_cell(&world.fighters[0]), None, "no extra art recovery");
                 assert!(started, "{case:?} must start through real inputs");
                 assert!(world.fighters[0].action.actionable(), "{case:?} must recover");
                 // Standing jabs pass above a crouched hurtbox. A standing guard

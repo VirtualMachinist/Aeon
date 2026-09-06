@@ -183,6 +183,8 @@ pub struct SpriteSet {
     overhead: Option<crate::sequences::Atlas>,
     throw_tech: Option<crate::sequences::Atlas>,
     victory: Option<crate::sequences::Atlas>,
+    standing_lights: Option<crate::sequences::Atlas>,
+    standing_palm_contact: Option<crate::sequences::Atlas>,
     crouch_punch: Option<crate::sequences::Atlas>,
     crouch_saber: Option<crate::sequences::Atlas>,
     crouch_low: Option<crate::sequences::Atlas>,
@@ -226,6 +228,7 @@ pub enum Cell {
     AirSaber(usize),
     AirLights(usize),
     Flash(usize),
+    StandingLights(usize),
     CrouchPunch(usize),
     CrouchSaber(usize),
     Overhead(usize),
@@ -445,6 +448,13 @@ impl SpriteSet {
         let crouch_low = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW).await
         } else { None };
+        let standing_lights = if body == CharacterId::Raya {
+            Atlas::load("assets/animation/raya-standing-lights-v1-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS).await
+        } else { None };
+        // Keep seven sound original drawings; only the lowered contact uses V2.
+        let standing_palm_contact = if body == CharacterId::Raya {
+            Atlas::load("assets/animation/raya-standing-lights-v2-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[1..2]).await
+        } else { None };
         let crouch_punch = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-crouch-punch-v1-green.png", (1254, 1254), &KOGAN_CROUCH_PUNCH).await
         } else { None };
@@ -493,7 +503,7 @@ impl SpriteSet {
             CharacterId::Raya => ("raya-recoil-v1-green.png", (941, 1672), &RAYA_RECOIL),
         };
         let recoil = Atlas::load(&format!("assets/animation/{recoil_file}"), recoil_size, recoil_specs).await;
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, overhead, throw_tech, victory, crouch_punch, crouch_saber, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, overhead, throw_tech, victory, standing_lights, standing_palm_contact, crouch_punch, crouch_saber, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -517,6 +527,8 @@ impl SpriteSet {
             overhead: None,
             throw_tech: None,
             victory: None,
+            standing_lights: None,
+            standing_palm_contact: None,
             crouch_punch: None,
             crouch_saber: None,
             crouch_low: None,
@@ -572,6 +584,9 @@ impl SpriteSet {
         }
         if self.overhead.is_some() {
             if let Some(cell) = crate::sequences::overhead_cell(fighter) { return cell; }
+        }
+        if self.standing_lights.is_some() && self.standing_palm_contact.is_some() {
+            if let Some(cell) = crate::sequences::standing_lights_cell(fighter) { return cell; }
         }
         if self.crouch_punch.is_some() {
             if let Some(cell) = crate::sequences::crouch_punch_cell(fighter) { return cell; }
@@ -670,6 +685,8 @@ impl SpriteSet {
             Cell::Judgment(cell) => self.judgment.as_ref()?.frame(cell),
             Cell::Floor(cell) => self.floor.as_ref()?.frame(cell),
             Cell::AirRecovery(cell) => self.air_recovery.as_ref()?.frame(cell),
+            Cell::StandingLights(1) => self.standing_palm_contact.as_ref()?.frame(0),
+            Cell::StandingLights(cell) => self.standing_lights.as_ref()?.frame(cell),
             Cell::Recoil(cell) => self.recoil.as_ref()?.frame(cell),
             Cell::Reaction(cell) => self.reactions.as_ref()?.frame(cell),
             Cell::Poke(cell) => self.poke.as_ref()?.frame(cell),

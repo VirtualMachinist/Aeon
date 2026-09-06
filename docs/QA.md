@@ -330,3 +330,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART33 | Hit/guard consequences and floor recovery preserve identity and supported return | All36 before/final cases /90 s each played at1×1280×720; corrected eight Raya low-reaction cases /20 s and eight Kogan regressions /20 s reviewed, with release/contact/floor/corner phases stepped. G2/S2/A1/S1 refraction recorded. |
 
 171 tests (89 sim +82 client), clippy and locked/offline release pass. All5,400 accepted Raya,1,200 Kogan regression and2,100 integration ticks equal baseline; complete new35 s integration reviewed. Fresh smoke3 provides eight images byte-identical to inspected ground evidence; smoke2's six images are incomplete. Accepted union: seven unaffected initial final Raya clips plus both corrected final2 low clips. Existing floor drawings reused with clean cuts; original24f getup unchanged. Kogan legacy CrK attack defects and broader Raya kit/global polish remain open; no blocked art request retried. Exact evidence: full-kit report, provenance and raya-reaction-verification.json.
+
+## September 5 Raya standing-light review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART34 | Compact palm and low kick show contact and a supported return | All40 before/final2 cases /40 s each at1×1280×720; preparation/contact/withdrawal/ready/idle, mirrored corners, guards, duck and misses stepped. G2/K2 refraction recorded. |
+
+171 tests (89 sim +82 client), clippy and locked/offline release pass. All2,400 final and2,100 integration ticks equal baseline; complete new35 s integration reviewed. Eight smoke PNGs equal inspected Raya ground evidence. V1 gameplay is superseded by corrected final2 palm/stance calibration. No simulation values changed. Exact evidence, source limits and remaining work: full-kit report and raya-lights-verification.json.

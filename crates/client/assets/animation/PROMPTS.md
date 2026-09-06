@@ -106,3 +106,5 @@ Raya airborne non-knockdown recovery uses four V1 defensive drawings: [exact pro
 Raya ground movement: eight V1 glide/crouch/retreat drawings, measured original walk cells and full36-case review. Exact prompt/source/calibration: [RAYA-GROUND-2026-09-05.md](RAYA-GROUND-2026-09-05.md).
 
 Raya grounded recoil V1: eight defensive impact/release drawings, clean retained floor recovery and corrected low return. [Exact prompt, source, calibration and review](RAYA-RECOIL-2026-09-05.md).
+
+Raya standing palm/low kick: seven V1 cells plus corrected V2 palm contact, complete40-case final2 and integration review. [Exact prompts, source and calibration](RAYA-STANDING-LIGHTS-2026-09-05.md).
