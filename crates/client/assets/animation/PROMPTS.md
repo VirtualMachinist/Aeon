@@ -205,3 +205,41 @@ For the right-facing rising action the arc is the FRONT shoulder-centered semici
 
 All four bodies face screen right in a three-quarter side view from the same level side-on game camera. Keep entire helmet, both boots, both hands, saber hilt and tip, holstered revolver and every cape curl inside its cell. Maintain shared anatomical scale; extra overhead blade height gets extra empty headroom instead of shrinking the body. No anatomy or equipment redesign, no cropping, duplicate arms/weapons, overlapping cells, target, opponent, decorative frame, text or motion blur. Aim for body height near 390 pixels on a 1254px square sheet, leaving ample room for the raised sword and safe gutters. Preserve the existing sequence; this is a clarity and finish edit.
 ```
+
+## ART63 — thrust finish V2
+
+Built-in imagegen. V1 (`exec-b236be98-bf1e-4221-b01a-64e109e1dfc8.png`) rejected for shortened blades. Accepted V2 original `exec-fe5c00b3-70d2-45f6-bbc7-14bfde7c8283.png`; output `kogan-thrust-style-v2-green.png`, 1774×887, SHA256 `6287a40cc215c7a53eed065e368598c4874a5b3e96eb8d468a199ce104fd4f5a`. Initial inputs: approved thrust V2 choreography and ART62 backcut finish. V2 edits V1 equipment continuity. Source, full chains/feints and integration reviewed; clocks retained.
+
+Exact V1 prompt:
+
+```text
+Use case: style-transfer / identity-preserve.
+Asset type: four existing thrust poses for our original high-resolution 2D fighter Aeon.
+
+Create ONE landscape sprite sheet, 1536 by 1024, with exactly FOUR complete full-body drawings in a roomy 2 by 2 grid. Flat vivid green (#00ff00) outside the figures, generous green gutters, no scene, floor, shadow, labels or text.
+
+INPUT ROLES: Image 1, kogan-thrust-v2-green.png, is the choreography edit target. Preserve its four existing poses, leg support and straight sword directions. Image 2, kogan-backcut-style-v1-green.png, is the accepted finish/proportions reference: match its crisp larger anatomy, broad dark armor panels, copper hood, cyan visor, boots and flowing copper cape. Do not copy its curved sword action into this straight thrust sequence.
+
+Same adult male Kogan in every cell: copper nemes hood with cobra brow, narrow cyan visor, near-black armor with legible copper circuit edges, cyan chest eye, armored boots, holstered revolver and ONE long straight cyan plasma saber in his RIGHT hand. Same helmet, torso and limb proportions across cells. Large copper hood-cape of curling metallic ribbons behind his body. Keep it copper, with dark separations and broad restrained highlights; no noisy gold engraving, green edging or blurry gradient body. Cyan belongs to visor, chest writing and saber.
+
+Four drawings in reading order:
+1. Gathered preparation: supported wide stance and bent forward knee; right hand draws the hilt close to the waist, blade horizontal toward screen right. Empty left hand relaxed forward. Cape gathered behind.
+2. Long committed thrust: supported forward lunge with rear leg stretched back, right arm and straight cyan saber fully extended horizontally to screen right around chest height. Preserve the original reach and complete tip. Torso inclines into the action. No slash arc.
+3. Follow-through thrust hold: preserve the original lower, deeper supported lunge with the same horizontal fully extended right arm and blade, torso slightly more settled and copper cape following behind. Distinct from pose 2 through weight and cape folds, not a new move.
+4. Withdrawal: supported bent-knee ready, right hand retracted beside hip, straight saber diagonally down toward screen right, shoulders and cape settling toward the accepted backcut ready.
+
+All four face screen right in a three-quarter side view from the same level game camera. Maintain consistent physical body scale (about 370px helmet-to-boot anatomy on this canvas) rather than shrinking the two wide thrust bodies to fit their weapons. Use the wide cells and empty green margins to fit the entire blade and every cape curl. Each drawing stays within its own 768 by 512 cell with safe gutters; neither thrust crosses the sheet midpoint. Entire helmet, both hands, both boots, hilt, tip and holstered equipment inside each cell. Preserve choreography and equipment; improve finish and clarity only. No extra limbs or weapons, clipping, target, opponent, motion blur, decorative frame or baked ground effects.
+```
+
+Exact V2 correction:
+
+```text
+Use case: precise-object-edit / identity-preserve.
+Edit the attached Kogan thrust sheet. Correct ONE equipment-continuity defect: the cyan saber in the top-right and bottom-left fully extended thrust drawings is too short.
+
+Output one WIDER landscape sprite sheet, ideally 2048 by 1024, four full bodies in a 2 by 2 grid. Keep exactly the same four body poses, anatomy, dark armor, copper hood/cape, cyan visor and empty-hand positions. Do not redesign or add details to the characters. Reposition the four intact drawings into wider cells, preserving equal physical body scale and generous flat bright-green margins.
+
+The straight cyan blade from HILT to TIP must be the SAME physical length in all four cells. Use the top-left horizontal preparation blade as the ruler, approximately 275 pixels at the current physical body scale. In top-right and bottom-left, extend the existing straight horizontal cyan blade forward to the right to reach that length. Keep the original right-hand grip, hilt, arm, torso and supported legs unchanged. Leave adequate space beyond both tips instead of shrinking the figures or shortening the weapons. Keep the bottom-right diagonal withdrawal blade at this same physical length.
+
+No curved trails, new poses, extra limbs, extra weapons, motion blur, text, shadows or background scene. Entire head, hands, both boots, cape and complete saber safely inside each cell. Pure vivid green outside the existing artwork. The change is longer consistent saber blades in the two thrust poses and wider empty layout spacing only.
+```

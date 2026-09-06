@@ -200,3 +200,5 @@ ART59: four larger Kogan walking drawings retain the existing step rhythm and im
 ART61: four larger Kogan first-cut drawings improve armor clarity with unchanged choreography. Complete sword/feint/integration motion reviewed;185 tests,clippy/release pass. Legacy backcut/thrust/jab finish,StK/CrK and actual training keys remain open.
 
 ART62: four larger Kogan backcut drawings improve armor clarity through the original front rising arc. Complete sword, chain, feint and integration motion reviewed; 185 tests, clippy and release pass. Legacy thrust/jab finish, StK/CrK and actual training keys remain open.
+
+ART63: four Kogan thrust drawings clarify armor and preserve complete straight blades through the chain and feint. Full focused and integration motion reviewed; 185 tests, clippy and release pass. Grounded kicks, jab finish and actual training keys remain open.
