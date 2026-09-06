@@ -8,6 +8,7 @@ mod preview;
 mod kit_preview;
 mod render;
 mod replay;
+mod replay_preview;
 mod sprites;
 mod sequences;
 mod defeat;
@@ -208,6 +209,10 @@ async fn main() {
     }
     if std::env::args().any(|a| a == "--kit-preview") {
         kit_preview::run(&assets).await;
+        return;
+    }
+    if std::env::args().any(|a| a == "--replay-review") {
+        replay_preview::run(&assets).await;
         return;
     }
     let mut pads = Pads::new();

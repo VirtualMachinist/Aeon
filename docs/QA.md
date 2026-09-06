@@ -492,3 +492,7 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | Integration |181 tests(89 sim+92 client),clippy/release;2,100 unchanged ticks;full35s review;five intended flash PNG pairs inspected,66 unchanged;all8 smoke images equal inspected ART52. |
 
 Training keyboard/reset/replay validation, shared art polish and Kogan StK/CrK remain open. This gate does not establish physical stick acceptance. Full evidence is in `docs/FULL-KIT-2026-09-05.md` and the vault media ledger.
+
+### ART54 saved replay verification
+
+Four real saved/loaded input logs reproduce960 world/image pairs exactly, including both character orders/attacking slots, legal hit, guard, jump/landing and reset from active hitstop. Complete32s capture and exact reset PNGs inspected.182 tests, clippy/release pass; fresh integration2,100 ticks,35s video/71 PNGs and8 smoke PNGs match inspected ART53. `--replay-review --capture --capture-1x` requires an empty working directory for isolated output. This verifies codec and presentation reset, not production F9/F11 key dispatch. Mid-recording health/meter fills and dummy-mode changes are outside the input-only format and were not used. Training keys, physical stick acceptance and shared art gates remain open.
