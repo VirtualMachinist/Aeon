@@ -421,12 +421,18 @@ impl SpriteSet {
         let disc = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-disc-v2-green.png", (1536, 1024), &KOGAN_DISC).await
         } else { None };
-        let walk = if body == CharacterId::Kogan {
-            Atlas::load("assets/animation/kogan-v1-green.png", (1254, 1254), &KOGAN_WALK).await
-        } else { None };
-        let ground = if body == CharacterId::Kogan {
-            Atlas::load("assets/animation/kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND).await
-        } else { None };
+        let walk_specs = match body {
+            CharacterId::Kogan => &KOGAN_WALK,
+            CharacterId::Raya => &RAYA_WALK,
+        };
+        let walk = Atlas::load(&format!("assets/animation/{dir}-v1-green.png"),
+            (1254, 1254), walk_specs).await;
+        let (ground_file, ground_size, ground_specs) = match body {
+            CharacterId::Kogan => ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND),
+            CharacterId::Raya => ("raya-ground-v1-green.png", (1672, 941), &RAYA_GROUND),
+        };
+        let ground = Atlas::load(&format!("assets/animation/{ground_file}"),
+            ground_size, ground_specs).await;
         let victory = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY).await
         } else { None };
@@ -548,8 +554,8 @@ impl SpriteSet {
 
     pub fn cell_for_with_ground(&self, fighter: &Fighter, tick: u32,
         context: crate::sequences::GroundContext) -> Cell {
-        if self.ground.is_some() && self.utility.is_some() {
-            if let Some(cell) = crate::sequences::ground_cell(fighter, context) { return cell; }
+        if let Some(cell) = crate::sequences::ground_cell(fighter, context) {
+            if self.frame(cell).is_some() { return cell; }
         }
         self.cell_for(fighter, tick)
     }

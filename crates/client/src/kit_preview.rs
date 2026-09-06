@@ -1164,7 +1164,7 @@ mod tests {
 
     #[test]
     fn ground_preview_preserves_immediate_run_exits_and_complete_backdash() {
-        for case in ground_cases(CharacterId::Kogan) {
+        for case in [CharacterId::Kogan, CharacterId::Raya].into_iter().flat_map(ground_cases) {
             let ground = case.ground.unwrap();
             let mut world = case.world();
             let mut run = false; let mut blocked = false; let mut hit = false;

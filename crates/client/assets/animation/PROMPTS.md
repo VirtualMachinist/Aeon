@@ -102,3 +102,5 @@ Kogan non-knockdown airborne recovery uses four V1 defensive drawings: [exact pr
 Raya standalone movement uses eight V1 preparation/hop/full-jump/landing drawings: [exact prompt, source, calibration and review](RAYA-MOVEMENT-2026-09-05.md).
 
 Raya airborne non-knockdown recovery uses four V1 defensive drawings: [exact prompt, source, calibration and review](RAYA-AIR-RECOVERY-2026-09-05.md).
+
+Raya ground movement: eight V1 glide/crouch/retreat drawings, measured original walk cells and full36-case review. Exact prompt/source/calibration: [RAYA-GROUND-2026-09-05.md](RAYA-GROUND-2026-09-05.md).

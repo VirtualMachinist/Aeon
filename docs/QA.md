@@ -314,3 +314,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART31 | Non-knockdown recoil regains supported form within existing control rules | All 40 affected before/final cases / 100 s each at 1× in 1280×720, candidate 10 s and selected contact/descent/corner landing steps; four V1 defensive drawings, G2/G1/S1. |
 
 170 tests (89 sim + 81 client), clippy and locked/offline release pass. All 6,000 final, 600 candidate and 2,100 integration ticks equal baseline. New 35 s integration video is byte-identical to fully reviewed movement evidence, reused explicitly. Eight smoke PNGs: seven identical, changed training tick pair directly inspected. First old-binary capture labeled invalid; corrected candidate2/final accepted. Broader Raya grounded/knockdown reactions, attacks and physical play remain open. Exact evidence: full-kit report and raya-air-recovery-verification.json.
+
+## September 5 Raya ground movement review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART32 | Glide, crouch and retreat have coherent support and immediate legal exits | All 36 before/final cases /54 s each played at 1×1280×720, both facings at center/corners; corrected run entry, cloth, brake/ready, close crouch/rise and retreat phases stepped. G1/K1/S1/S2/A2 refraction recorded. |
+
+170 tests (89 sim +81 client), clippy and locked/offline release pass. All 3,240 accepted ground and 2,100 integration ticks equal baseline; complete new35 s integration played. Eight smoke PNGs: seven identical, versus-poke pair directly inspected as intended measured original walk extraction/root. Final union is four unaffected `raya-ground-final` clips plus five corrected `raya-ground-final2` run clips. Original deep run entry is retained as superseded. Broader Raya reactions/attacks, general cross-up close-idle spacing review and physical play remain open. Exact evidence: full-kit report, provenance and raya-ground-verification.json.
