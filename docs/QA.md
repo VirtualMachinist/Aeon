@@ -426,3 +426,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART45 | Complete ritual reach/withdrawal and supported prayer glide/stop | All28 before/accepted cases70s each at1×; all eight phases, mirrored/corner captures, jump escapes, misses and pass-through PNGs inspected. G1/G2/A1/A2/S2 refraction; contained loop, full support and clean return. |
 
 176tests(89sim+87client), clean clippy and locked/offline release pass. All4200focused/2100integrationticks equal baseline. Fresh35s integration played completely; two changed Rite gather/ready pairs inspected,69diagnostics equal ART44. Eight smoke PNGs: seven identical, changed select pair inspected. Evidence: `raya-utility-verification.json`, full-kit report and `RAYA-UTILITY-2026-09-06.md`. Remaining full kits, close idle overlap and physical play remain open.
+
+## September 6 Raya normal throw and escape review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART46 | Empty-hand throw reach, withdrawal and ready; deliberate escape release | All 32 before/accepted cases / 80s each at 1×, both facings/corners; exact four-phase, brief whiff and three escape-phase PNGs inspected. A1/G2 refraction. |
+
+176 tests (89 sim + 87 client), clean clippy and locked/offline release pass. All 4,800 focused / 2,100 integration ticks equal baseline. New 35s integration video and all 71 diagnostics equal fully reviewed ART45 evidence. Eight smoke PNGs: seven identical, changed select pair inspected. Evidence: `raya-throw-verification.json`, full-kit report and `RAYA-THROW-2026-09-06.md`. Remaining full kits, close idle overlap and physical play remain open.

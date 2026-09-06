@@ -72,8 +72,8 @@ fn flash_cases(body: CharacterId) -> Vec<Case> {
     normal_cases(body, &[MoveId::StFL, MoveId::StST])
 }
 
-fn throw_cases() -> Vec<Case> {
-    let mut cases = normal_cases(CharacterId::Kogan, &[MoveId::Throw]);
+fn throw_cases(body: CharacterId) -> Vec<Case> {
+    let mut cases = normal_cases(body, &[MoveId::Throw]);
     for response in [Response::AirEvade, Response::TechEarly, Response::TechLate] {
         for corner in [false, true] {
             for right in [true, false] {
@@ -708,8 +708,7 @@ pub async fn run(assets: &Assets) {
         assert!(body == CharacterId::Kogan, "feint cases currently cover Kogan");
         feint_cases()
     } else if args.iter().any(|a| a == "--kit-throw") {
-        assert!(body == CharacterId::Kogan, "throw cases currently cover Kogan");
-        throw_cases()
+        throw_cases(body)
     } else if args.iter().any(|a| a == "--kit-overhead") {
         overhead_cases(body)
     } else if args.iter().any(|a| a == "--kit-crouch") {
@@ -1495,8 +1494,8 @@ mod tests {
 
     #[test]
     fn throw_preview_checks_both_guards_jump_escape_and_early_late_techs() {
-        let cases = throw_cases();
-        assert_eq!(cases.len(), 32);
+        let cases: Vec<_> = [CharacterId::Kogan, CharacterId::Raya].into_iter().flat_map(throw_cases).collect();
+        assert_eq!(cases.len(), 64);
         for case in cases {
             let mut world = case.world();
             let hp = world.fighters[1].health;
@@ -1504,6 +1503,7 @@ mod tests {
             let mut tech_frames = [Vec::new(), Vec::new()];
             let mut tech_drawings = std::collections::HashSet::new();
             let mut drawings = std::collections::HashSet::new();
+            let mut frozen = None;
             for tick in 0..case.duration() {
                 let [a, b] = case.inputs_for_world(tick, &world);
                 world.tick(a, b);
@@ -1511,10 +1511,15 @@ mod tests {
                 let f = &world.fighters[0];
                 if let Some(cell) = crate::sequences::utility_cell(f) { drawings.insert(cell); }
                 if let Some(cell) = crate::sequences::throw_tech_cell(f) { tech_drawings.insert(cell); }
+                let cells = world.fighters.each_ref().map(|f| crate::sequences::throw_tech_cell(f).or_else(|| crate::sequences::utility_cell(f)));
+                if let Some((frame, previous)) = frozen {
+                    if world.frame == frame { assert_eq!(cells, previous, "freeze holds both throw drawings"); }
+                }
+                frozen = Some((world.frame, cells));
                 if let Action::Attack { move_id: MoveId::Throw, frame, connected } = f.action {
                     let release = if connected == aeon_sim::Connect::Hit { 9 } else { 3 };
-                    let cell = crate::sequences::utility_cell(f);
-                    assert_eq!(cell == Some(crate::sprites::Cell::Utility(1)), (2..release).contains(&frame), "{case:?}: reach holds exactly until release");
+                    let reach = if case.body == CharacterId::Raya { crate::sprites::Cell::ThrowContact } else { crate::sprites::Cell::Utility(1) };
+                    assert_eq!(crate::sequences::utility_cell(f) == Some(reach), (2..release).contains(&frame), "{case:?}: reach holds exactly until release");
                 }
                 for event in &world.events {
                     grabs += usize::from(event.kind == EventKind::Grab);
@@ -1529,12 +1534,18 @@ mod tests {
             let tech = matches!(case.response, Response::TechEarly | Response::TechLate);
             let miss = matches!(case.response, Response::Whiff | Response::AirEvade);
             if !tech {
-                for phase in 0..4 { assert!(drawings.contains(&crate::sprites::Cell::Utility(phase)), "{case:?}: all throw phases"); }
+                for phase in 0..4 {
+                    let cell = if case.body == CharacterId::Raya && phase == 1 { crate::sprites::Cell::ThrowContact } else { crate::sprites::Cell::Utility(phase) };
+                    assert!(drawings.contains(&cell), "{case:?}: all throw phases");
+                }
             }
             assert_eq!((grabs, throws, techs), if tech { (1,0,1) } else if miss { (0,0,0) } else { (1,1,0) }, "{case:?}");
-            assert_eq!(hp - world.fighters[1].health, if tech || miss { 0 } else { 140 }, "{case:?}");
+            assert_eq!(hp - world.fighters[1].health, if tech || miss { 0 } else { case.body.data().move_def(MoveId::Throw).unwrap().damage }, "{case:?}");
             if tech {
-                assert_eq!(tech_drawings, [crate::sprites::Cell::ThrowTech(0), crate::sprites::Cell::ThrowTech(1), crate::sprites::Cell::Utility(3)].into_iter().collect(), "{case:?}: every separation phase");
+                let phases = if case.body == CharacterId::Raya {
+                    [crate::sprites::Cell::Recoil(4), crate::sprites::Cell::Recoil(5), crate::sprites::Cell::Utility(3)]
+                } else { [crate::sprites::Cell::ThrowTech(0), crate::sprites::Cell::ThrowTech(1), crate::sprites::Cell::Utility(3)] };
+                assert_eq!(tech_drawings, phases.into_iter().collect(), "{case:?}: every separation phase");
             }
             for frames in tech_frames {
                 assert_eq!(frames, if tech { (1..16).collect() } else { Vec::new() }, "{case:?}: original separation duration");

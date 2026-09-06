@@ -135,12 +135,17 @@ pub const KOGAN_THROW_TECH: [Spec; 2] = [
     ([0, 0, 720, 1024], 440, 670), ([720, 0, 1536, 1024], 1150, 670),
 ];
 
+// Empty-hand normal reach stays distinct from the Rite's cyan loop.
+pub const RAYA_THROW_CONTACT: [Spec; 1] = [([0, 0, 1254, 1254], 665, 940)];
+
 pub fn throw_tech_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan || f.airborne { return None; }
+    if f.airborne { return None; }
     let Action::ThrowTech { frame } = f.action else { return None; };
-    Some(if frame <= 5 { Cell::ThrowTech(0) }
-        else if frame <= 10 { Cell::ThrowTech(1) }
-        else { Cell::Utility(3) })
+    Some(if frame <= 5 {
+        if f.id == aeon_sim::CharacterId::Raya { Cell::Recoil(4) } else { Cell::ThrowTech(0) }
+    } else if frame <= 10 {
+        if f.id == aeon_sim::CharacterId::Raya { Cell::Recoil(5) } else { Cell::ThrowTech(1) }
+    } else { Cell::Utility(3) })
 }
 
 // Standing overhead keeps a complete raised blade, forward cut and two returns.
@@ -799,8 +804,6 @@ pub const RAYA_UTILITY: [Spec; 8] = [
 
 pub fn utility_cell(f: &Fighter) -> Option<Cell> {
     let Action::Attack { move_id, frame, connected } = f.action else { return None; };
-    // Raya's normal throw retains its own pending dedicated review.
-    if f.id == aeon_sim::CharacterId::Raya && move_id == MoveId::Throw { return None; }
     let mv = f.data().move_def(move_id)?;
     let cell = match move_id {
         MoveId::CommandGrab | MoveId::Throw => {
@@ -826,7 +829,9 @@ pub fn utility_cell(f: &Fighter) -> Option<Cell> {
         }
         _ => return None,
     };
-    Some(Cell::Utility(cell))
+    Some(if f.id == aeon_sim::CharacterId::Raya && move_id == MoveId::Throw && cell == 1 {
+        Cell::ThrowContact
+    } else { Cell::Utility(cell) })
 }
 
 // Grounded revolver and wave phases; green gutters measured per row.
@@ -958,6 +963,7 @@ mod tests {
             ("kogan-uppercut-compact-v1-green.png", (1536, 1024), &KOGAN_UPPERCUT_COMPACT[..]),
             ("kogan-cape-step-v3-green.png", (1448, 1086), &KOGAN_UTILITY[..]),
             ("raya-utility-v1-green.png", (1536, 1024), &RAYA_UTILITY[..]),
+            ("raya-throw-contact-v1-green.png", (1254, 1254), &RAYA_THROW_CONTACT[..]),
             ("kogan-ranged-v5-green.png", (1448, 1086), &KOGAN_RANGED[..]),
             ("raya-movement-v1-green.png", (1672, 941), &RAYA_MOVEMENT[..]),
             ("raya-air-lights-v1-green.png", (1024, 1536), &RAYA_AIR_LIGHTS[..]),
@@ -1050,10 +1056,11 @@ mod tests {
             f.last_move = Some(MoveId::Throw);
             for frame in 0..16 {
                 f.action = Action::ThrowTech { frame };
-                let expected = if id == CharacterId::Raya { None }
-                    else if frame <= 5 { Some(Cell::ThrowTech(0)) }
-                    else if frame <= 10 { Some(Cell::ThrowTech(1)) }
-                    else { Some(Cell::Utility(3)) };
+                let expected = Some(if frame <= 5 {
+                    if id == CharacterId::Raya { Cell::Recoil(4) } else { Cell::ThrowTech(0) }
+                } else if frame <= 10 {
+                    if id == CharacterId::Raya { Cell::Recoil(5) } else { Cell::ThrowTech(1) }
+                } else { Cell::Utility(3) });
                 assert_eq!(throw_tech_cell(&f), expected);
                 assert_eq!(utility_cell(&f), None, "a tech cannot continue the grab");
                 f.airborne = true;

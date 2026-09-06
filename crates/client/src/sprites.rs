@@ -183,6 +183,7 @@ pub struct SpriteSet {
     flash_contact: Option<crate::sequences::Atlas>,
     overhead: Option<crate::sequences::Atlas>,
     throw_tech: Option<crate::sequences::Atlas>,
+    throw_contact: Option<crate::sequences::Atlas>,
     victory: Option<crate::sequences::Atlas>,
     standing_lights: Option<crate::sequences::Atlas>,
     signature: Option<crate::sequences::Atlas>,
@@ -244,6 +245,7 @@ pub enum Cell {
     CrouchSaber(usize),
     Overhead(usize),
     ThrowTech(usize),
+    ThrowContact,
     Victory(usize),
     Floor(usize),
     AirRecovery(usize),
@@ -417,6 +419,10 @@ impl SpriteSet {
             Atlas::load("assets/animation/kogan-ranged-v5-green.png",
                 (1448, 1086), &KOGAN_RANGED).await
         } else { None };
+        let throw_contact = if body == CharacterId::Raya {
+            Atlas::load("assets/animation/raya-throw-contact-v1-green.png",
+                (1254, 1254), &RAYA_THROW_CONTACT).await
+        } else { None };
         let utility = if std::env::args().any(|a| a == "--kit-legacy-utility") { None } else {
             match body {
                 CharacterId::Kogan => Atlas::load("assets/animation/kogan-cape-step-v3-green.png",
@@ -555,7 +561,7 @@ impl SpriteSet {
         let chant_finisher = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-chant3-v1-green.png", (1254, 1254), &RAYA_CHANT_III).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_saber_contact, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, throw_contact, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_saber_contact, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -579,6 +585,7 @@ impl SpriteSet {
             flash_contact: None,
             overhead: None,
             throw_tech: None,
+            throw_contact: None,
             victory: None,
             standing_lights: None,
             signature: None,
@@ -639,8 +646,8 @@ impl SpriteSet {
         if let Some(cell) = crate::sequences::feint_cell(fighter) {
             if self.frame(cell).is_some() { return cell; }
         }
-        if self.throw_tech.is_some() && self.utility.is_some() {
-            if let Some(cell) = crate::sequences::throw_tech_cell(fighter) { return cell; }
+        if let Some(cell) = crate::sequences::throw_tech_cell(fighter) {
+            if self.frame(cell).is_some() { return cell; }
         }
         if self.overhead.is_some() {
             if let Some(cell) = crate::sequences::overhead_cell(fighter) { return cell; }
@@ -694,7 +701,9 @@ impl SpriteSet {
             if let Some(cell) = crate::sequences::poke_cell(fighter) { return cell; }
         }
         if self.utility.is_some() {
-            if let Some(cell) = crate::sequences::utility_cell(fighter) { return cell; }
+            if let Some(cell) = crate::sequences::utility_cell(fighter) {
+                if self.frame(cell).is_some() { return cell; }
+            }
         }
         if self.ranged.is_some() {
             if let Some(cell) = crate::sequences::ranged_cell(fighter) {
@@ -741,6 +750,7 @@ impl SpriteSet {
             Cell::Utility(cell) => self.utility.as_ref()?.frame(cell),
             Cell::Victory(cell) => self.victory.as_ref()?.frame(cell),
             Cell::ThrowTech(cell) => self.throw_tech.as_ref()?.frame(cell),
+            Cell::ThrowContact => self.throw_contact.as_ref()?.frame(0),
             Cell::Overhead(cell) => self.overhead.as_ref()?.frame(cell),
             Cell::CrouchLights(5) => self.crouch_kick_contact.as_ref()?.frame(0),
             Cell::CrouchLights(cell) => self.crouch_lights.as_ref()?.frame(cell),
