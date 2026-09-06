@@ -405,14 +405,24 @@ pub const KOGAN_AIR_SABER_ROOT_Y: [Option<u16>; 6] = [
     Some(480), Some(480), Some(930), Some(955), Some(1410), Some(1450),
 ];
 
+// Raya reuses approved AirLights gather/fold/ready; only contacts are new.
+pub const RAYA_AIR_CRYSTALS: [Spec; 3] = [
+    ([0, 0, 1024, 500], 435, 480),
+    ([0, 500, 1024, 1000], 540, 480),
+    ([0, 1000, 1024, 1536], 430, 480),
+];
+pub const RAYA_AIR_CRYSTALS_ROOT_Y: [Option<u16>; 3] = [
+    Some(480), Some(1000), Some(1480),
+];
+
 pub fn air_saber_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan || !f.airborne { return None; }
+    if !f.airborne { return None; }
     if matches!(f.action, Action::Jump { air_ok: false, .. })
         && matches!(f.last_move, Some(MoveId::JS | MoveId::JHS | MoveId::JST)) {
         return Some(Cell::AirSaber(5));
     }
     if let Action::Attack { move_id, frame, .. } = f.action {
-        let contact = match move_id { MoveId::JS => 1, MoveId::JHS => 2, MoveId::JST | MoveId::SpecialOverhead => 3, _ => return None };
+        let contact = match move_id { MoveId::JS => 1, MoveId::JHS => 2, MoveId::JST => 3, MoveId::SpecialOverhead if f.id == aeon_sim::CharacterId::Kogan => 3, _ => return None };
         let mv = f.data().move_def(move_id)?;
         return Some(Cell::AirSaber(if frame < mv.first_active() { 0 }
             else if mv.is_active(frame) { contact }
@@ -916,6 +926,7 @@ mod tests {
             ("kogan-ranged-v5-green.png", (1448, 1086), &KOGAN_RANGED[..]),
             ("raya-movement-v1-green.png", (1672, 941), &RAYA_MOVEMENT[..]),
             ("raya-air-lights-v1-green.png", (1024, 1536), &RAYA_AIR_LIGHTS[..]),
+            ("raya-air-crystals-v1-green.png", (1024, 1536), &RAYA_AIR_CRYSTALS[..]),
             ("kogan-movement-v2-green.png", (1672, 941), &KOGAN_MOVEMENT[..]),
             ("kogan-reactions-v1-green.png", (1448, 1086), &KOGAN_REACTIONS[..]),
             ("raya-reactions-v1-green.png", (1448, 1086), &RAYA_REACTIONS[..]),
@@ -950,9 +961,10 @@ mod tests {
 
     #[test]
     fn airborne_saber_return_survives_attack_expiry_but_yields_to_every_new_state() {
-        for right in [false, true] {
+        for (body, right) in [CharacterId::Kogan, CharacterId::Raya].into_iter()
+            .flat_map(|body| [false, true].map(|right| (body, right))) {
             for move_id in [MoveId::JS, MoveId::JHS, MoveId::JST] {
-                let mut f = Fighter::spawn(CharacterId::Kogan, px(200), right);
+                let mut f = Fighter::spawn(body, px(200), right);
                 f.airborne = true;
                 f.last_move = Some(move_id);
                 f.action = Action::Jump { air_ok: false, hop: false };
@@ -967,10 +979,6 @@ mod tests {
                 assert_eq!(air_saber_cell(&f), None);
             }
         }
-        let mut raya = Fighter::spawn(CharacterId::Raya, px(200), true);
-        raya.airborne = true;
-        raya.action = Action::Attack { move_id: MoveId::JS, frame: 6, connected: Connect::None };
-        assert_eq!(air_saber_cell(&raya), None);
     }
 
     #[test]

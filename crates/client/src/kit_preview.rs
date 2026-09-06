@@ -938,7 +938,8 @@ mod tests {
     #[test]
     fn air_saber_preview_preserves_contact_freeze_and_landing_with_complete_early_recovery() {
         use crate::{sequences::air_saber_cell, sprites::Cell};
-        for case in air_cases(CharacterId::Kogan).into_iter().chain(early_air_cases(CharacterId::Kogan))
+        for case in [CharacterId::Kogan, CharacterId::Raya].into_iter()
+            .flat_map(|body| air_cases(body).into_iter().chain(early_air_cases(body)).chain(rising_air_cases(body)))
             .filter(|c| matches!(c.move_id, MoveId::JS | MoveId::JHS | MoveId::JST)) {
             let mut world = case.world();
             let hp = world.fighters[1].health;
@@ -961,9 +962,9 @@ mod tests {
                 }
                 if !f.airborne { assert_eq!(cell, None, "landing immediately owns the body"); }
             }
-            if case.response == Response::EarlyWhiff {
+            if matches!(case.response, Response::EarlyWhiff | Response::RisingWhiff) {
                 assert_eq!(hp, world.fighters[1].health, "early fixture remains a spaced miss");
-                if !case.jump.unwrap().1 {
+                if !case.jump.unwrap().1 && (case.body == CharacterId::Kogan || case.response == Response::RisingWhiff) {
                     assert_eq!(seen.len(), 4, "{}: gather/contact/withdraw/ready", case.label());
                     assert!(seen.contains(&Cell::AirSaber(4)) && seen.contains(&Cell::AirSaber(5)));
                 }
