@@ -38,6 +38,7 @@ cargo run --release -p aeon -- --kit-preview --kit-saber # 128 saber / rekka / r
 cargo run --release -p aeon -- --kit-preview --kit-disc # 20 defensive shield cases
 cargo run --release -p aeon -- --kit-preview --kit-ground # 36 walk / glide / crouch / retreat cases
 cargo run --release -p aeon -- --kit-preview --kit-reaction # 36 Kogan victim hit / guard / launch / floor cases
+cargo run --release -p aeon -- --kit-preview --kit-reaction --kit-raya # 36 Raya victim cases
 cargo run --release -p aeon -- --kit-preview --capture # 60 fps lights cases + trace in shots/kit
 cargo clippy --workspace --all-targets -- -D warnings
 ```
@@ -132,3 +133,5 @@ Raya movement review: `cargo run --release -p aeon -- --kit-preview --kit-moveme
 Raya airborne recovery review: `cargo run --release -p aeon -- --kit-preview --kit-air-exchange --kit-move=JST`. Four defensive keys recover diagonal recoil into gathered descent, feet and support within original stun and landing. Forty affected anti-air/juggle cases are reviewed; move/case filters isolate them. Broader Raya ground/knockdown and attack coverage remains open.
 
 Raya ground review: `cargo run --release -p aeon -- --kit-preview --kit-ground --kit-raya`. Nine walk/crouch/run-exit/retreat states in both facings at center/corners; state/case filters isolate sequences. All36 cases/54 s reviewed; shallow run gather and supported retreat preserve immediate control and original timing.
+
+Raya grounded hit/guard and retained floor recovery are reviewed across36 cases /90 s, with eight Kogan low-return regression cases and complete35 s integration. 171 workspace tests, clippy and release pass; simulation traces unchanged. Full-kit work continues; see [review evidence](docs/FULL-KIT-2026-09-05.md).

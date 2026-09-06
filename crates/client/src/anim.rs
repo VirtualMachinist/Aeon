@@ -109,15 +109,16 @@ impl History {
     /// crouching body must remain visible below the opponent's standing torso.
     /// Its two-frame rise keeps that order until the standing drawing returns.
     pub fn draw_order(&self, w: &World) -> [usize; 2] {
-        // Judgment's low forward arm crosses a crouched receiver's face.
-        // Keep that receiver visible while the full blade remains on either side.
+        // Judgment's low arm and the legacy low kick's cape overlap the receiver.
+        // Keep the grounded low consequence visible through that cloth.
         for attacker in [0, 1] {
             let defender = 1 - attacker;
             let a = &w.fighters[attacker];
             let d = &w.fighters[defender];
             if a.id == CharacterId::Kogan && !a.airborne && !d.airborne
-                && matches!(a.action, Action::Attack { move_id: MoveId::Super, .. })
-                && matches!(d.action, Action::Crouch | Action::Block { crouching: true, .. }) {
+                && matches!(a.action, Action::Attack { move_id: MoveId::Super | MoveId::CrK, .. })
+                && (matches!(d.action, Action::Crouch | Action::Block { crouching: true, .. })
+                    || (matches!(d.action, Action::Hit { .. }) && d.input().down())) {
                 return [attacker, defender];
             }
         }
@@ -182,11 +183,12 @@ impl History {
                 return GroundContext { age: previous.ground.age.saturating_add(u32::from(previous.frame != w.frame)),
                     ..previous.ground };
             }
-            // A low attack recovery is already crouched. Replaying the standing
-            // entry here would bob the head upward before lowering it again.
-            if w.fighters[i].id == CharacterId::Kogan
-                && matches!(previous.cell, Cell::CrouchSaber(_) | Cell::CrouchPunch(_))
-                && matches!(state, GroundState::Crouch | GroundState::Stand) {
+            // Low attack and recoil releases are already crouched. Replaying
+            // the standing entry would bob the head upward before lowering it.
+            let was_low = matches!(previous.cell, Cell::Recoil(2 | 3 | 6 | 7))
+                || (w.fighters[i].id == CharacterId::Kogan
+                    && matches!(previous.cell, Cell::CrouchSaber(_) | Cell::CrouchPunch(_)));
+            if was_low && matches!(state, GroundState::Crouch | GroundState::Stand) {
                 return GroundContext { state, from: GroundState::Crouch,
                     age: if state == GroundState::Crouch { 2 } else { 0 } };
             }
@@ -364,7 +366,7 @@ pub fn layers(
             };
             // A changing step silhouette must not trail an old stance or
             // put a previous leaning head ahead of the braking body.
-            if (matches!(cell, Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Ground(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
+            if (matches!(cell, Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
             // A body that has not moved leaves no trail.
             if (snap.x - sub(f.pos.x)).abs() + (snap.y - sub(f.pos.y)).abs() < 1.0 {
                 continue;
@@ -399,9 +401,9 @@ pub fn layers(
     // old silhouettes creates duplicate limbs and weapons through these cuts.
     if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
         !(cuts || [cell, prev.cell].into_iter().any(|c| {
-            matches!(c, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
+            matches!(c, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
                 || kogan_combat_cell(f.id, c)
-                || matches!((f.id, c), (CharacterId::Raya, Cell::Reaction(8..=11)))
+                || matches!((f.id, c), (CharacterId::Raya, Cell::Reaction(_)))
         }))
     }) {
         let age = w.frame.saturating_sub(prev.frame);
@@ -445,7 +447,7 @@ fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
 }
 
 fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
-    matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
+    matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
         || kogan_combat_cell(id, cell)
 }
 
@@ -905,6 +907,39 @@ mod tests {
     }
 
     #[test]
+    fn low_recoil_returns_stay_low_and_yield_to_control_for_both_bodies() {
+        use crate::sequences::{ground_cell, GroundState};
+        for body in [CharacterId::Kogan, CharacterId::Raya] {
+            for facing in [false, true] {
+                for ending in [Cell::Recoil(2), Cell::Recoil(3), Cell::Recoil(6), Cell::Recoil(7)] {
+                    for release in [Action::Crouch, Action::Stand] {
+                        let mut w = World::new(body, body);
+                        w.fighters[0].facing_right = facing;
+                        w.fighters[0].action = Action::Block { crouching: true, stun: 0 };
+                        let mut history = History::default();
+                        history.record(&w, [ending, Cell::Pose(Pose::Idle)]);
+                        w.frame += 1;
+                        w.fighters[0].action = release;
+                        let hash = w.state_hash();
+                        let c = history.ground_context(&w, 0);
+                        assert_eq!(c.from, GroundState::Crouch);
+                        let cell = if matches!(w.fighters[0].action, Action::Crouch) { Cell::Ground(3) } else { Cell::Ground(2) };
+                        assert_eq!(ground_cell(&w.fighters[0], c), Some(cell));
+                        history.record(&w, [cell, Cell::Pose(Pose::Idle)]);
+                        assert_eq!(history.ground_context(&w, 0), c, "pause retains the return");
+                        assert_eq!(w.state_hash(), hash, "presentation cannot change control");
+                        w.fighters[0].start_move(MoveId::StP);
+                        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), None);
+                        history.reset();
+                        w.fighters[0].action = Action::Crouch;
+                        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Ground(2)));
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn ground_phase_clock_freezes_resets_and_yields_to_new_actions() {
         use crate::sequences::{ground_cell, GroundState};
         use aeon_sim::{Btn, InputFrame};
@@ -971,7 +1006,7 @@ mod tests {
     fn raya_movement_return_cuts_previous_bodies_and_leaves_immediate_control() {
         let sprites = set(CharacterId::Raya);
         let opts = LayerOpts { win: None, defeat: None, flash: (0.0, WHITE) };
-        for previous in [Cell::Ground(0), Cell::Ground(1), Cell::Ground(2), Cell::Ground(3),
+        for previous in [Cell::Recoil(0), Cell::Recoil(1), Cell::Recoil(2), Cell::Recoil(3), Cell::Recoil(4), Cell::Recoil(5), Cell::Recoil(6), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(1), Cell::Reaction(2), Cell::Reaction(3), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(0), Cell::Ground(1), Cell::Ground(2), Cell::Ground(3),
             Cell::Ground(4), Cell::Ground(5), Cell::Ground(6), Cell::Ground(7), Cell::Atlas(0),
             Cell::Movement(3), Cell::Movement(6), Cell::Movement(7),
             Cell::Reaction(8), Cell::Reaction(9), Cell::Reaction(10), Cell::Reaction(11),
@@ -1112,19 +1147,21 @@ mod tests {
     }
 
     #[test]
-    fn judgment_keeps_a_crouched_receiver_visible_for_either_player() {
+    fn judgment_and_low_kick_keep_a_crouched_receiver_visible_for_either_player() {
         for attacker in [0, 1] {
             let mut w = if attacker == 0 { World::new(CharacterId::Kogan, CharacterId::Raya) }
                 else { World::new(CharacterId::Raya, CharacterId::Kogan) };
             let defender = 1 - attacker;
             let history = History::default();
-            w.fighters[attacker].start_move(MoveId::Super);
-            for action in [Action::Crouch, Action::Block { crouching: true, stun: 8 }] {
-                w.fighters[defender].action = action;
-                assert_eq!(history.draw_order(&w), [attacker, defender]);
+            for move_id in [MoveId::Super, MoveId::CrK] {
+                w.fighters[attacker].start_move(move_id);
+                for action in [Action::Crouch, Action::Block { crouching: true, stun: 8 }] {
+                    w.fighters[defender].action = action;
+                    assert_eq!(history.draw_order(&w), [attacker, defender]);
+                }
+                w.fighters[defender].action = Action::Block { crouching: false, stun: 8 };
+                assert_eq!(history.draw_order(&w), [defender, attacker], "standing guard leaves the weapon in front");
             }
-            w.fighters[defender].action = Action::Block { crouching: false, stun: 8 };
-            assert_eq!(history.draw_order(&w), [defender, attacker], "standing guard leaves the weapon in front");
             w.fighters[defender].action = Action::Crouch;
             w.fighters[attacker].start_move(MoveId::StS);
             assert_eq!(history.draw_order(&w), [defender, attacker], "other reviewed attacks retain their ordering");

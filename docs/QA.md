@@ -322,3 +322,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART32 | Glide, crouch and retreat have coherent support and immediate legal exits | All 36 before/final cases /54 s each played at 1×1280×720, both facings at center/corners; corrected run entry, cloth, brake/ready, close crouch/rise and retreat phases stepped. G1/K1/S1/S2/A2 refraction recorded. |
 
 170 tests (89 sim +81 client), clippy and locked/offline release pass. All 3,240 accepted ground and 2,100 integration ticks equal baseline; complete new35 s integration played. Eight smoke PNGs: seven identical, versus-poke pair directly inspected as intended measured original walk extraction/root. Final union is four unaffected `raya-ground-final` clips plus five corrected `raya-ground-final2` run clips. Original deep run entry is retained as superseded. Broader Raya reactions/attacks, general cross-up close-idle spacing review and physical play remain open. Exact evidence: full-kit report, provenance and raya-ground-verification.json.
+
+## September 5 Raya grounded reaction review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART33 | Hit/guard consequences and floor recovery preserve identity and supported return | All36 before/final cases /90 s each played at1×1280×720; corrected eight Raya low-reaction cases /20 s and eight Kogan regressions /20 s reviewed, with release/contact/floor/corner phases stepped. G2/S2/A1/S1 refraction recorded. |
+
+171 tests (89 sim +82 client), clippy and locked/offline release pass. All5,400 accepted Raya,1,200 Kogan regression and2,100 integration ticks equal baseline; complete new35 s integration reviewed. Fresh smoke3 provides eight images byte-identical to inspected ground evidence; smoke2's six images are incomplete. Accepted union: seven unaffected initial final Raya clips plus both corrected final2 low clips. Existing floor drawings reused with clean cuts; original24f getup unchanged. Kogan legacy CrK attack defects and broader Raya kit/global polish remain open; no blocked art request retried. Exact evidence: full-kit report, provenance and raya-reaction-verification.json.
