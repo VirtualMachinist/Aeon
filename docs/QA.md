@@ -362,3 +362,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART37 | Three distinct ritual normals show active contact, withdrawal and supported clean return | All60 corrected final2 cases/150s at1×1280×720, exact phase PNGs and corner/guard/hit/miss review. G2/S2/A1/A2 refraction; V2 boundary failure and V3 height correction retained. |
 
 172 tests (89 sim+83 client), clippy and locked/offline release pass. All9000 focused and2100 integration ticks equal baseline. Full new35s integration reviewed; eight smoke PNGs equal the inspected prior batch. No simulation values changed. Exact evidence and limitations: full-kit report, RAYA-SIGNATURE-2026-09-06.md and raya-signature-verification.json.
+
+## September 6 Raya chant review and reliable smoke capture
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART38 | Three syllables show distinct active contact, withdrawal, ready and legal continuation | All60 final3 cases/160s at1×1280×720, phase PNGs and mirrored/corner/guard/hit/miss review; G2/S2/A1/A2 refraction. |
+
+174 tests (89sim+85client),clippy and locked/offline release pass. All9600 focused and2100 integration ticks equal baseline; new35s integration reviewed. Corrected smoke3 has eight PNGs, six identical and two menu pairs directly reviewed. Previous seven-image runs remain incomplete. Smoke-only fixed tick scheduling and local menu holds prevent missing captures; a regression covers display jitter and30 start offsets. Full-kit completion and physical play remain open. Exact evidence: RAYA-CHANTS-2026-09-06.md, full-kit report and raya-chants-verification.json.

@@ -234,7 +234,7 @@ async fn main() {
         if let Some(s) = &mut smoke_script {
             if s.done && shot_request.is_none() {
                 eprintln!("[aeon] smoke complete: {} screenshots in ./shots", s.shots);
-                std::process::exit(0);
+                std::process::exit(if s.shots == 8 { 0 } else { 1 });
             }
             if let Some(next) = s.step(&mut mode, frame, &mut shot_request) {
                 mode = next;
@@ -342,7 +342,7 @@ async fn main() {
                 }
             }
             Mode::Versus { m } => {
-                let ticks = clock.advance(get_frame_time() as f64);
+                let ticks = frame_ticks(&mut clock, get_frame_time() as f64, smoke);
                 for _ in 0..ticks {
                     let (p1, p2) = match &smoke_script {
                         Some(s) => s.inputs(m.world.frame),
@@ -383,7 +383,7 @@ async fn main() {
                     clock.reset();
                     usize::from(t.step_once)
                 } else {
-                    clock.advance(get_frame_time() as f64)
+                    frame_ticks(&mut clock, get_frame_time() as f64, smoke)
                 };
                 for _ in 0..ticks {
                     let (p1, p2) = if let Some((rep, i)) = &mut t.playback {
@@ -859,11 +859,18 @@ fn screenshot(path: &str) {
     get_screen_data().export_png(path);
 }
 
+// Smoke renders every simulation tick so screenshot triggers cannot be skipped
+// by a slow display frame. Interactive play retains its fixed-step accumulator.
+fn frame_ticks(clock: &mut FixedClock, elapsed: f64, smoke: bool) -> usize {
+    if smoke { 1 } else { clock.advance(elapsed) }
+}
+
 /// `--smoke`: drive versus then training with scripted inputs, screenshot
 /// each, and exit. Launch evidence for QA V1/V2 without a hand on the stick.
 #[derive(Default)]
 struct Smoke {
     stage: u8,
+    stage_frame: u32,
     shots: u32,
     done: bool,
 }
@@ -905,6 +912,7 @@ impl Smoke {
     /// Returns a mode to switch into, if any. Screenshot requests are
     /// fulfilled by the main loop after drawing.
     fn step(&mut self, mode: &mut Mode, frame: u32, shot: &mut Option<String>) -> Option<Mode> {
+        self.stage_frame += 1;
         let mut shot_at = |s: &mut Smoke, name: &str| {
             *shot = Some(format!("shots/smoke-{name}.png"));
             s.shots += 1;
@@ -940,15 +948,17 @@ impl Smoke {
                 }
                 if t.world.frame >= 300 {
                     self.stage = 2;
+                    self.stage_frame = 0;
                     return Some(Mode::Title { cursor: Menu::Versus });
                 }
             }
             (2, Mode::Title { .. }) => {
-                if frame.is_multiple_of(30) {
+                if self.stage_frame == 30 {
                     shot_at(self, "title");
                 }
-                if frame % 30 == 1 {
+                if self.stage_frame == 31 {
                     self.stage = 3;
+                    self.stage_frame = 0;
                     return Some(Mode::Select {
                         for_training: false,
                         p1: CharacterId::Kogan,
@@ -958,22 +968,57 @@ impl Smoke {
                 }
             }
             (3, Mode::Select { .. }) => {
-                if frame.is_multiple_of(30) {
+                if self.stage_frame == 30 {
                     shot_at(self, "select");
                 }
-                if frame % 30 == 1 {
+                if self.stage_frame == 31 {
                     self.stage = 4;
+                    self.stage_frame = 0;
                     let mut m = Match::new(CharacterId::Raya, CharacterId::Kogan);
                     m.phase = Phase::MatchOver { winner: 0 };
                     return Some(Mode::Versus { m });
                 }
             }
-            (4, Mode::Versus { .. }) if frame.is_multiple_of(30) => {
+            (4, Mode::Versus { .. }) if self.stage_frame == 30 => {
                 shot_at(self, "winner");
                 self.done = true;
             }
             _ => {}
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod smoke_tests {
+    use super::*;
+
+    #[test]
+    fn smoke_captures_all_eight_scenes_despite_display_jitter_and_start_offset() {
+        let expected = ["versus-poke", "versus-glyph", "versus-mid", "training-boxes",
+            "training-glyph", "title", "select", "winner"];
+        for offset in 0..30 {
+            let mut smoke = Smoke::default();
+            let mut mode = Mode::Versus { m: Match::new(CharacterId::Kogan, CharacterId::Raya) };
+            let mut clock = FixedClock::default();
+            let mut shots = Vec::new();
+            for frame in 1..1000 {
+                let mut shot = None;
+                if let Some(next) = smoke.step(&mut mode, frame + offset, &mut shot) { mode = next; }
+                let elapsed = [0.0, 1.0 / 144.0, 0.3, 1.0 / 60.0, 0.004][frame as usize % 5];
+                for _ in 0..frame_ticks(&mut clock, elapsed, true) {
+                    match &mut mode {
+                        Mode::Versus { m } => { let (a, b) = smoke.inputs(m.world.frame); m.tick(a, b); }
+                        Mode::Training(t) => { let (a, b) = smoke.inputs(t.world.frame); t.world.tick(a, b); }
+                        _ => {}
+                    }
+                }
+                if let Some(path) = shot { shots.push(path); }
+                if smoke.done { break; }
+            }
+            assert!(smoke.done, "offset {offset}");
+            assert_eq!(smoke.shots, 8);
+            assert_eq!(shots, expected.map(|name| format!("shots/smoke-{name}.png")), "offset {offset}");
+        }
     }
 }

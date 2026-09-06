@@ -193,6 +193,31 @@ pub fn signature_cell(f: &Fighter) -> Option<Cell> {
     Some(Cell::Signature(phase * 3 + column))
 }
 
+// Chants keep their existing forward travel and follow-up windows. The
+// opening syllable deliberately reuses the reviewed low medium-palm drawings.
+pub const RAYA_CHANT_II: [Spec; 4] = [
+    ([0, 0, 627, 627], 340, 509), ([627, 0, 1254, 627], 895, 506),
+    ([0, 627, 627, 1254], 340, 502), ([627, 627, 1254, 1254], 895, 505),
+];
+pub const RAYA_CHANT_III: [Spec; 4] = [
+    ([0, 0, 627, 627], 355, 500), ([627, 0, 1254, 627], 900, 484),
+    ([0, 627, 627, 1254], 345, 495), ([627, 627, 1254, 1254], 910, 493),
+];
+
+pub fn chant_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Raya || f.airborne { return None; }
+    let Action::Attack { move_id, frame, .. } = f.action else { return None; };
+    let part = match move_id { MoveId::Rekka1 => 0, MoveId::Rekka2 => 1,
+        MoveId::Rekka3 => 2, _ => return None };
+    let mv = f.data().move_def(move_id)?;
+    let phase = if frame < mv.first_active() { 0 }
+        else if mv.is_active(frame) { 1 }
+        else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+        else { 3 };
+    Some(if part == 0 { Cell::Signature(phase * 3) }
+        else { Cell::Chant((part - 1) * 4 + phase) })
+}
+
 // Short palm and low boot have their own gather/contact/withdraw/ready drawings.
 // The existing move clock, including frozen hitstop, owns every phase.
 pub const RAYA_STANDING_LIGHTS: [Spec; 8] = [
@@ -825,6 +850,8 @@ mod tests {
             ("raya-flash-style-v1-green.png", (1024, 1536), &RAYA_FLASH[..]),
             ("raya-signature-v1-green.png", (1254, 1254), &RAYA_SIGNATURE[..]),
             ("raya-signature-v4-green.png", (1774, 887), &RAYA_SIGNATURE_CONTACTS[..]),
+            ("raya-chant2-v2-green.png", (1254, 1254), &RAYA_CHANT_II[..]),
+            ("raya-chant3-v1-green.png", (1254, 1254), &RAYA_CHANT_III[..]),
             ("raya-flash-style-v3-green.png", (1024, 1536), &RAYA_FLASH[5..6]),
             ("kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH[..]),
             ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
@@ -1025,6 +1052,29 @@ mod tests {
                     assert_eq!(signature_cell(&f), None);
                 }
             }
+        }
+    }
+
+    #[test]
+    fn chant_contact_obeys_active_frames_and_each_followup_takes_over() {
+        for right in [false, true] {
+            let mut f = Fighter::spawn(CharacterId::Raya, px(200), right);
+            for (move_id, contact) in [(MoveId::Rekka1, Cell::Signature(3)),
+                (MoveId::Rekka2, Cell::Chant(1)), (MoveId::Rekka3, Cell::Chant(5))] {
+                let mv = f.data().move_def(move_id).unwrap();
+                for frame in 0..mv.total_frames() {
+                    f.action = Action::Attack { move_id, frame, connected: Connect::None };
+                    assert_eq!(chant_cell(&f) == Some(contact), mv.is_active(frame));
+                }
+            }
+            for action in [Action::Stand, Action::Crouch, Action::Feint { frame: 0 },
+                Action::Hit { stun: 8, knockdown: false }] {
+                f.action = action; assert_eq!(chant_cell(&f), None);
+            }
+            f.start_move(MoveId::Rekka1); f.airborne = true;
+            assert_eq!(chant_cell(&f), None);
+            let mut kogan = Fighter::spawn(CharacterId::Kogan, px(200), right);
+            kogan.start_move(MoveId::Rekka1); assert_eq!(chant_cell(&kogan), None);
         }
     }
 
