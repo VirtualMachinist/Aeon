@@ -186,3 +186,5 @@ aeon_review_dir="$(mktemp -d)"
 cd "$aeon_review_dir"
 "$aeon_review_bin" --replay-review --capture --capture-1x
 ```
+
+ART55: mixed neutral visibility reviewed;183 workspace tests pass with clippy/release. See `docs/FULL-KIT-2026-09-05.md` for evidence and remaining art/physical-play gates.

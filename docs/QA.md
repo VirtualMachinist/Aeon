@@ -496,3 +496,7 @@ Training keyboard/reset/replay validation, shared art polish and Kogan StK/CrK r
 ### ART54 saved replay verification
 
 Four real saved/loaded input logs reproduce960 world/image pairs exactly, including both character orders/attacking slots, legal hit, guard, jump/landing and reset from active hitstop. Complete32s capture and exact reset PNGs inspected.182 tests, clippy/release pass; fresh integration2,100 ticks,35s video/71 PNGs and8 smoke PNGs match inspected ART53. `--replay-review --capture --capture-1x` requires an empty working directory for isolated output. This verifies codec and presentation reset, not production F9/F11 key dispatch. Mid-recording health/meter fills and dummy-mode changes are outside the input-only format and were not used. Training keys, physical stick acceptance and shared art gates remain open.
+
+### ART55 mixed neutral visibility
+
+Quiet mixed-character Stand/Walk/Run depth corrected and reviewed for both slots/facings at center/corners, with existing action priorities preserved.24 freeze cases/33.6s, affected16s of saved play and full35s integration inspected;1,440/1,920/2,100 trace rows unchanged,576 exact paused redraws and960 saved/loaded pixel pairs.183 tests,clippy/release pass. Four changed integration pairs and changed training smoke pair inspected; seven smoke images equal. Shared key/style and Kogan StK/CrK remain open; training-key dispatch and physical play pending.
