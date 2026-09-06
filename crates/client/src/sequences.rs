@@ -160,6 +160,39 @@ pub fn overhead_cell(f: &Fighter) -> Option<Cell> {
         else { 3 }))
 }
 
+// Three ritual normals have distinct reach and four drawn phases.
+// Source rows overlap only their measured empty green gutter.
+pub const RAYA_SIGNATURE: [Spec; 12] = [
+    ([0, 0, 410, 328], 230, 302), ([410, 0, 840, 328], 640, 302),
+    ([840, 0, 1254, 328], 1015, 302),
+    ([0, 328, 410, 643], 225, 302), ([410, 328, 840, 643], 610, 302),
+    ([840, 328, 1254, 643], 990, 302),
+    ([0, 643, 410, 942], 205, 293), ([410, 643, 840, 942], 575, 293),
+    ([840, 643, 1254, 942], 970, 293),
+    ([0, 941, 410, 1254], 200, 295), ([410, 941, 840, 1254], 575, 295),
+    ([840, 941, 1254, 1254], 970, 295),
+];
+
+// V4 aligns the two heavy contacts. Its measured bodies and margins differ
+// from V1, so only these two drawings use the revised sheet.
+pub const RAYA_SIGNATURE_CONTACTS: [Spec; 2] = [
+    ([0, 0, 890, 887], 380, 590),
+    ([890, 0, 1774, 887], 1230, 570),
+];
+
+pub fn signature_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Raya || f.airborne { return None; }
+    let Action::Attack { move_id, frame, .. } = f.action else { return None; };
+    let column = match move_id { MoveId::StS => 0, MoveId::StHS => 1,
+        MoveId::StHSClose => 2, _ => return None };
+    let mv = f.data().move_def(move_id)?;
+    let phase = if frame < mv.first_active() { 0 }
+        else if mv.is_active(frame) { 1 }
+        else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+        else { 3 };
+    Some(Cell::Signature(phase * 3 + column))
+}
+
 // Short palm and low boot have their own gather/contact/withdraw/ready drawings.
 // The existing move clock, including frozen hitstop, owns every phase.
 pub const RAYA_STANDING_LIGHTS: [Spec; 8] = [
@@ -790,6 +823,8 @@ mod tests {
             ("raya-crouch-lights-v1-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[..]),
             ("raya-crouch-lights-v2-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[5..6]),
             ("raya-flash-style-v1-green.png", (1024, 1536), &RAYA_FLASH[..]),
+            ("raya-signature-v1-green.png", (1254, 1254), &RAYA_SIGNATURE[..]),
+            ("raya-signature-v4-green.png", (1774, 887), &RAYA_SIGNATURE_CONTACTS[..]),
             ("raya-flash-style-v3-green.png", (1024, 1536), &RAYA_FLASH[5..6]),
             ("kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH[..]),
             ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
@@ -960,6 +995,34 @@ mod tests {
                         f.action = action;
                         assert_eq!(crouch_saber_cell(&f), None);
                     }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn signature_contact_follows_existing_active_frames_and_yields_to_new_states() {
+        for id in [CharacterId::Kogan, CharacterId::Raya] {
+            for facing in [false, true] {
+                for (move_id, column) in [(MoveId::StS, 0), (MoveId::StHS, 1), (MoveId::StHSClose, 2)] {
+                    let mut f = Fighter::spawn(id, px(200), facing);
+                    let mv = f.data().move_def(move_id).unwrap();
+                    for frame in 0..mv.total_frames() {
+                        f.action = Action::Attack { move_id, frame, connected: Connect::None };
+                        let cell = signature_cell(&f);
+                        if id == CharacterId::Kogan { assert_eq!(cell, None); continue; }
+                        assert_eq!(cell == Some(Cell::Signature(3 + column)), mv.is_active(frame));
+                        if frame == 0 { assert_eq!(cell, Some(Cell::Signature(column))); }
+                        if frame == mv.last_active() + 1 { assert_eq!(cell, Some(Cell::Signature(6 + column))); }
+                        if frame == mv.total_frames() - 1 { assert_eq!(cell, Some(Cell::Signature(9 + column))); }
+                    }
+                    for action in [Action::Stand, Action::Crouch, Action::Hit { stun: 8, knockdown: false },
+                        Action::Jump { air_ok: false, hop: true }] {
+                        f.action = action;
+                        assert_eq!(signature_cell(&f), None);
+                    }
+                    f.start_move(move_id); f.airborne = true;
+                    assert_eq!(signature_cell(&f), None);
                 }
             }
         }

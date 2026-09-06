@@ -354,3 +354,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART36 | Low glyph contact and supported cape turn show distinct withdrawal and clean return | All 40 final2 cases / 40 s at 1×1280×720; phase/corner/guard/hit/miss steps. G2/S2/A1/A2 refraction; V1 overhang corrected by selected V3 contact. |
 
 171 tests (89 sim +82 client), clippy and locked/offline release pass. All 2,400 focused and 2,100 integration ticks equal baseline; integration MP4 identical to fully reviewed crouching-light evidence. Eight smoke PNGs: seven identical, changed winner text-edge pair directly inspected. No simulation values changed. Exact review limits, hashes and remaining work: full-kit report and raya-flash-verification.json.
+
+## September 6 Raya medium palm and heavies review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART37 | Three distinct ritual normals show active contact, withdrawal and supported clean return | All60 corrected final2 cases/150s at1×1280×720, exact phase PNGs and corner/guard/hit/miss review. G2/S2/A1/A2 refraction; V2 boundary failure and V3 height correction retained. |
+
+172 tests (89 sim+83 client), clippy and locked/offline release pass. All9000 focused and2100 integration ticks equal baseline. Full new35s integration reviewed; eight smoke PNGs equal the inspected prior batch. No simulation values changed. Exact evidence and limitations: full-kit report, RAYA-SIGNATURE-2026-09-06.md and raya-signature-verification.json.

@@ -112,3 +112,5 @@ Raya standing palm/low kick: seven V1 cells plus corrected V2 palm contact, comp
 Raya crouching palm and ankle kick: seven V1 cells plus corrected V2 kick contact; complete40-case accepted union and integration review. [Exact prompts, source and calibration](RAYA-CROUCH-LIGHTS-2026-09-05.md).
 
 Raya standing Flash/Style: seven V1 cells plus V3 curled cape contact, complete 40-case final2 and integration verification. [Exact prompts, source and calibration](RAYA-FLASH-STYLE-2026-09-05.md).
+
+Raya signature normals: ten V1 drawings and two V4 contacts; complete60-case final2 and integration verification. [Exact prompts, source and calibration](RAYA-SIGNATURE-2026-09-06.md).
