@@ -185,6 +185,8 @@ pub struct SpriteSet {
     victory: Option<crate::sequences::Atlas>,
     standing_lights: Option<crate::sequences::Atlas>,
     standing_palm_contact: Option<crate::sequences::Atlas>,
+    crouch_lights: Option<crate::sequences::Atlas>,
+    crouch_kick_contact: Option<crate::sequences::Atlas>,
     crouch_punch: Option<crate::sequences::Atlas>,
     crouch_saber: Option<crate::sequences::Atlas>,
     crouch_low: Option<crate::sequences::Atlas>,
@@ -229,6 +231,7 @@ pub enum Cell {
     AirLights(usize),
     Flash(usize),
     StandingLights(usize),
+    CrouchLights(usize),
     CrouchPunch(usize),
     CrouchSaber(usize),
     Overhead(usize),
@@ -455,6 +458,13 @@ impl SpriteSet {
         let standing_palm_contact = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-standing-lights-v2-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[1..2]).await
         } else { None };
+        let crouch_lights = if body == CharacterId::Raya {
+            Atlas::load("assets/animation/raya-crouch-lights-v1-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS).await
+        } else { None };
+        // Keep seven sound V1 drawings and use the compact V2 ankle contact.
+        let crouch_kick_contact = if body == CharacterId::Raya {
+            Atlas::load("assets/animation/raya-crouch-lights-v2-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[5..6]).await
+        } else { None };
         let crouch_punch = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-crouch-punch-v1-green.png", (1254, 1254), &KOGAN_CROUCH_PUNCH).await
         } else { None };
@@ -503,7 +513,7 @@ impl SpriteSet {
             CharacterId::Raya => ("raya-recoil-v1-green.png", (941, 1672), &RAYA_RECOIL),
         };
         let recoil = Atlas::load(&format!("assets/animation/{recoil_file}"), recoil_size, recoil_specs).await;
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, overhead, throw_tech, victory, standing_lights, standing_palm_contact, crouch_punch, crouch_saber, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, overhead, throw_tech, victory, standing_lights, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -529,6 +539,8 @@ impl SpriteSet {
             victory: None,
             standing_lights: None,
             standing_palm_contact: None,
+            crouch_lights: None,
+            crouch_kick_contact: None,
             crouch_punch: None,
             crouch_saber: None,
             crouch_low: None,
@@ -587,6 +599,9 @@ impl SpriteSet {
         }
         if self.standing_lights.is_some() && self.standing_palm_contact.is_some() {
             if let Some(cell) = crate::sequences::standing_lights_cell(fighter) { return cell; }
+        }
+        if self.crouch_lights.is_some() && self.crouch_kick_contact.is_some() {
+            if let Some(cell) = crate::sequences::crouch_lights_cell(fighter) { return cell; }
         }
         if self.crouch_punch.is_some() {
             if let Some(cell) = crate::sequences::crouch_punch_cell(fighter) { return cell; }
@@ -673,6 +688,8 @@ impl SpriteSet {
             Cell::Victory(cell) => self.victory.as_ref()?.frame(cell),
             Cell::ThrowTech(cell) => self.throw_tech.as_ref()?.frame(cell),
             Cell::Overhead(cell) => self.overhead.as_ref()?.frame(cell),
+            Cell::CrouchLights(5) => self.crouch_kick_contact.as_ref()?.frame(0),
+            Cell::CrouchLights(cell) => self.crouch_lights.as_ref()?.frame(cell),
             Cell::CrouchPunch(cell) => self.crouch_punch.as_ref()?.frame(cell),
             Cell::CrouchSaber(cell @ 8..=15) => self.crouch_low.as_ref()?.frame(cell - 8),
             Cell::CrouchSaber(cell) => self.crouch_saber.as_ref()?.frame(cell),

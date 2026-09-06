@@ -874,45 +874,51 @@ mod tests {
 
 
     #[test]
-    fn crouch_punch_preview_keeps_contact_freeze_and_returns_control_on_time() {
-        use crate::{sequences::crouch_punch_cell, sprites::Cell};
-        let cases = normal_cases(CharacterId::Kogan, &[MoveId::CrP]);
-        assert_eq!(cases.len(), 20);
-        for case in cases {
-            let mut world = case.world();
-            let hp = world.fighters[1].health;
-            let mut seen = std::collections::HashSet::new();
-            let mut blocked = false;
-            let mut frozen = None;
-            for tick in 0..case.duration() {
-                let [a, b] = case.inputs_for_world(tick, &world);
-                world.tick(a, b);
-                let f = &world.fighters[0];
-                let hash = world.state_hash();
-                let cell = crouch_punch_cell(f);
-                assert_eq!(world.state_hash(), hash);
-                if let Some(cell) = cell { seen.insert(cell); }
-                if let Some((action, previous)) = frozen {
-                    if f.action == action { assert_eq!(cell, previous, "pause/hitstop keeps its drawing"); }
+    fn crouching_lights_preserve_contact_guard_freeze_and_control() {
+        use crate::{sequences::{crouch_punch_cell, crouch_lights_cell}, sprites::Cell};
+        for (body, moves) in [(CharacterId::Kogan, &[MoveId::CrP][..]),
+            (CharacterId::Raya, &[MoveId::CrP, MoveId::CrK][..])] {
+            let cases = normal_cases(body, moves);
+            assert_eq!(cases.len(), 20 * moves.len());
+            for case in cases {
+                let mut world = case.world();
+                let hp = world.fighters[1].health;
+                let damage = world.fighters[0].data().move_def(case.move_id).unwrap().damage;
+                let mut seen = std::collections::HashSet::new();
+                let mut blocked = false;
+                let mut frozen = None;
+                for tick in 0..case.duration() {
+                    let [a, b] = case.inputs_for_world(tick, &world);
+                    world.tick(a, b);
+                    let f = &world.fighters[0];
+                    let hash = world.state_hash();
+                    let cell = if body == CharacterId::Kogan { crouch_punch_cell(f) } else { crouch_lights_cell(f) };
+                    assert_eq!(world.state_hash(), hash);
+                    if let Some(cell) = cell { seen.insert(cell); }
+                    if let Some((action, previous)) = frozen {
+                        if f.action == action { assert_eq!(cell, previous, "pause/hitstop keeps its drawing"); }
+                    }
+                    frozen = Some((f.action.clone(), cell));
+                    if let Action::Attack { move_id, frame, .. } = f.action {
+                        let mv = f.data().move_def(move_id).unwrap();
+                        let active = if body == CharacterId::Kogan { Cell::CrouchPunch(1) }
+                            else { Cell::CrouchLights(if move_id == MoveId::CrK { 5 } else { 1 }) };
+                        assert_eq!(cell == Some(active), mv.is_active(frame));
+                    } else { assert_eq!(cell, None, "new actions own the body immediately"); }
+                    blocked |= matches!(world.fighters[1].action, Action::Block { .. });
                 }
-                frozen = Some((f.action.clone(), cell));
-                if let Action::Attack { move_id, frame, .. } = f.action {
-                    let mv = f.data().move_def(move_id).unwrap();
-                    assert_eq!(cell == Some(Cell::CrouchPunch(1)), mv.is_active(frame));
-                } else {
-                    assert_eq!(cell, None, "the action owns the body immediately");
+                assert_eq!(seen.len(), 4, "{}: all four authored phases", case.label());
+                let low_beats_stand = body == CharacterId::Raya && case.move_id == MoveId::CrK;
+                match case.response {
+                    Response::Hit | Response::CrouchHit => assert_eq!(hp - world.fighters[1].health, damage),
+                    Response::StandBlock if low_beats_stand => { assert!(!blocked); assert_eq!(hp - world.fighters[1].health, damage); }
+                    Response::StandBlock | Response::CrouchBlock => { assert!(blocked); assert_eq!(hp, world.fighters[1].health); }
+                    Response::Whiff => { assert!(!blocked); assert_eq!(hp, world.fighters[1].health); }
+                    _ => unreachable!(),
                 }
-                blocked |= matches!(world.fighters[1].action, Action::Block { .. });
+                assert!(world.fighters.iter().all(|f| f.action.actionable()));
+                assert!(matches!(world.fighters[0].action, Action::Crouch));
             }
-            assert_eq!(seen.len(), 4, "{}: preparation/contact/withdrawal/ready", case.label());
-            match case.response {
-                Response::Hit | Response::CrouchHit => assert_eq!(hp - world.fighters[1].health, 35),
-                Response::StandBlock | Response::CrouchBlock => { assert!(blocked); assert_eq!(hp, world.fighters[1].health); }
-                Response::Whiff => { assert!(!blocked); assert_eq!(hp, world.fighters[1].health); }
-                _ => unreachable!(),
-            }
-            assert!(world.fighters.iter().all(|f| f.action.actionable()));
-            assert!(matches!(world.fighters[0].action, Action::Crouch));
         }
     }
 
