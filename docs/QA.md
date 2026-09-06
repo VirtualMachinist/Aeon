@@ -386,3 +386,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART40 | Four distinct low attacks with complete support, active contact, withdrawal and crouched return | All 80 final1 cases / 140s at 1×1280×720; phase/corner/guard/miss and sweep consequence PNGs; K2/S2/A1/A2 refraction. |
 
 175 tests (89 sim + 86 client), clippy and locked/offline release pass. All 8,400/2,100 focused/integration ticks equal baseline. Fresh 35s integration is byte-identical to fully reviewed Ascension footage; review reused explicitly. Eight smoke PNGs equal inspected Ascension evidence. CrHS airborne targets, broader full kits and physical play remain open. Exact evidence: full-kit report, RAYA-CROUCH-NORMALS-2026-09-06.md and raya-crouch-verification.json.
+
+## September 6 Raya airborne palm/kick/glyph review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART41 | Distinct low air contacts, folded withdrawal, complete descent and legal landing | All144 final cases/360s at1×1280×720; exact phase PNGs, both facings/corners and hit/guard/miss; G1/G2/K2/S2/A2 refraction. |
+
+175 tests (89 sim +86 client), clippy and locked/offline release pass. All21,600 focused/2,100 integration ticks equal baseline. New35s integration and eight smoke PNGs are byte-identical to inspected evidence; review explicitly reused. Rising fixtures expose the full return without changing timing. JFL candidate text-only pixel differences are qualified in raya-air-verification.json. Airborne targets, remaining full-kit work and physical play remain open. Exact evidence: full-kit report and RAYA-AIR-LIGHTS-2026-09-06.md.

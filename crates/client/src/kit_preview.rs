@@ -27,6 +27,7 @@ enum Response {
     CrouchHit,
     AirEvade,
     EarlyWhiff,
+    RisingWhiff,
     Projectile,
     TechEarly,
     TechLate,
@@ -133,14 +134,15 @@ fn movement_cases(body: CharacterId) -> Vec<Case> {
     result
 }
 
-fn air_cases() -> Vec<Case> {
+fn air_cases(body: CharacterId) -> Vec<Case> {
     let mut result = Vec::new();
     for move_id in [MoveId::JP, MoveId::JK, MoveId::JS, MoveId::JHS, MoveId::JFL, MoveId::JST, MoveId::AirShot] {
+        if body == CharacterId::Raya && move_id == MoveId::AirShot { continue; }
         for hop in [true, false] {
             for response in [Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff] {
                 for corner in [false, true] {
                     for right in [true, false] {
-                        result.push(Case { body: CharacterId::Kogan, move_id, response, right, corner,
+                        result.push(Case { body, move_id, response, right, corner,
                             jump: Some((8, hop)), air: true, ranged: false, utility: false,
                             saber: false, disc: false, reaction: false, ground: None, feint: None });
                     }
@@ -153,9 +155,14 @@ fn air_cases() -> Vec<Case> {
 
 
 // Earlier legal input leaves time to inspect withdrawal above the floor.
-fn early_air_cases() -> Vec<Case> {
-    air_cases().into_iter().filter(|c| c.response == Response::Whiff && c.move_id != MoveId::AirShot)
+fn early_air_cases(body: CharacterId) -> Vec<Case> {
+    air_cases(body).into_iter().filter(|c| c.response == Response::Whiff && c.move_id != MoveId::AirShot)
         .map(|mut c| { c.response = Response::EarlyWhiff; c }).collect()
+}
+
+// Rising input exposes the full recovery even on Raya's shorter airborne arc.
+fn rising_air_cases(body: CharacterId) -> Vec<Case> {
+    early_air_cases(body).into_iter().map(|mut c| { c.response = Response::RisingWhiff; c }).collect()
 }
 
 fn ranged_cases() -> Vec<Case> {
@@ -311,7 +318,7 @@ impl Case {
                 if self.corner { "corner" } else { "center" });
         }
         if self.air {
-            return format!("KOGAN {:?} · {:?} · {} · {} · {}", self.move_id, self.response,
+            return format!("{} {:?} · {:?} · {} · {} · {}", self.body.name(), self.move_id, self.response,
                 if self.jump.unwrap().1 { "hop" } else { "jump" },
                 if self.right { "right" } else { "left" }, if self.corner { "corner" } else { "center" });
         }
@@ -338,7 +345,7 @@ impl Case {
         };
         let mut world = World::new(self.body, opponent);
         if self.move_id == MoveId::Super { world.fighters[0].meter = 1000; }
-        if self.air && self.move_id == MoveId::JFL { world.fighters[0].gauge = 0; }
+        if self.body == CharacterId::Kogan && self.air && self.move_id == MoveId::JFL { world.fighters[0].gauge = 0; }
         let gap = if self.response == Response::Whiff { 150 } else { 40 };
         let defender = if self.corner { 740 } else { 340 };
         let attacker = defender - gap;
@@ -352,7 +359,7 @@ impl Case {
             (defender - gap, defender)
         } else if self.air {
             let defender = if self.corner { 740 } else { 500 };
-            let gap = if matches!(self.response, Response::Whiff | Response::EarlyWhiff) { 360 }
+            let gap = if matches!(self.response, Response::Whiff | Response::EarlyWhiff | Response::RisingWhiff) { 360 }
                 else if self.move_id == MoveId::AirShot { if self.jump.unwrap().1 { 100 } else { 140 } } else { 35 };
             (defender - gap, defender)
         } else if self.reaction {
@@ -401,7 +408,10 @@ impl Case {
             let f = &world.fighters[0];
             let attack_height = if self.response == Response::EarlyWhiff { 999 }
                 else if self.move_id == MoveId::AirShot { 140 } else { 80 };
-            let ready = world.hitstop == 0 && f.vel.y <= 0 && f.pos.y <= px(attack_height)
+            let timing = if self.response == Response::RisingWhiff {
+                f.vel.y > 0 && f.pos.y >= px(20)
+            } else { f.vel.y <= 0 && f.pos.y <= px(attack_height) };
+            let ready = world.hitstop == 0 && timing
                 && matches!(f.action, aeon_sim::Action::Jump { air_ok: true, .. });
             if ready {
                 inputs[0].buttons = Buttons::one(match self.move_id {
@@ -706,8 +716,8 @@ pub async fn run(assets: &Assets) {
     } else if args.iter().any(|a| a == "--kit-flash") {
         flash_cases(body)
     } else if args.iter().any(|a| a == "--kit-air") {
-        assert!(body == CharacterId::Kogan, "air cases currently cover Kogan");
-        if args.iter().any(|a| a == "--kit-air-early") { early_air_cases() } else { air_cases() }
+        if args.iter().any(|a| a == "--kit-air-rising") { rising_air_cases(body) }
+            else if args.iter().any(|a| a == "--kit-air-early") { early_air_cases(body) } else { air_cases(body) }
     } else if args.iter().any(|a| a == "--kit-reaction") {
         reaction_cases(body)
     } else if args.iter().any(|a| a == "--kit-super") {
@@ -928,7 +938,7 @@ mod tests {
     #[test]
     fn air_saber_preview_preserves_contact_freeze_and_landing_with_complete_early_recovery() {
         use crate::{sequences::air_saber_cell, sprites::Cell};
-        for case in air_cases().into_iter().chain(early_air_cases())
+        for case in air_cases(CharacterId::Kogan).into_iter().chain(early_air_cases(CharacterId::Kogan))
             .filter(|c| matches!(c.move_id, MoveId::JS | MoveId::JHS | MoveId::JST)) {
             let mut world = case.world();
             let hp = world.fighters[1].health;
@@ -965,7 +975,8 @@ mod tests {
     #[test]
     fn air_lights_preview_preserves_contact_freeze_and_landing_with_complete_early_recovery() {
         use crate::{sequences::air_lights_cell, sprites::Cell};
-        for case in air_cases().into_iter().chain(early_air_cases())
+        for case in [CharacterId::Kogan, CharacterId::Raya].into_iter()
+            .flat_map(|body| air_cases(body).into_iter().chain(early_air_cases(body)).chain(rising_air_cases(body)))
             .filter(|c| matches!(c.move_id, MoveId::JP | MoveId::JK | MoveId::JFL)) {
             let mut world = case.world();
             let hp = world.fighters[1].health;
@@ -988,9 +999,9 @@ mod tests {
                 }
                 if !f.airborne { assert_eq!(cell, None, "landing immediately owns the body"); }
             }
-            if case.response == Response::EarlyWhiff {
+            if matches!(case.response, Response::EarlyWhiff | Response::RisingWhiff) {
                 assert_eq!(hp, world.fighters[1].health, "early fixture remains a spaced miss");
-                if !case.jump.unwrap().1 {
+                if !case.jump.unwrap().1 && (case.body == CharacterId::Kogan || case.response == Response::RisingWhiff) {
                     assert_eq!(seen.len(), 4, "{}: gather/contact/withdraw/ready", case.label());
                     assert!(seen.contains(&Cell::AirLights(4)) && seen.contains(&Cell::AirLights(5)));
                 }
@@ -1002,7 +1013,9 @@ mod tests {
     #[test]
     fn air_preview_recognizes_every_loaded_and_empty_cylinder_move() {
         use aeon_sim::Action;
-        for case in air_cases() {
+        let cases = [CharacterId::Kogan, CharacterId::Raya].into_iter().flat_map(air_cases).collect::<Vec<_>>();
+        assert_eq!(cases.len(), 416);
+        for case in cases {
             let mut world = case.world();
             let initial_health = world.fighters[1].health;
             let mut seen = false;
