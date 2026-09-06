@@ -350,8 +350,16 @@ pub const KOGAN_AIR_RECOVERY_ROOT_Y: [Option<u16>; 4] = [
     Some(540), Some(540), Some(1150), None,
 ];
 
+pub const RAYA_AIR_RECOVERY: [Spec; 4] = [
+    ([0, 0, 625, 600], 400, 480), ([625, 0, 1254, 600], 923, 480),
+    ([0, 600, 625, 1254], 428, 480), ([625, 600, 1254, 1254], 945, 480),
+];
+pub const RAYA_AIR_RECOVERY_ROOT_Y: [Option<u16>; 4] = [
+    Some(510), Some(510), Some(1100), None,
+];
+
 pub fn air_recovery_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan || !f.airborne { return None; }
+    if !f.airborne { return None; }
     let Action::Hit { stun, knockdown: false } = f.action else { return None; };
     // A continuing knockdown keeps its established tumble. A normal juggle
     // retains recoil until the final four stun ticks; this never returns control.
@@ -706,6 +714,7 @@ mod tests {
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
             ("kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW[..]),
             ("kogan-air-recovery-v1-green.png", (1254, 1254), &KOGAN_AIR_RECOVERY[..]),
+            ("raya-air-recovery-v1-green.png", (1254, 1254), &RAYA_AIR_RECOVERY[..]),
             ("kogan-crouch-punch-v1-green.png", (1254, 1254), &KOGAN_CROUCH_PUNCH[..]),
             ("kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER[..]),
             ("kogan-flash-v2-green.png", (1024, 1536), &KOGAN_FLASH[..]),

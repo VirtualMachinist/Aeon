@@ -217,7 +217,7 @@ impl History {
 
     fn air_recovery_landing(&self, w: &World, i: usize) -> Option<Cell> {
         let f = &w.fighters[i];
-        if f.id != CharacterId::Kogan || f.airborne { return None; }
+        if f.airborne { return None; }
         let Action::Landing { frame, total: 2 } = f.action else { return None; };
         let previous = w.frame.checked_sub(u32::from(frame) + 1).and_then(|tick| self.at(i, tick))?;
         matches!(previous.cell, Cell::AirRecovery(_))
@@ -364,7 +364,7 @@ pub fn layers(
             };
             // A changing step silhouette must not trail an old stance or
             // put a previous leaning head ahead of the braking body.
-            if (matches!(cell, Cell::Utility(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
+            if (matches!(cell, Cell::Utility(_) | Cell::AirRecovery(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
             // A body that has not moved leaves no trail.
             if (snap.x - sub(f.pos.x)).abs() + (snap.y - sub(f.pos.y)).abs() < 1.0 {
                 continue;
@@ -399,7 +399,7 @@ pub fn layers(
     // old silhouettes creates duplicate limbs and weapons through these cuts.
     if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
         !(cuts || [cell, prev.cell].into_iter().any(|c| {
-            matches!(c, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_))
+            matches!(c, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_) | Cell::AirRecovery(_))
                 || kogan_combat_cell(f.id, c)
                 || matches!((f.id, c), (CharacterId::Raya, Cell::Reaction(8..=11)))
         }))
@@ -445,7 +445,7 @@ fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
 }
 
 fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
-    matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_))
+    matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_) | Cell::AirRecovery(_))
         || kogan_combat_cell(id, cell)
 }
 
@@ -970,7 +970,8 @@ mod tests {
         let sprites = set(CharacterId::Raya);
         let opts = LayerOpts { win: None, defeat: None, flash: (0.0, WHITE) };
         for previous in [Cell::Movement(3), Cell::Movement(6), Cell::Movement(7),
-            Cell::Reaction(8), Cell::Reaction(9), Cell::Reaction(10), Cell::Reaction(11)] {
+            Cell::Reaction(8), Cell::Reaction(9), Cell::Reaction(10), Cell::Reaction(11),
+            Cell::AirRecovery(0), Cell::AirRecovery(1), Cell::AirRecovery(2), Cell::AirRecovery(3)] {
             let mut w = World::new(CharacterId::Raya, CharacterId::Kogan);
             let mut h = History::default(); h.record(&w, [previous, Cell::Pose(Pose::Idle)]);
             w.frame += 1; w.fighters[0].action = Action::Stand;
@@ -987,25 +988,27 @@ mod tests {
     }
 
     #[test]
-    fn air_recovery_landing_preserves_front_saber_only_after_adjacent_recoil() {
-        let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
-        let mut h = History::default(); w.frame = 40; w.fighters[0].airborne = true;
-        h.record(&w, [Cell::AirRecovery(2), Cell::Pose(Pose::Idle)]);
-        w.fighters[0].airborne = false;
-        for frame in 0..2 {
-            w.frame += 1; w.fighters[0].action = Action::Landing { frame, total: 2 };
-            let cell = if frame == 0 { Cell::AirRecovery(3) } else { Cell::Reaction(10) };
-            assert_eq!(h.air_recovery_landing(&w, 0), Some(cell));
-            h.record(&w, [cell, Cell::Pose(Pose::Idle)]);
-            assert_eq!(h.air_recovery_landing(&w, 0), Some(cell), "same-tick redraw freezes the pose");
+    fn air_recovery_landing_requires_adjacent_recoil_for_both_bodies() {
+        for body in [CharacterId::Kogan, CharacterId::Raya] {
+            let mut w = World::new(body, if body == CharacterId::Kogan { CharacterId::Raya } else { CharacterId::Kogan });
+            let mut h = History::default(); w.frame = 40; w.fighters[0].airborne = true;
+            h.record(&w, [Cell::AirRecovery(2), Cell::Pose(Pose::Idle)]);
+            w.fighters[0].airborne = false;
+            for frame in 0..2 {
+                w.frame += 1; w.fighters[0].action = Action::Landing { frame, total: 2 };
+                let cell = if frame == 0 { Cell::AirRecovery(3) } else { Cell::Reaction(10) };
+                assert_eq!(h.air_recovery_landing(&w, 0), Some(cell));
+                h.record(&w, [cell, Cell::Pose(Pose::Idle)]);
+                assert_eq!(h.air_recovery_landing(&w, 0), Some(cell), "same-tick redraw freezes the pose");
+            }
+            for action in [Action::Stand, Action::Crouch, Action::Hit { stun: 8, knockdown: false },
+                Action::Landing { frame: 0, total: 8 }] {
+                w.fighters[0].action = action; assert_eq!(h.air_recovery_landing(&w, 0), None);
+            }
+            w.frame += 10; w.fighters[0].action = Action::Landing { frame: 0, total: 2 };
+            assert_eq!(h.air_recovery_landing(&w, 0), None, "stale history cannot affect another jump");
+            h.reset(); assert_eq!(h.air_recovery_landing(&w, 0), None);
         }
-        for action in [Action::Stand, Action::Crouch, Action::Hit { stun: 8, knockdown: false },
-            Action::Landing { frame: 0, total: 8 }] {
-            w.fighters[0].action = action; assert_eq!(h.air_recovery_landing(&w, 0), None);
-        }
-        w.frame += 10; w.fighters[0].action = Action::Landing { frame: 0, total: 2 };
-        assert_eq!(h.air_recovery_landing(&w, 0), None, "stale history cannot affect another jump");
-        h.reset(); assert_eq!(h.air_recovery_landing(&w, 0), None);
     }
 
     #[test]

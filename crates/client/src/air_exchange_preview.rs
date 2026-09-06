@@ -179,9 +179,10 @@ mod tests {
         }
     }
     #[test]
-    fn kogan_juggles_show_recoil_tuck_and_feet_without_changing_simulation() {
+    fn both_bodies_juggle_recoil_tuck_and_feet_without_changing_simulation() {
         use crate::{sequences::air_recovery_cell, sprites::Cell};
-        for case in cases(CharacterId::Raya) {
+        for case in [CharacterId::Kogan, CharacterId::Raya].into_iter()
+            .flat_map(cases).filter(|c| matches!(c.route, Route::Juggle { .. })) {
             let mut w = case.world(); let mut driver = Driver::default();
             let mut seen = std::collections::HashSet::new();
             for tick in 0..DURATION {
