@@ -378,3 +378,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART39 | Low active release, gathered apex below HUD, coherent descent/landing | All20 final V2 cases/50s at1×1280×720; exact phase, mirrored corner, guard and miss PNGs; A2/K1/G1/S1 refraction. |
 
 175 tests (89sim+86client),clippy and locked/offline release pass. All3000/2100 focused/integration ticks equal baseline; complete new35s integration reviewed. All eight smoke PNGs equal inspected chants smoke3. Timer-overlap defect closed for this move. Full kits and physical play remain open; exact evidence in the full-kit report, RAYA-ASCENSION-2026-09-06.md and raya-ascension-verification.json.
+
+## September 6 Raya crouching normal review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART40 | Four distinct low attacks with complete support, active contact, withdrawal and crouched return | All 80 final1 cases / 140s at 1×1280×720; phase/corner/guard/miss and sweep consequence PNGs; K2/S2/A1/A2 refraction. |
+
+175 tests (89 sim + 86 client), clippy and locked/offline release pass. All 8,400/2,100 focused/integration ticks equal baseline. Fresh 35s integration is byte-identical to fully reviewed Ascension footage; review reused explicitly. Eight smoke PNGs equal inspected Ascension evidence. CrHS airborne targets, broader full kits and physical play remain open. Exact evidence: full-kit report, RAYA-CROUCH-NORMALS-2026-09-06.md and raya-crouch-verification.json.

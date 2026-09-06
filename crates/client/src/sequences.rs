@@ -293,8 +293,24 @@ pub const KOGAN_CROUCH_LOW: [Spec; 8] = [
     ([0, 1110, 500, 1536], 275, 350), ([500, 1110, 1024, 1536], 735, 350),
 ];
 
+// Raya keeps low support beneath horizontal and vertical crystal gestures.
+pub const RAYA_CROUCH_CRYSTALS: [Spec; 8] = [
+    ([0, 0, 490, 395], 285, 450), ([490, 0, 1024, 395], 705, 450),
+    ([0, 395, 490, 750], 285, 450), ([490, 395, 1024, 750], 710, 450),
+    ([0, 750, 490, 1110], 280, 450), ([490, 750, 1024, 1110], 695, 450),
+    ([0, 1110, 490, 1536], 280, 450), ([490, 1110, 1024, 1536], 695, 450),
+];
+
+// Low palm and one-hand-supported sweep have full sandals and distinct returns.
+pub const RAYA_CROUCH_LOW: [Spec; 8] = [
+    ([0, 0, 480, 420], 285, 500), ([480, 0, 1024, 420], 715, 500),
+    ([0, 420, 470, 790], 280, 500), ([470, 420, 1024, 790], 710, 500),
+    ([0, 790, 425, 1120], 245, 500), ([425, 790, 1024, 1120], 675, 500),
+    ([0, 1120, 450, 1536], 265, 500), ([450, 1120, 1024, 1536], 705, 500),
+];
+
 pub fn crouch_saber_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan || f.airborne { return None; }
+    if f.airborne { return None; }
     let Action::Attack { move_id, frame, .. } = f.action else { return None; };
     let base = match move_id { MoveId::CrS => 0, MoveId::CrHS => 4, MoveId::CrFL => 8, MoveId::CrST => 12, _ => return None };
     let mv = f.data().move_def(move_id)?;
@@ -860,6 +876,8 @@ mod tests {
             ("raya-standing-lights-v1-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[..]),
             ("raya-standing-lights-v2-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[1..2]),
             ("raya-crouch-lights-v1-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[..]),
+            ("raya-crouch-crystals-v1-green.png", (1024, 1536), &RAYA_CROUCH_CRYSTALS[..]),
+            ("raya-crouch-low-v1-green.png", (1024, 1536), &RAYA_CROUCH_LOW[..]),
             ("raya-crouch-lights-v2-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[5..6]),
             ("raya-flash-style-v1-green.png", (1024, 1536), &RAYA_FLASH[..]),
             ("raya-signature-v1-green.png", (1254, 1254), &RAYA_SIGNATURE[..]),
@@ -1025,7 +1043,6 @@ mod tests {
                     for frame in 0..mv.total_frames() {
                         f.action = Action::Attack { move_id, frame, connected: Connect::None };
                         let cell = crouch_saber_cell(&f);
-                        if id == CharacterId::Raya { assert_eq!(cell, None); continue; }
                         assert_eq!(cell == Some(Cell::CrouchSaber(base + 1)), mv.is_active(frame));
                         if frame == 0 { assert_eq!(cell, Some(Cell::CrouchSaber(base))); }
                         if frame == mv.last_active() + 1 { assert_eq!(cell, Some(Cell::CrouchSaber(base + 2))); }
