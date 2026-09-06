@@ -14,6 +14,8 @@ mod victory;
 mod ko;
 #[path = "air_exchange_preview.rs"]
 mod air_exchange;
+#[path = "freeze_preview.rs"]
+mod freeze;
 
 const LENGTH: u32 = 60;
 const PRESS: u32 = 12;
@@ -775,6 +777,7 @@ pub async fn run(assets: &Assets) {
     if args.iter().any(|a| a == "--kit-air-exchange") { return air_exchange::run(assets, &args).await; }
     if args.iter().any(|a| a == "--kit-ko") { return ko::run(assets, &args).await; }
     if args.iter().any(|a| a == "--kit-victory") { return victory::run(assets, &args).await; }
+    if args.iter().any(|a| a == "--kit-freeze") { return freeze::run(assets, &args).await; }
     let capture = args.iter().any(|a| a == "--capture");
     let body = if args.iter().any(|a| a == "--kit-raya") {
         CharacterId::Raya

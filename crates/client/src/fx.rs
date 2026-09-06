@@ -114,8 +114,13 @@ impl Effects {
         }
         let advanced = self.last_frame != Some(w.frame);
         self.last_frame = Some(w.frame);
-        for (_, _, n) in &mut self.flash {
-            *n = n.saturating_sub(1);
+        // Flashes share the drawing/effect clock. Hitstop and RC consume
+        // input ticks without advancing that clock; retain the contact flash.
+        // Event processing below still runs so RC can begin on the same frame.
+        if advanced {
+            for (_, _, n) in &mut self.flash {
+                *n = n.saturating_sub(1);
+            }
         }
         self.fx.retain(|fx| w.frame.saturating_sub(fx.born) <= fx.life());
 
@@ -493,6 +498,46 @@ mod tests {
     use aeon_sim::{Chord, InputFrame};
 
     #[test]
+    fn body_flash_holds_through_hitstop_then_expires_on_world_ticks() {
+        for body in [CharacterId::Kogan, CharacterId::Raya] {
+            for blocked in [false, true] {
+                let opponent = if body == CharacterId::Kogan { CharacterId::Raya } else { CharacterId::Kogan };
+                let mut w = World::new(body, opponent);
+                w.fighters[0].pos.x = aeon_sim::px(300);
+                w.fighters[1].pos.x = aeon_sim::px(340);
+                let mut effects = Effects::default();
+                for tick in 0..12 {
+                    let a = if tick == 0 { InputFrame::press(aeon_sim::Btn::P) } else { InputFrame::default() };
+                    let b = InputFrame::dir(if blocked { 4 } else { 5 });
+                    w.tick(a, b);
+                    effects.after_tick(&w);
+                    if w.hitstop > 0 { break; }
+                }
+                assert!(w.hitstop > 0, "legal jab must connect");
+                let held = effects.flash[1];
+                assert!(held.2 > 0);
+                let frozen_frame = w.frame;
+                for _ in 0..w.hitstop {
+                    w.tick(InputFrame::default(), InputFrame::default());
+                    effects.after_tick(&w);
+                    assert_eq!(w.frame, frozen_frame);
+                    assert_eq!(effects.flash[1], held, "{body:?} block={blocked}: frozen flash must hold");
+                }
+                for elapsed in 1..=held.2 {
+                    w.tick(InputFrame::default(), InputFrame::default());
+                    effects.after_tick(&w);
+                    assert_eq!(effects.flash[1].2, held.2 - elapsed);
+                }
+                assert_eq!(effects.flash(1).0, 0.0);
+                effects.reset();
+                assert!(effects.fx.is_empty());
+                assert_eq!(effects.flash(0).0, 0.0);
+                assert_eq!(effects.flash(1).0, 0.0);
+            }
+        }
+    }
+
+    #[test]
     fn frozen_cast_and_landing_spawn_once() {
         for body in [CharacterId::Kogan, CharacterId::Raya] {
             let mut w = World::new(body, body);
@@ -569,10 +614,13 @@ mod tests {
         effects.after_tick(&w);
         assert_eq!(w.frame, frame);
         assert!(w.rc_freeze > 0);
+        let held = effects.flash[0];
+        assert!(held.2 > 0);
         for _ in 0..w.rc_freeze {
             w.tick(InputFrame::default(), InputFrame::default());
             effects.after_tick(&w);
         }
+        assert_eq!(effects.flash[0], held, "RC body flash must hold with its ring");
         assert_eq!(effects.fx.iter().filter(|fx| fx.kind == FxKind::RcRing).count(), 1);
     }
 }
