@@ -11,14 +11,14 @@ enum Ending { Standing, Air, NextRound, Rematch }
 #[derive(Clone, Copy, Debug)]
 struct VictoryCase { setup: Case, ending: Ending }
 
-fn cases() -> Vec<VictoryCase> {
+fn cases(body: CharacterId) -> Vec<VictoryCase> {
     let mut out = Vec::new();
     for ending in [Ending::Standing, Ending::Air, Ending::NextRound, Ending::Rematch] {
         let (base, mv) = match ending {
-            Ending::Standing => (saber_cases(CharacterId::Kogan), MoveId::StS),
-            Ending::Air => (saber_cases(CharacterId::Kogan), MoveId::Uppercut),
-            Ending::NextRound => (crouching_saber_cases(CharacterId::Kogan), MoveId::CrHS),
-            Ending::Rematch => (ranged_cases(CharacterId::Kogan), MoveId::ShotA),
+            Ending::Standing => (saber_cases(body), MoveId::StS),
+            Ending::Air => (saber_cases(body), MoveId::Uppercut),
+            Ending::NextRound => (crouching_saber_cases(body), MoveId::CrHS),
+            Ending::Rematch => (ranged_cases(body), MoveId::ShotA),
         };
         for setup in base.into_iter().filter(|c| c.move_id == mv && c.response == Response::Hit) {
             out.push(VictoryCase { setup, ending });
@@ -29,13 +29,14 @@ fn cases() -> Vec<VictoryCase> {
 
 impl VictoryCase {
     fn label(self) -> String {
-        format!("KOGAN victory {:?} · {} · {}", self.ending,
+        format!("{} victory {:?} · {} · {}", if self.setup.body == CharacterId::Kogan { "KOGAN" } else { "RAYA" }, self.ending,
             if self.setup.right { "right" } else { "left" },
             if self.setup.corner { "corner" } else { "center" })
     }
 
     fn game(self) -> Match {
-        let mut m = Match::new(CharacterId::Kogan, CharacterId::Raya);
+        let opponent = if self.setup.body == CharacterId::Kogan { CharacterId::Raya } else { CharacterId::Kogan };
+        let mut m = Match::new(self.setup.body, opponent);
         m.world = self.setup.world();
         m.world.fighters[1].health = 1;
         m.phase = Phase::Fight;
@@ -57,10 +58,10 @@ impl VictoryCase {
 }
 
 pub async fn run(assets: &Assets, args: &[String]) {
-    assert!(!args.iter().any(|s| s == "--kit-raya"), "victory cases currently cover Kogan");
+    let body = if args.iter().any(|s| s == "--kit-raya") { CharacterId::Raya } else { CharacterId::Kogan };
     let capture = args.iter().any(|s| s == "--capture");
     let selected = args.iter().find_map(|s| s.strip_prefix("--kit-case=")).map(|n| n.parse::<usize>().expect("case index"));
-    let mut all = cases();
+    let mut all = cases(body);
     if let Some(name) = args.iter().find_map(|s| s.strip_prefix("--kit-victory-state=")) {
         all.retain(|c| format!("{:?}", c.ending) == name);
         assert!(!all.is_empty(), "unknown victory state");
@@ -124,7 +125,7 @@ mod tests {
     use aeon_sim::{Action, RoundOutcome};
     #[test]
     fn victory_cases_reach_real_ko_then_hold_next_round_or_rematch() {
-        let all = cases();assert_eq!(all.len(),16);
+        let all = [CharacterId::Kogan,CharacterId::Raya].into_iter().flat_map(cases).collect::<Vec<_>>();assert_eq!(all.len(),32);
         for case in all {
             let mut m=case.game();let mut ko=false;let mut airborne=false;let mut resting=false;let mut over=false;let mut reset=false;
             for frame in 0..DURATION {
@@ -148,7 +149,7 @@ mod tests {
     #[test]
     fn every_real_ko_exposes_all_victory_drawings_then_freezes_or_clears() {
         use crate::{anim::VictoryClock, sequences::victory_cell, sprites::Cell};
-        for case in cases() {
+        for case in [CharacterId::Kogan,CharacterId::Raya].into_iter().flat_map(cases) {
             let mut m=case.game();let mut clock=VictoryClock::default();
             let mut cells=std::collections::BTreeSet::new();
             for frame in 0..DURATION {
@@ -170,7 +171,7 @@ mod tests {
         let mut clock=VictoryClock::default();
         m.phase=Phase::RoundEnd { outcome:RoundOutcome::Winner(1),frame:30 };
         clock.update(&m.world,m.phase);assert_eq!(clock.age(1),Some(0));assert_eq!(clock.age(0),None);
-        assert_eq!(victory_cell(&m.world.fighters[0],0),None,"Raya art remains separate");
+        assert_eq!(victory_cell(&m.world.fighters[0],0),Some(Cell::Victory(0)),"both bodies have their own loaded winner atlas");
     }
 
 }

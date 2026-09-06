@@ -102,8 +102,16 @@ pub const KOGAN_VICTORY: [Spec; 4] = [
     ([0, 508, 760, 1024], 425, 480), ([760, 508, 1536, 1024], 1083, 480),
 ];
 
+// Quiet cupped-crystal gather, rise and settled offering.
+pub const RAYA_VICTORY: [Spec; 4] = [
+    ([0, 0, 768, 504], 448, 454),
+    ([768, 0, 1536, 504], 1070, 454),
+    ([0, 504, 768, 1024], 448, 454),
+    ([768, 504, 1536, 1024], 1062, 454),
+];
+
 pub fn victory_cell(f: &Fighter, age: u32) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan || !crate::anim::victory_at_rest(f) { return None; }
+    if !crate::anim::victory_at_rest(f) { return None; }
     Some(Cell::Victory(match age { 0..=7 => 0, 8..=15 => 1, 16..=23 => 2, _ => 3 }))
 }
 
@@ -1011,6 +1019,7 @@ mod tests {
             ("raya-flash-style-v3-green.png", (1024, 1536), &RAYA_FLASH[5..6]),
             ("kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH[..]),
             ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
+            ("raya-victory-v1-green.png", (1536, 1024), &RAYA_VICTORY[..]),
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
             ("raya-overhead-v1-green.png", (1024, 1536), &RAYA_OVERHEAD[..]),
             ("kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW[..]),

@@ -169,3 +169,5 @@ Raya consecrate and manual shatter have reviewed drawn phases. Use `--kit-previe
 Raya Convergence has reviewed drawn phases. Use `--kit-preview --kit-super --kit-raya`. All20 cases /50s reviewed;179 tests/clippy/release pass;simulation traces unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
 
 Raya feints now retain family-specific withdrawal and supported airborne return. `--kit-preview --kit-feint --kit-raya` selects80 reviewed early/late cases.179 tests/clippy/release pass;simulation unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
+
+Raya victory now retains supported recovery into a four-phase quiet offering. `--kit-preview --kit-victory --kit-raya` selects16 reviewed cases.179 tests/clippy/release pass;simulation unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
