@@ -208,6 +208,7 @@ pub struct SpriteSet {
     coil: Option<crate::sequences::Atlas>,
     movement: Option<crate::sequences::Atlas>,
     ranged: Option<crate::sequences::Atlas>,
+    ritual: Option<crate::sequences::Atlas>,
     utility: Option<crate::sequences::Atlas>,
 }
 
@@ -253,6 +254,7 @@ pub enum Cell {
     Ground(usize),
     Movement(usize),
     Ranged(usize),
+    Ritual(usize),
     Utility(usize),
 }
 
@@ -414,6 +416,9 @@ impl SpriteSet {
             };
             Atlas::load_with_roots(&format!("assets/animation/{file}"), (1672, 941), specs, roots).await
         };
+        let ritual = if body == CharacterId::Raya && !std::env::args().any(|a|a=="--kit-legacy-ritual") {
+            Atlas::load("assets/animation/raya-ritual-v1-green.png",(1536,1024),&RAYA_RITUAL).await
+        } else {None};
         let ranged = if std::env::args().any(|a| a == "--kit-legacy-ranged") { None } else {
             match body {
                 CharacterId::Kogan => Atlas::load("assets/animation/kogan-ranged-v5-green.png", (1448,1086), &KOGAN_RANGED).await,
@@ -562,7 +567,7 @@ impl SpriteSet {
         let chant_finisher = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-chant3-v1-green.png", (1254, 1254), &RAYA_CHANT_III).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, throw_contact, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_saber_contact, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, throw_contact, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_saber_contact, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, ritual, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -611,6 +616,7 @@ impl SpriteSet {
             coil: None,
             movement: None,
             ranged: None,
+            ritual: None,
             utility: None,
         }
     }
@@ -706,6 +712,11 @@ impl SpriteSet {
                 if self.frame(cell).is_some() { return cell; }
             }
         }
+        if self.ritual.is_some() {
+            if let Some(cell)=crate::sequences::ritual_cell(fighter) {
+                if self.frame(cell).is_some() {return cell;}
+            }
+        }
         if self.ranged.is_some() {
             if let Some(cell) = crate::sequences::ranged_cell(fighter) {
                 return cell;
@@ -748,6 +759,7 @@ impl SpriteSet {
         match cell {
             Cell::Movement(cell) => self.movement.as_ref()?.frame(cell),
             Cell::Ranged(cell) => self.ranged.as_ref()?.frame(cell),
+            Cell::Ritual(cell) => self.ritual.as_ref()?.frame(cell),
             Cell::Utility(cell) => self.utility.as_ref()?.frame(cell),
             Cell::Victory(cell) => self.victory.as_ref()?.frame(cell),
             Cell::ThrowTech(cell) => self.throw_tech.as_ref()?.frame(cell),

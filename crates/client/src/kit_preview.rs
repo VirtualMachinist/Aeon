@@ -31,6 +31,10 @@ enum Response {
     Projectile,
     TechEarly,
     TechLate,
+    ChargeTap,
+    ChargeRelease,
+    ChargeMax,
+    ChargeInterrupt,
     Whiff,
 }
 
@@ -116,6 +120,21 @@ fn normal_cases(body: CharacterId, moves: &[MoveId]) -> Vec<Case> {
                 }
             }
         }
+    }
+    result
+}
+
+fn ritual_cases() -> Vec<Case> {
+    let mut result = Vec::new();
+    for (move_id, responses) in [
+        (MoveId::Charge, [Response::ChargeTap, Response::ChargeRelease, Response::ChargeMax, Response::ChargeInterrupt]),
+        (MoveId::Detonate, [Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff]),
+    ] {
+        for response in responses { for corner in [false,true] { for right in [true,false] {
+            let mut case = normal_cases(CharacterId::Raya, &[move_id])[0];
+            case.response = response; case.corner = corner; case.right = right;
+            result.push(case);
+        } } }
     }
     result
 }
@@ -287,7 +306,8 @@ fn reaction_cases(victim: CharacterId) -> Vec<Case> {
 
 impl Case {
     fn duration(self) -> u32 {
-        if self.body == CharacterId::Raya && self.ranged { 210 }
+        if matches!(self.move_id, MoveId::Charge | MoveId::Detonate) { 120 }
+        else if self.body == CharacterId::Raya && self.ranged { 210 }
         else if self.feint.is_some() { 120 }
         else if self.reaction || self.move_id == MoveId::Throw { 150 }
         else if self.disc || self.ground.is_some() { 90 }
@@ -351,10 +371,14 @@ impl Case {
         if self.body == CharacterId::Raya && self.ranged { world.fighters[0].gauge = if matches!(self.move_id, MoveId::ExA | MoveId::ExB) { 50 } else { 0 }; }
         if self.move_id == MoveId::Super { world.fighters[0].meter = 1000; }
         if self.body == CharacterId::Kogan && self.air && self.move_id == MoveId::JFL { world.fighters[0].gauge = 0; }
+        if self.move_id == MoveId::Charge { world.fighters[0].gauge = 0; }
         let gap = if self.response == Response::Whiff { 150 } else { 40 };
         let defender = if self.corner { 740 } else { 340 };
         let attacker = defender - gap;
-        let (attacker, defender) = if self.move_id == MoveId::Throw && !self.reaction {
+        let (attacker, defender) = if self.move_id == MoveId::Detonate {
+            let defender = if self.corner { 740 } else { 480 };
+            (defender - if self.response == Response::Whiff { 300 } else { 110 }, defender)
+        } else if self.move_id == MoveId::Throw && !self.reaction {
             let defender = if self.corner { 740 } else { 500 };
             let gap = if self.response == Response::Whiff { 150 } else { 35 };
             (defender - gap, defender)
@@ -404,6 +428,15 @@ impl Case {
         for (fighter, x) in world.fighters.iter_mut().zip([attacker, defender]) {
             fighter.pos.x = if self.right { px(x) } else { STAGE_W - px(x) };
         }
+        if self.move_id == MoveId::Detonate {
+            // Produce the starting armed trap with a real QCB+S and full flight.
+            world.fighters[0].gauge = 0;
+            for tick in 0..80 {
+                let mut a = InputFrame::dir(match tick { 8 => 2, 9 => 1, 10 => 4, _ => 5 });
+                if tick == 10 { a.buttons = Buttons::one(Btn::S); }
+                world.tick(a, InputFrame::dir(5));
+            }
+        }
         world
     }
 
@@ -411,6 +444,11 @@ impl Case {
     // cannot make a fixed wall-clock script skip the later rekka actions.
     fn inputs_for_world(self, frame: u32, world: &World) -> [InputFrame; 2] {
         let mut inputs = self.inputs(frame);
+        if self.move_id == MoveId::Detonate && self.response == Response::StandBlock {
+            let release = world.fighters[0].action.attacking().is_some_and(|(id, age, _)| id == MoveId::Detonate && age >= 5);
+            inputs[1] = InputFrame::dir(if release {4} else {5});
+        }
+
         if self.body == CharacterId::Raya && self.ranged && self.response == Response::StandBlock {
             // Begin holding back at the real release/arming boundary so the
             // fixture does not walk out of a stationary glyph or planted trap.
@@ -473,6 +511,16 @@ impl Case {
     }
 
     fn inputs(self, frame: u32) -> [InputFrame; 2] {
+        if matches!(self.move_id, MoveId::Charge | MoveId::Detonate) {
+            let mut a = InputFrame::dir(match frame { n if n == PRESS-2 => 2, n if n == PRESS-1 => 1, n if n == PRESS => 4, _ => 5 });
+            let hold_to = match self.response { Response::ChargeTap => PRESS+1, Response::ChargeRelease => 42, _ => 100 };
+            if self.move_id == MoveId::Charge && (PRESS..hold_to).contains(&frame) { a.buttons = Buttons::one(Btn::FL); }
+            if self.move_id == MoveId::Detonate && frame == PRESS { a.buttons = Buttons::one(Btn::S); }
+            let mut b = InputFrame::dir(if self.response == Response::CrouchBlock {1} else {5});
+            if self.response == Response::ChargeInterrupt && frame == 30 { b.buttons = Buttons::one(Btn::S); }
+            return [a,b];
+        }
+
         if self.move_id == MoveId::Throw && !self.reaction {
             let mut attacker = InputFrame::dir(5);
             if frame == PRESS { attacker.buttons = Buttons::two(Btn::P, Btn::K); }
@@ -718,7 +766,9 @@ pub async fn run(assets: &Assets) {
     let selected = args.iter().find_map(|a| a.strip_prefix("--kit-case=")).map(|n| {
         n.parse::<usize>().expect("--kit-case must be a nonnegative integer")
     });
-    let mut all = if args.iter().any(|a| a == "--kit-crp") {
+    let mut all = if args.iter().any(|a| a == "--kit-ritual") {
+        ritual_cases()
+    } else if args.iter().any(|a| a == "--kit-crp") {
         normal_cases(body, &[MoveId::CrP])
     } else if args.iter().any(|a| a == "--kit-feint") {
         assert!(body == CharacterId::Kogan, "feint cases currently cover Kogan");
@@ -859,6 +909,52 @@ pub async fn run(assets: &Assets) {
 mod tests {
     use super::*;
     use aeon_sim::{Action, EventKind};
+
+    #[test]
+    fn raya_ritual_preview_uses_legal_channel_and_manual_armed_detonation() {
+        let cases = ritual_cases(); assert_eq!(cases.len(),32);
+        for case in cases {
+            let mut world = case.world();
+            let hp = [world.fighters[0].health,world.fighters[1].health];
+            if case.move_id == MoveId::Detonate {
+                assert!(world.projectiles.iter().any(|p| p.owner==0 && p.armed()), "{case:?}: real armed starting trap");
+                assert_eq!(hp[1],World::new(CharacterId::Raya,CharacterId::Kogan).fighters[1].health, "trap must not touch before command");
+            }
+            let mut drawings=std::collections::HashSet::new();
+            let mut frozen=None;
+            let mut started=false; let mut detonated=false; let mut channels=0; let mut hit=false; let mut block=false;
+            for tick in 0..case.duration() {
+                let [a,b]=case.inputs_for_world(tick,&world);world.tick(a,b);
+                let f=&world.fighters[0];let cell=crate::sequences::ritual_cell(f);
+                if let Some(cell)=cell {drawings.insert(cell);}
+                if let Some((action,channel,previous))=frozen {if f.action==action && f.channel_frames==channel {assert_eq!(cell,previous,"pause/channel freeze");}}
+                frozen=Some((f.action.clone(),f.channel_frames,cell));
+                started |= world.fighters[0].action.attacking().is_some_and(|(id,_,_)| id==case.move_id);
+                channels=channels.max(world.fighters[0].channel_frames);
+                detonated |= world.events.iter().any(|e| e.kind==EventKind::Detonate && e.move_id==Some(MoveId::Detonate));
+                hit |= matches!(world.fighters[0].action,Action::Hit {..});
+                block |= matches!(world.fighters[1].action,Action::Block {..});
+            }
+            assert!(started,"{case:?}: legal action");
+            if case.move_id==MoveId::Charge {
+                match case.response {
+                    Response::ChargeTap => {assert_eq!(world.fighters[0].gauge,0);assert_eq!(channels,0);},
+                    Response::ChargeRelease => {assert_eq!(world.fighters[0].gauge,38);assert_eq!(channels,19);},
+                    Response::ChargeMax => {for phase in 0..6 {assert!(drawings.contains(&crate::sprites::Cell::Ritual(phase)));}assert_eq!(world.fighters[0].gauge,100);assert_eq!(channels,60);},
+                    Response::ChargeInterrupt => {assert!(hit);assert!(world.fighters[0].health<hp[0]);assert!((1..60).contains(&channels));},
+                    _=>unreachable!(),
+                }
+            } else {
+                assert!(detonated,"{case:?}: manual command event");
+                for cell in [crate::sprites::Cell::Ritual(6),crate::sprites::Cell::Ritual(7),crate::sprites::Cell::Utility(2),crate::sprites::Cell::Ritual(5)] {assert!(drawings.contains(&cell));}
+                let guard=matches!(case.response,Response::StandBlock|Response::CrouchBlock);
+                assert_eq!(block,guard,"{case:?}");
+                assert_eq!(hp[1]-world.fighters[1].health,if case.response==Response::Whiff {0} else if guard {12} else {90},"{case:?}: one commanded blast");
+                assert!(world.projectiles.is_empty());
+            }
+            assert!(world.fighters.iter().all(|f|f.action.actionable()),"{case:?}: full recovery");
+        }
+    }
 
     #[test]
     fn feint_preview_covers_every_legal_special_at_first_and_last_startup_tick() {

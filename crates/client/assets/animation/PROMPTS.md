@@ -134,3 +134,5 @@ Raya Rite and Processional: eight deliberate grounded phases with contained cont
 Raya normal throw/escape: new empty-hand reach and approved utility/recoil phases. [Exact prompt and review](RAYA-THROW-2026-09-06.md).
 
 Raya ranged and EX use eight V2 low-crystal/spoken-glyph phases. V1 retained as rejected calibration. [Exact prompts and review](RAYA-RANGED-2026-09-06.md).
+
+Raya consecrate and manual shatter use eight V1 supported knee/rise and empty-command phases. [Exact prompt and review](RAYA-RITUAL-2026-09-06.md).

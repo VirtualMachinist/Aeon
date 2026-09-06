@@ -849,6 +849,35 @@ pub const RAYA_RANGED: [Spec; 8] = [
     ([765,490,1135,1024],970,414), ([1135,490,1536,1024],1290,414),
 ];
 
+pub const RAYA_RITUAL: [Spec;8] = [
+    ([0,0,375,470],230,415), ([375,0,738,470],565,415),
+    ([738,0,1090,470],910,415), ([1090,0,1536,470],1310,415),
+    ([0,470,395,1024],255,418), ([395,470,770,1024],585,418),
+    ([770,470,1120,1024],945,418), ([1120,470,1536,1024],1295,418),
+];
+
+pub fn ritual_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Raya { return None; }
+    let Action::Attack {move_id,frame,..}=f.action else {return None};
+    match move_id {
+        MoveId::Charge => {
+            // The channel holds attack age10; its own sim counter supplies the
+            // restrained breath. Release uses only the existing eight out ticks.
+            let cell=match frame {
+                0..=4=>0, 5..=9=>1,
+                10=>if (f.channel_frames/12).is_multiple_of(2) {1} else {2},
+                11..=13=>3, 14..=16=>4, _=>5,
+            };
+            Some(Cell::Ritual(cell))
+        }
+        MoveId::Detonate => Some(match frame {
+            0..=5=>Cell::Ritual(6),6..=8=>Cell::Ritual(7),
+            9..=13=>Cell::Utility(2),_=>Cell::Ritual(5),
+        }),
+        _=>None,
+    }
+}
+
 pub fn ranged_cell(f: &Fighter) -> Option<Cell> {
     let Action::Attack { move_id, frame, .. } = f.action else { return None };
     if f.id == aeon_sim::CharacterId::Raya {
@@ -981,6 +1010,7 @@ mod tests {
             ("raya-throw-contact-v1-green.png", (1254, 1254), &RAYA_THROW_CONTACT[..]),
             ("kogan-ranged-v5-green.png", (1448, 1086), &KOGAN_RANGED[..]),
             ("raya-ranged-v2-green.png", (1536, 1024), &RAYA_RANGED[..]),
+            ("raya-ritual-v1-green.png", (1536,1024), &RAYA_RITUAL[..]),
             ("raya-movement-v1-green.png", (1672, 941), &RAYA_MOVEMENT[..]),
             ("raya-air-lights-v1-green.png", (1024, 1536), &RAYA_AIR_LIGHTS[..]),
             ("raya-air-crystals-v1-green.png", (1024, 1536), &RAYA_AIR_CRYSTALS[..]),
