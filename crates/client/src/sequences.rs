@@ -632,10 +632,10 @@ pub const RAYA_WALK: [Spec; 4] = [
     ([590, 0, 925, 318], 754, 294), ([925, 0, 1254, 318], 1070, 294),
 ];
 
-// Walk uses the existing four drawings, extracted at real green gaps.
+// Four supported steps in the current dark-armor drawing finish.
 pub const KOGAN_WALK: [Spec; 4] = [
-    ([0, 0, 313, 320], 175, 277), ([313, 0, 614, 320], 470, 277),
-    ([614, 0, 906, 320], 756, 277), ([906, 0, 1254, 320], 1055, 277),
+    ([0, 0, 627, 600], 318, 505), ([627, 0, 1254, 600], 931, 505),
+    ([0, 600, 627, 1254], 330, 505), ([627, 600, 1254, 1254], 930, 505),
 ];
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -1001,7 +1001,7 @@ mod tests {
             ("kogan-floor-v1-green.png", (1536, 1024), &KOGAN_FLOOR[..]),
             ("kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL[..]),
             ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND[..]),
-            ("kogan-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
+            ("kogan-walk-style-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
             ("raya-v1-green.png", (1254, 1254), &RAYA_WALK[..]),
             ("raya-ground-v1-green.png", (1672, 941), &RAYA_GROUND[..]),
             ("raya-recoil-v1-green.png", (941, 1672), &RAYA_RECOIL[..]),

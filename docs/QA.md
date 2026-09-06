@@ -512,3 +512,7 @@ Dark green below the previous brightness threshold is neutralized without changi
 ### ART58 Kogan quiet stance
 
 Approved Flash ready cell 3 now supplies quiet grounded Stand. Full 32s replay, 35s integration and 24-case/33.6s freeze fixture reviewed at 1×; exact replay 0080 and four changed smoke scenes inspected. Both corners, full blade, floor support and close opponent visibility pass. All 185 tests, clippy/release pass; 1,920/2,100/1,440 trace rows/ticks unchanged, 960 saved/loaded pairs and 576 paused redraws exact. Archives checksum verified. Deliberate held neutral accepted; legacy walk/contact finish, StK/CrK art and actual training-key dispatch remain open.
+
+### ART59 Kogan walking finish
+
+Four V1 drawings retain six-tick forward/reversed backward cells. Complete before/final 12s each and fresh 35s integration reviewed at 1×; all four footfalls, ready return, mirrored corner and four changed integration diagnostics inspected. Eight smoke PNGs equal inspected ART58. All 185 tests, clippy/release pass; 720 focused/2,100 integration ticks unchanged. Real-asset region test covers the new sheet; archives checksum verified. Legacy contact finish, StK/CrK and actual training keys remain open.

@@ -144,3 +144,24 @@ Raya feints reuse approved withdrawal/ready drawings,with supported Charge rise 
 Raya victory:four V1 gather/cup/lift/settle drawings. [Exact prompt,source and review](RAYA-VICTORY-2026-09-06.md).
 
 Kogan jab:approved Flash gathered fist and ready bracket the original complete contact. [Reuse and review](KOGAN-JAB-2026-09-06.md). No new generation.
+
+
+# Kogan walking finish — September 6
+
+Status: V1 accepted after runtime review (ART59). Built-in Image Generation skill/tool. Both reference sheets inspected directly before generation. Existing atlas top-row pose sequence is the movement reference; Flash v2 second-row-right ready is the identity/material reference. New quiet stance is published in ART58. Full forward/backward baseline captures are being retained. No blocked lights request is retried.
+
+Runtime acceptance must retain current walk timing and sim, inspect all four placements/facings, foot support, complete saber/cape and entry/return at normal speed and selected phase steps. Broader legacy attack finish and StK/CrK stay open.
+
+## Exact prompt
+
+Create a production animation sheet for Aeon, the existing high-resolution 2D fighting game. This is Kogan WALKING only. Reference image 1 is the existing atlas: use ONLY its TOP ROW's four ordinary grounded walking poses as the pose and foot-placement sequence. Ignore all lower rows. Reference image 2 is the approved current material/identity style: especially the SECOND ROW RIGHT ready stance. Produce four full-body walking drawings in a spacious 2x2 grid, reading left to right then top to bottom. Preserve the exact supported leg arrangements and order from reference 1 top row: broad planted start, front foot reaching forward with toe up and rear foot planted, rear foot passing/lifting as front foot supports, then planted return. These are restrained walking steps, no running, no lunging and no attack gesture. Match reference 2's dark near-black engraved armor, broad clean copper lines, copper Nemes hood, narrow cyan visor, blue/cyan chest eye, large copper ribbon-curl aura cape, and complete cyan plasma saber held down and forward in the anatomical right hand. Keep the left hand quietly near the body. The cape is large flowing visual aura with open gaps, never a literal solid coat or hair. Match its darker copper and segmented broad highlights from reference 2 rather than bright yellow polish. Same anatomy, head size, costume construction and anatomical height in all four cells, same side-facing right orientation and stable support-foot ground level. Draw the changing knee/ankle support and subtle cape follow-through, with consistent blade length and full tip. Give each cell ample clear margins around cape, saber and boots; no clipping or crossing into adjacent cells. Clean high-resolution drawn game-sprite finish, no pixel art, no photoreal texturing, no blur, no labels, no grid lines, no shadows or scenery. Flat saturated chroma green background, including open gaps, for the established sprite-key pipeline. Four drawings only. Preserve Kogan's established identity; no new character or equipment.
+
+
+## V1 source review
+
+Generated original: `exec-c99d4120-becc-4d3e-a740-4fdcf4c8ae42.png`; archived as `kogan-walk-style-v1-green.png` (1254×1254). Directly inspected: four right-facing supported walk poses, complete sabers/boots and separate aura curls. Broader dark armor and cleaner lines reduce fine texture, but copper is still bright and cape strands differ from Flash ready. Runtime style/scale acceptance remains pending. This is not an accepted sheet yet.
+
+
+## Runtime acceptance
+
+V1 accepted after complete before/final forward/backward 12s each at 1×, all four footfall drawings, direct ready return and mirrored corner inspection. Full 35s integration and its four changed diagnostics inspected; eight smoke PNGs equal ART58. All 185 tests, clippy/release pass; 720/2,100 simulation ticks unchanged. Anatomical height 505; source regions [0,0,627,600], [627,0,1254,600], [0,600,627,1254], [627,600,1254,1254], projected x roots 318/931/330/930. Read-only source bounds are 48,39–515,542; 659,39–1133,543; 64,633–534,1143; 653,634–1135,1144. Larger source removes old soft detail; brighter moving copper strands remain intentional. This does not close legacy contact finish or the full goal.
