@@ -488,9 +488,11 @@ impl SpriteSet {
         };
         let air_recovery = Atlas::load_with_roots(&format!("assets/animation/{air_file}"),
             (1254, 1254), air_specs, air_roots).await;
-        let recoil = if body == CharacterId::Kogan {
-            Atlas::load("assets/animation/kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL).await
-        } else { None };
+        let (recoil_file, recoil_size, recoil_specs) = match body {
+            CharacterId::Kogan => ("kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL),
+            CharacterId::Raya => ("raya-recoil-v1-green.png", (941, 1672), &RAYA_RECOIL),
+        };
+        let recoil = Atlas::load(&format!("assets/animation/{recoil_file}"), recoil_size, recoil_specs).await;
         Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, overhead, throw_tech, victory, crouch_punch, crouch_saber, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
     }
 

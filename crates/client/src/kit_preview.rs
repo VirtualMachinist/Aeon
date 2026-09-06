@@ -1105,7 +1105,7 @@ mod tests {
 
     #[test]
     fn reaction_preview_covers_grounded_guard_recoil_launch_and_floor_recovery() {
-        for case in reaction_cases(CharacterId::Kogan) {
+        for case in [CharacterId::Kogan, CharacterId::Raya].into_iter().flat_map(reaction_cases) {
             let mut w = case.world();
             let hp = w.fighters[1].health;
             let mut hit = false; let mut block = false; let mut thrown = false;
@@ -1132,7 +1132,7 @@ mod tests {
                 for _ in 0..4 { let _ = crate::sequences::recoil_cell(f); let _ = crate::sequences::floor_cell(f); }
                 assert_eq!(w.state_hash(), hash, "presentation cannot mutate the simulation");
                 if matches!(f.action, Action::Getup { .. }) {
-                    getup.insert(crate::sequences::floor_cell(f).unwrap());
+                    getup.insert(crate::sequences::floor_cell(f).or_else(|| crate::sequences::cell_for(f)).unwrap());
                 }
             }
             match case.response {

@@ -380,7 +380,7 @@ pub const KOGAN_RECOIL: [Spec; 8] = [
 /// retain recoil through the fall; no false return to control is suggested.
 /// Remaining stun is frozen by the sim during hitstop and replay pause.
 pub fn recoil_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan || f.airborne { return None; }
+    if f.airborne { return None; }
     match f.action {
         Action::Hit { stun, knockdown } => Some(Cell::Recoil(
             usize::from(f.input().down()) * 2 + usize::from(stun < 4 && !knockdown))),
@@ -390,6 +390,14 @@ pub fn recoil_cell(f: &Fighter) -> Option<Cell> {
         _ => None,
     }
 }
+
+// Grounded impact/release pairs share anatomy through deep crouching.
+pub const RAYA_RECOIL: [Spec; 8] = [
+    ([0, 0, 470, 510], 300, 390), ([470, 0, 941, 510], 690, 390),
+    ([0, 510, 470, 860], 300, 390), ([470, 510, 941, 860], 690, 390),
+    ([0, 860, 470, 1320], 280, 390), ([470, 860, 941, 1320], 670, 390),
+    ([0, 1320, 470, 1672], 285, 390), ([470, 1320, 941, 1672], 685, 390),
+];
 
 pub const RAYA_REACTIONS: [Spec; 12] = [
     ([0, 0, 350, 382], 228, 320), ([350, 0, 700, 382], 518, 332),
@@ -694,8 +702,9 @@ mod tests {
 
     #[test]
     fn recoil_release_uses_four_remaining_frames_and_yields_to_legal_control() {
-        for facing in [false, true] {
-            let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
+        for (id, facing) in [CharacterId::Kogan, CharacterId::Raya].into_iter()
+            .flat_map(|id| [false, true].map(|facing| (id, facing))) {
+            let mut w = World::new(id, CharacterId::Raya);
             w.fighters[0].facing_right = facing;
             w.fighters[0].apply_hit(12, false, 0, 0, false);
             let mut release = 0;
@@ -726,6 +735,7 @@ mod tests {
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
             ("raya-v1-green.png", (1254, 1254), &RAYA_WALK[..]),
             ("raya-ground-v1-green.png", (1672, 941), &RAYA_GROUND[..]),
+            ("raya-recoil-v1-green.png", (941, 1672), &RAYA_RECOIL[..]),
             ("kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH[..]),
             ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
