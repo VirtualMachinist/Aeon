@@ -110,3 +110,5 @@ Raya grounded recoil V1: eight defensive impact/release drawings, clean retained
 Raya standing palm/low kick: seven V1 cells plus corrected V2 palm contact, complete40-case final2 and integration review. [Exact prompts, source and calibration](RAYA-STANDING-LIGHTS-2026-09-05.md).
 
 Raya crouching palm and ankle kick: seven V1 cells plus corrected V2 kick contact; complete40-case accepted union and integration review. [Exact prompts, source and calibration](RAYA-CROUCH-LIGHTS-2026-09-05.md).
+
+Raya standing Flash/Style: seven V1 cells plus V3 curled cape contact, complete 40-case final2 and integration verification. [Exact prompts, source and calibration](RAYA-FLASH-STYLE-2026-09-05.md).

@@ -346,3 +346,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART35 | Low palm and ankle kick show supported contact, withdrawal and direct low return | All40 accepted cases /40 s at1×1280×720; phase/corner/guard/hit/miss steps. G2/K2 refraction; rejected overlong V1 kick corrected by selected V2 contact. |
 
 171 tests (89 sim +82 client), clippy and locked/offline release pass. All2,400 focused and2,100 integration ticks equal baseline; complete new35 s integration reviewed. Eight smoke PNGs: seven identical, changed winner text edge pair directly inspected. Accepted union is final CrP plus final2 CrK. No simulation values changed. Exact review limits, hashes and remaining work: full-kit report and raya-crouch-lights-verification.json.
+
+## September 5 Raya standing Flash/Style review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART36 | Low glyph contact and supported cape turn show distinct withdrawal and clean return | All 40 final2 cases / 40 s at 1×1280×720; phase/corner/guard/hit/miss steps. G2/S2/A1/A2 refraction; V1 overhang corrected by selected V3 contact. |
+
+171 tests (89 sim +82 client), clippy and locked/offline release pass. All 2,400 focused and 2,100 integration ticks equal baseline; integration MP4 identical to fully reviewed crouching-light evidence. Eight smoke PNGs: seven identical, changed winner text-edge pair directly inspected. No simulation values changed. Exact review limits, hashes and remaining work: full-kit report and raya-flash-verification.json.

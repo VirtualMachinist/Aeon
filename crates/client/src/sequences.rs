@@ -256,8 +256,16 @@ pub const KOGAN_FLASH: [Spec; 8] = [
     ([0, 1110, 490, 1536], 275, 310), ([490, 1110, 1024, 1536], 690, 310),
 ];
 
+// Raya's low glyph press and supported cape turn keep the authored move clock.
+pub const RAYA_FLASH: [Spec; 8] = [
+    ([0, 0, 500, 390], 240, 342), ([500, 0, 1024, 390], 685, 342),
+    ([0, 390, 500, 745], 240, 342), ([500, 390, 1024, 745], 685, 342),
+    ([0, 745, 500, 1105], 250, 342), ([500, 745, 1024, 1105], 685, 342),
+    ([0, 1105, 500, 1536], 240, 347), ([500, 1105, 1024, 1536], 685, 347),
+];
+
 pub fn flash_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan || f.airborne { return None; }
+    if f.airborne { return None; }
     let Action::Attack { move_id, frame, .. } = f.action else { return None; };
     let base = match move_id { MoveId::StFL => 0, MoveId::StST => 4, _ => return None };
     let mv = f.data().move_def(move_id)?;
@@ -781,6 +789,8 @@ mod tests {
             ("raya-standing-lights-v2-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[1..2]),
             ("raya-crouch-lights-v1-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[..]),
             ("raya-crouch-lights-v2-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[5..6]),
+            ("raya-flash-style-v1-green.png", (1024, 1536), &RAYA_FLASH[..]),
+            ("raya-flash-style-v3-green.png", (1024, 1536), &RAYA_FLASH[5..6]),
             ("kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH[..]),
             ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
@@ -965,7 +975,6 @@ mod tests {
                     for frame in 0..mv.total_frames() {
                         f.action = Action::Attack { move_id, frame, connected: Connect::None };
                         let cell = flash_cell(&f);
-                        if id == CharacterId::Raya { assert_eq!(cell, None); continue; }
                         assert_eq!(cell == Some(Cell::Flash(base + 1)), mv.is_active(frame));
                         if frame == 0 { assert_eq!(cell, Some(Cell::Flash(base))); }
                         if frame == mv.last_active() + 1 { assert_eq!(cell, Some(Cell::Flash(base + 2))); }
