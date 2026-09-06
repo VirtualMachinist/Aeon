@@ -128,3 +128,5 @@ Raya airborne JS/JHS/JST: three V1 low crystal contacts plus approved air-light 
 Raya CrHS: one longer vertical-crystal contact with normalized body scale and visor-clearing root. [Exact prompt and review](RAYA-AIR-EXCHANGES-2026-09-06.md).
 
 Raya overhead: six drawn phases with downward contact and composed return at unchanged timing. [Exact prompt and review](RAYA-OVERHEAD-2026-09-06.md).
+
+Raya Rite and Processional: eight deliberate grounded phases with contained contact and supported glide/return. [Exact prompt and review](RAYA-UTILITY-2026-09-06.md).
