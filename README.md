@@ -159,3 +159,5 @@ Raya CrHS now visibly meets full-jump targets and retains clear grounded guards.
 Raya overhead now has six reviewed grounded phases. Use `--kit-preview --kit-overhead --kit-raya` for20 legal hit/high-guard/low-guard/crouched-hit/miss cases. Complete30s review,176 tests,clippy/release and unchanged focused/integration traces; [full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining full-kit review is ongoing.
 
 Raya Rite and Processional now have eight reviewed phases. Use `--kit-preview --kit-utility --kit-raya --kit-move=CommandGrab` or `CommandDash`. All28cases/70s reviewed,176tests/clippy/release pass, focused/integration traces unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work is ongoing.
+
+Raya normal throw and escape now have reviewed drawn phases. Use `--kit-preview --kit-throw --kit-raya`. All 32 cases / 80s reviewed, 176 tests/clippy/release pass, focused/integration traces unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work is ongoing.
