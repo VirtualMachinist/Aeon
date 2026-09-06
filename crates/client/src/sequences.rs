@@ -160,6 +160,27 @@ pub fn overhead_cell(f: &Fighter) -> Option<Cell> {
         else { 3 }))
 }
 
+// Short palm and low boot have their own gather/contact/withdraw/ready drawings.
+// The existing move clock, including frozen hitstop, owns every phase.
+pub const RAYA_STANDING_LIGHTS: [Spec; 8] = [
+    ([0, 0, 500, 385], 255, 330), ([500, 0, 1024, 385], 690, 330),
+    ([0, 385, 500, 745], 255, 330), ([500, 385, 1024, 745], 685, 330),
+    ([0, 745, 500, 1115], 255, 330), ([500, 745, 1024, 1115], 680, 330),
+    ([0, 1115, 500, 1536], 255, 330), ([500, 1115, 1024, 1536], 685, 330),
+];
+
+pub fn standing_lights_cell(f: &Fighter) -> Option<Cell> {
+    if f.id != aeon_sim::CharacterId::Raya || f.airborne { return None; }
+    let Action::Attack { move_id, frame, .. } = f.action else { return None; };
+    let base = match move_id { MoveId::StP => 0, MoveId::StK => 4, _ => return None };
+    let mv = f.data().move_def(move_id)?;
+    let phase = if frame < mv.first_active() { 0 }
+        else if mv.is_active(frame) { 1 }
+        else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+        else { 3 };
+    Some(Cell::StandingLights(base + phase))
+}
+
 // The low fist has a gathered arm, contact, bent-elbow withdrawal and low ready.
 pub const KOGAN_CROUCH_PUNCH: [Spec; 4] = [
     ([0, 0, 625, 620], 355, 510),
@@ -736,6 +757,8 @@ mod tests {
             ("raya-v1-green.png", (1254, 1254), &RAYA_WALK[..]),
             ("raya-ground-v1-green.png", (1672, 941), &RAYA_GROUND[..]),
             ("raya-recoil-v1-green.png", (941, 1672), &RAYA_RECOIL[..]),
+            ("raya-standing-lights-v1-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[..]),
+            ("raya-standing-lights-v2-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[1..2]),
             ("kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH[..]),
             ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
