@@ -482,3 +482,13 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART52 | Drawn outbound/withdrawal inside original light timing |20 before/candidate2 cases,20s each at1x;exact phases,guard,duck,miss and corners inspected. G2/K2 plus fresh Garou387–391s refraction. |
 
 179 tests(89 sim+90 client),clippy/release pass.1,200 focused/2,100 integration ticks unchanged. Complete35s video,71 diagnostics and8 smoke PNGs equal inspected ART51. Approved reuse in `KOGAN-JAB-2026-09-06.md`. Shared old/new style/edge and close-neutral overlap gates remain open;StK/CrK drawing gaps remain.
+
+## ART53 — frozen body flash
+
+| Gate | Evidence |
+|---|---|
+| Body flash holds through hitstop/RC and expires on world ticks | `body_flash_holds_through_hitstop_then_expires_on_world_ticks`; extended `roman_cancel_on_an_unchanged_world_frame_still_spawns_once`; regression fails before the fix. |
+| Legal freeze and scripted pause/single-step coverage | `--kit-preview --kit-freeze --capture --capture-1x`:24 cases,1,440 input ticks,576 byte-identical paused redraws; both33.6s before/after videos reviewed at1x plus exact phases. |
+| Integration |181 tests(89 sim+92 client),clippy/release;2,100 unchanged ticks;full35s review;five intended flash PNG pairs inspected,66 unchanged;all8 smoke images equal inspected ART52. |
+
+Training keyboard/reset/replay validation, shared art polish and Kogan StK/CrK remain open. This gate does not establish physical stick acceptance. Full evidence is in `docs/FULL-KIT-2026-09-05.md` and the vault media ledger.
