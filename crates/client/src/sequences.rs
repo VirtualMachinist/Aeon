@@ -150,14 +150,34 @@ pub const KOGAN_OVERHEAD: [Spec; 4] = [
     ([0, 625, 615, 1254], 315, 450), ([615, 625, 1254, 1254], 905, 450),
 ];
 
+// Six deliberate grounded phases; raised hands do not change anatomical scale.
+pub const RAYA_OVERHEAD: [Spec; 6] = [
+    ([0, 0, 500, 510], 260, 400), ([500, 0, 1024, 510], 680, 400),
+    ([0, 510, 500, 970], 300, 400), ([500, 510, 1024, 970], 680, 400),
+    ([0, 970, 500, 1536], 260, 420), ([500, 970, 1024, 1536], 680, 420),
+];
+
 pub fn overhead_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan || f.airborne { return None; }
+    if f.airborne { return None; }
     let Action::Attack { move_id: MoveId::Overhead, frame, .. } = f.action else { return None; };
     let mv = f.data().move_def(MoveId::Overhead)?;
-    Some(Cell::Overhead(if frame < mv.first_active() { 0 }
-        else if mv.is_active(frame) { 1 }
-        else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
-        else { 3 }))
+    let phase = match f.id {
+        aeon_sim::CharacterId::Kogan => {
+            if frame < mv.first_active() { 0 }
+            else if mv.is_active(frame) { 1 }
+            else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
+            else { 3 }
+        }
+        aeon_sim::CharacterId::Raya => {
+            if frame < mv.first_active() / 2 { 0 }
+            else if frame < mv.first_active() { 1 }
+            else if mv.is_active(frame) { 2 }
+            else if frame <= mv.last_active() + u16::from(mv.recovery) / 3 { 3 }
+            else if frame <= mv.last_active() + u16::from(mv.recovery) * 2 / 3 { 4 }
+            else { 5 }
+        }
+    };
+    Some(Cell::Overhead(phase))
 }
 
 // Three ritual normals have distinct reach and four drawn phases.
@@ -913,6 +933,7 @@ mod tests {
             ("kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH[..]),
             ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
+            ("raya-overhead-v1-green.png", (1024, 1536), &RAYA_OVERHEAD[..]),
             ("kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW[..]),
             ("kogan-air-recovery-v1-green.png", (1254, 1254), &KOGAN_AIR_RECOVERY[..]),
             ("raya-air-recovery-v1-green.png", (1254, 1254), &RAYA_AIR_RECOVERY[..]),

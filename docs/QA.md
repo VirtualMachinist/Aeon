@@ -410,3 +410,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART43 | CrHS meets airborne targets; six normal juggles retain readable contact and landing | All 16 corrected anti-airs / 40s, 20 fresh ground regressions / 30s, and 24 unchanged juggles / 60s reviewed at 1×; exact contacts, guard, whiff and corner landings inspected. G1/G2/S2 refraction. |
 
 175 tests (89 sim + 86 client), clippy-Dwarnings and locked/offline release pass. All 7,800 accepted and 2,100 integration ticks equal baseline. Fresh 35s integration video and 71 PNGs are byte-identical to the completely reviewed ART42 evidence; eight smoke images also match. Root 510 rejected for hiding the crouch visor; corrected root 570 accepted. Details: `raya-air-exchange-verification.json`, full-kit report and `RAYA-AIR-EXCHANGES-2026-09-06.md`. Shared close-standing overlap, remaining kit and physical play stay open.
+
+## September 6 Raya overhead review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART44 | Distinct overhead preparation, downward contact and supported return | All20 before/accepted cases30s each played1×; six phases, standing/crouched guards, whiff and mirrored corner return PNGs inspected. S2/S1/A2 refraction; no stale raised crystal or duplicate body through recovery. |
+
+176 tests (89 sim +87 client), clean clippy and locked/offline release pass. All1800 focused/2100 integration ticks match baseline. Fresh35s integration video/71 diagnostics equal previously reviewed ART43/ART42 evidence. Eight smoke PNGs: seven byte-identical, changed selection-screen pair directly inspected. Evidence: `raya-overhead-verification.json`, full-kit report and `RAYA-OVERHEAD-2026-09-06.md`. Shared close-idle overlap, remaining kits and physical play remain open.
