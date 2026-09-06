@@ -450,3 +450,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART48 | Supported Charge descent, hold and rise; empty-hand manual Detonate and return | All 32 before/accepted cases, 64s each at 1×; both facings/corners, tap/release/max/interruption and manual hit/both guards/miss. Exact support, command, withdrawal and return PNGs inspected. A1/A2/S2 and reopened original AC refraction. |
 
 178 tests (89 sim + 89 client), clippy and locked/offline release pass. All 3,840 focused and 2,100 integration ticks equal baseline. Integration video/all 71 diagnostics equal fully reviewed ART45; eight smoke PNGs equal inspected ART47. Evidence: `raya-ritual-verification.json` and `RAYA-RITUAL-2026-09-06.md`. Charge feints, remaining kit, shared overlap/polish and physical play remain open.
+
+## September 6 Raya Convergence review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART49 | Distinct Super gather, expanded contact, dismissal and ready | All20 before/accepted cases,50s each at1×;both facings/corners,hit/both guards/crouched hit/miss. Exact contact,recovery and return PNGs inspected. Original AC84.229–93.469s and A1/A2/S2 refraction. |
+
+179 tests (89 sim +90 client),clippy and locked/offline release pass. All3,000 focused and2,100 integration ticks equal baseline. New35s integration fully reviewed;two changed diagnostic pairs inspected. All8 smoke PNGs equal inspected ART48. Evidence:`raya-super-verification.json` and `RAYA-CONVERGENCE-2026-09-06.md`. Remaining kit/shared polish and physical play open.

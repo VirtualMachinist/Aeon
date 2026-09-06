@@ -486,9 +486,16 @@ pub const KOGAN_JUDGMENT: [Spec; 4] = [
     ([0, 480, 736, 1024], 420, 445), ([736, 480, 1536, 1024], 1040, 445),
 ];
 
+pub const RAYA_CONVERGENCE: [Spec; 4] = [
+    ([0,0,720,510],460,420), ([720,0,1536,510],1140,420),
+    ([0,510,720,1024],460,420), ([720,510,1536,1024],1060,420),
+];
+
 pub fn judgment_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan { return None; }
     if let Action::Attack { move_id: MoveId::Super, frame, .. } = f.action {
+        if f.id == aeon_sim::CharacterId::Raya {
+            return Some(Cell::Judgment(match frame {0..=5=>0,6..=11=>1,12..=31=>2,_=>3}));
+        }
         let mv = f.data().move_def(MoveId::Super)?;
         return Some(Cell::Judgment(if frame < mv.first_active() { 0 }
             else if mv.is_active(frame) { 1 }
@@ -1011,6 +1018,7 @@ mod tests {
             ("kogan-ranged-v5-green.png", (1448, 1086), &KOGAN_RANGED[..]),
             ("raya-ranged-v2-green.png", (1536, 1024), &RAYA_RANGED[..]),
             ("raya-ritual-v1-green.png", (1536,1024), &RAYA_RITUAL[..]),
+            ("raya-convergence-v1-green.png", (1536,1024), &RAYA_CONVERGENCE[..]),
             ("raya-movement-v1-green.png", (1672, 941), &RAYA_MOVEMENT[..]),
             ("raya-air-lights-v1-green.png", (1024, 1536), &RAYA_AIR_LIGHTS[..]),
             ("raya-air-crystals-v1-green.png", (1024, 1536), &RAYA_AIR_CRYSTALS[..]),

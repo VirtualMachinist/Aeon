@@ -165,3 +165,5 @@ Raya normal throw and escape now have reviewed drawn phases. Use `--kit-preview 
 Raya crystal, glyph and EX versions now have reviewed drawn phases. Use `--kit-preview --kit-ranged --kit-raya`. All64 cases /224s reviewed;177 tests/clippy/release pass;simulation traces unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
 
 Raya consecrate and manual shatter have reviewed drawn phases. Use `--kit-preview --kit-ritual --kit-raya`. All 32 cases /64s reviewed; 178 tests/clippy/release pass; simulation traces unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
+
+Raya Convergence has reviewed drawn phases. Use `--kit-preview --kit-super --kit-raya`. All20 cases /50s reviewed;179 tests/clippy/release pass;simulation traces unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
