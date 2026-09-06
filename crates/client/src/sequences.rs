@@ -697,6 +697,11 @@ pub const KOGAN_FIRST_CUT: [Spec; 4] = [
     ([0, 0, 627, 620], 315, 390), ([627, 0, 1254, 620], 870, 390),
     ([0, 620, 627, 1254], 302, 390), ([627, 620, 1254, 1254], 895, 390),
 ];
+// Front rising backcut; overhead blade height does not shrink the body.
+pub const KOGAN_BACKCUT: [Spec; 4] = [
+    ([0, 0, 627, 627], 286, 370), ([627, 0, 1254, 627], 866, 370),
+    ([0, 627, 627, 1254], 286, 370), ([627, 627, 1254, 1254], 863, 370),
+];
 pub const KOGAN_POKE: [Spec; 4] = [
     ([0, 0, 768, 500], 305, 400), ([768, 0, 1536, 500], 1100, 400),
     ([0, 500, 768, 1024], 309, 400), ([768, 500, 1536, 1024], 1050, 400),
@@ -1041,6 +1046,7 @@ mod tests {
             ("kogan-standing-poke-v1-green.png", (1536, 1024), &KOGAN_POKE[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_CUTS[..]),
             ("kogan-first-cut-style-v1-green.png", (1254, 1254), &KOGAN_FIRST_CUT[..]),
+            ("kogan-backcut-style-v1-green.png", (1254, 1254), &KOGAN_BACKCUT[..]),
             ("kogan-uppercut-compact-v1-green.png", (1536, 1024), &KOGAN_UPPERCUT_COMPACT[..]),
             ("kogan-cape-step-v3-green.png", (1448, 1086), &KOGAN_UTILITY[..]),
             ("raya-utility-v1-green.png", (1536, 1024), &RAYA_UTILITY[..]),

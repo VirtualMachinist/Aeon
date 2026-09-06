@@ -183,3 +183,25 @@ The four cells retain the original second-row sequence: (1) Supported preparatio
 
 The character always faces screen right in three-quarter side view, side-on game camera, with full helmet, both boots, both hands, saber hilt and saber tip, holstered revolver and all cape curls visible inside every cell. No cropping, no duplicate arms or equipment, no overlapping cells, no ground shadow, no floor, no target, no opponent, no decorative frame, no redesign, no text. Keep the same physical body scale and supported baselines in all four drawings; let the arm, shoulder, knee and cape folds carry the action. Aim for individual anatomical standing height around 500 pixels on a 1254-pixel-square sheet.
 ```
+
+## ART62 — backcut finish V1
+
+Built-in imagegen; one four-cell 1254×1254 source. Original ID `exec-034724c2-efd6-44df-9799-b0967865edd3.png`. Output `kogan-backcut-style-v1-green.png`, SHA256 `2e407c3b414a59b15291b092aa6e4a9412049d7aa382ecb110688bb4fcaff5c7`. Input roles: original Kogan atlas third row for choreography; accepted first-cut V1 for finish and body proportions. Accepted after complete sword/feint and integration review; all simulation timing retained. Remaining minor cape and legacy thrust/jab polish is explicit.
+
+Exact prompt:
+
+```text
+Use case: identity-preserve / style-transfer. Production animation redraw for our original high-resolution 2D fighter Aeon.
+
+Output ONE square sprite sheet with exactly FOUR complete full-body drawings in a roomy 2 by 2 grid, left-to-right then top-to-bottom. Flat vivid green (#00ff00) everywhere outside the drawings; generous empty green gutters; no labels, scene, floor or shadow.
+
+INPUT ROLES: Image 1, kogan-v1-green.png, is the choreography edit target. Use ONLY its THIRD ROW of four existing backcut/rising-sword drawings. Preserve the supported legs, torso orientation, arm and sword directions of those four poses. Do not use its walk, first-cut or thrust rows. Image 2, kogan-first-cut-style-v1-green.png, is the approved finish and body-proportion reference: match its larger crisp anatomy, dark armor panels, copper hood, clear cyan visor, saber and copper cape.
+
+Same adult male Kogan in all four cells: copper nemes hood with cobra brow, narrow cyan visor, near-black armor with broad legible copper circuit edges, cyan chest eye, boots, holstered revolver and ONE long cyan plasma saber in his RIGHT hand. Keep the same helmet/torso/limb proportions and physical body scale in every cell. His large copper hood-cape is visual aura with curling metallic ribbons behind the body. Cyan belongs only to visor, chest writing and saber. Firm edges and broad highlights, no blurry gradients, noisy yellow-gold engraving or green rim on the copper.
+
+FOUR EXISTING POSES: (1) Supported low preparation: bent knees, right sword hand across the front by the waist, complete saber pointing diagonally down toward screen right, empty left hand gathered. (2) Rising forward cut: right hand lifts across the chest, blade points diagonally up toward screen right, compact curved cyan path in FRONT of the body. (3) High follow-through: right sword hand above the head, blade continues toward upper screen right, with the original compact front/right curved path down toward the forward knee; feet remain supported. (4) Withdrawal back to the familiar front-diagonal saber ready: right hand low beside the hip, complete saber pointing diagonally down toward screen right, shoulders and cape settling.
+
+For the right-facing rising action the arc is the FRONT shoulder-centered semicircle, 6 through 3 to 12 o'clock, like a right parenthesis on screen right. Do not put a rear crescent behind his back. Retain the reference's compact effects and full straight blade rather than a giant screen effect.
+
+All four bodies face screen right in a three-quarter side view from the same level side-on game camera. Keep entire helmet, both boots, both hands, saber hilt and tip, holstered revolver and every cape curl inside its cell. Maintain shared anatomical scale; extra overhead blade height gets extra empty headroom instead of shrinking the body. No anatomy or equipment redesign, no cropping, duplicate arms/weapons, overlapping cells, target, opponent, decorative frame, text or motion blur. Aim for body height near 390 pixels on a 1254px square sheet, leaving ample room for the raised sword and safe gutters. Preserve the existing sequence; this is a clarity and finish edit.
+```
