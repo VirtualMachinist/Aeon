@@ -114,3 +114,5 @@ Raya crouching palm and ankle kick: seven V1 cells plus corrected V2 kick contac
 Raya standing Flash/Style: seven V1 cells plus V3 curled cape contact, complete 40-case final2 and integration verification. [Exact prompts, source and calibration](RAYA-FLASH-STYLE-2026-09-05.md).
 
 Raya signature normals: ten V1 drawings and two V4 contacts; complete60-case final2 and integration verification. [Exact prompts, source and calibration](RAYA-SIGNATURE-2026-09-06.md).
+
+Raya chants: four medium-palm phases reused plus eight new V2/V1 drawings;60-case final3 and integration verified. [Exact prompts, source and calibration](RAYA-CHANTS-2026-09-06.md).

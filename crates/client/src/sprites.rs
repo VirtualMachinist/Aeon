@@ -187,6 +187,8 @@ pub struct SpriteSet {
     standing_lights: Option<crate::sequences::Atlas>,
     signature: Option<crate::sequences::Atlas>,
     signature_contacts: Option<crate::sequences::Atlas>,
+    chant: Option<crate::sequences::Atlas>,
+    chant_finisher: Option<crate::sequences::Atlas>,
     standing_palm_contact: Option<crate::sequences::Atlas>,
     crouch_lights: Option<crate::sequences::Atlas>,
     crouch_kick_contact: Option<crate::sequences::Atlas>,
@@ -235,6 +237,7 @@ pub enum Cell {
     Flash(usize),
     StandingLights(usize),
     Signature(usize),
+    Chant(usize),
     CrouchLights(usize),
     CrouchPunch(usize),
     CrouchSaber(usize),
@@ -529,7 +532,13 @@ impl SpriteSet {
         let signature_contacts = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-signature-v4-green.png", (1774, 887), &RAYA_SIGNATURE_CONTACTS).await
         } else { None };
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, victory, standing_lights, signature, signature_contacts, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
+        let chant = if body == CharacterId::Raya {
+            Atlas::load("assets/animation/raya-chant2-v2-green.png", (1254, 1254), &RAYA_CHANT_II).await
+        } else { None };
+        let chant_finisher = if body == CharacterId::Raya {
+            Atlas::load("assets/animation/raya-chant3-v1-green.png", (1254, 1254), &RAYA_CHANT_III).await
+        } else { None };
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -557,6 +566,8 @@ impl SpriteSet {
             standing_lights: None,
             signature: None,
             signature_contacts: None,
+            chant: None,
+            chant_finisher: None,
             standing_palm_contact: None,
             crouch_lights: None,
             crouch_kick_contact: None,
@@ -615,6 +626,9 @@ impl SpriteSet {
         }
         if self.overhead.is_some() {
             if let Some(cell) = crate::sequences::overhead_cell(fighter) { return cell; }
+        }
+        if self.signature.is_some() && self.chant.is_some() && self.chant_finisher.is_some() {
+            if let Some(cell) = crate::sequences::chant_cell(fighter) { return cell; }
         }
         if self.signature.is_some() && self.signature_contacts.is_some() {
             if let Some(cell) = crate::sequences::signature_cell(fighter) { return cell; }
@@ -729,6 +743,8 @@ impl SpriteSet {
             Cell::StandingLights(cell) => self.standing_lights.as_ref()?.frame(cell),
             Cell::Signature(cell @ 4..=5) => self.signature_contacts.as_ref()?.frame(cell - 4),
             Cell::Signature(cell) => self.signature.as_ref()?.frame(cell),
+            Cell::Chant(cell @ 4..=7) => self.chant_finisher.as_ref()?.frame(cell - 4),
+            Cell::Chant(cell) => self.chant.as_ref()?.frame(cell),
             Cell::Recoil(cell) => self.recoil.as_ref()?.frame(cell),
             Cell::Reaction(cell) => self.reactions.as_ref()?.frame(cell),
             Cell::Poke(cell) => self.poke.as_ref()?.frame(cell),

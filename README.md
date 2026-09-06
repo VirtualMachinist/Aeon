@@ -143,3 +143,5 @@ Raya crouching palm and ankle kick now have four reviewed phases and clean low r
 Raya standing Flash and Style now have four reviewed phases, aligned low gestures and clean returns. All 40 final2 cases / 40 s reviewed; 171 tests, clippy/release and unchanged simulation traces. Use `--kit-flash --kit-raya`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
 
 Raya medium palm and far/close heavies now have four reviewed phases, distinct low contact and clean returns. All60 cases/150s reviewed;172 tests,clippy/release,unchanged sim traces. Use `--kit-preview --kit-saber --kit-raya` and `--kit-move=StS|StHS|StHSClose`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
+
+Raya three-syllable chant now has distinct contact and clean withdrawal/ready at existing timing. All60 cases/160s reviewed;174 tests,clippy/release,unchanged sim traces. Smoke captures all eight scenes using one tick per rendered frame and local menu holds. Use `--kit-preview --kit-saber --kit-raya --kit-move=Rekka1|Rekka2|Rekka3`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
