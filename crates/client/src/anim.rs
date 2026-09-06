@@ -398,9 +398,11 @@ pub fn layers(
     // Authored movement/weapon phases already describe the transition. Overlaying
     // old silhouettes creates duplicate limbs and weapons through these cuts.
     if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
-        !cuts && !matches!(cell, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_))
-            && !matches!(prev.cell, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_))
-            && !kogan_combat_cell(f.id, cell) && !kogan_combat_cell(f.id, prev.cell)
+        !(cuts || [cell, prev.cell].into_iter().any(|c| {
+            matches!(c, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_))
+                || kogan_combat_cell(f.id, c)
+                || matches!((f.id, c), (CharacterId::Raya, Cell::Reaction(8..=11)))
+        }))
     }) {
         let age = w.frame.saturating_sub(prev.frame);
         if (1..=CROSSFADE).contains(&age) {
@@ -961,6 +963,27 @@ mod tests {
         history.reset();
         assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), None,
             "training reset discards a pending rise");
+    }
+
+    #[test]
+    fn raya_landing_return_cuts_previous_bodies_and_leaves_immediate_control() {
+        let sprites = set(CharacterId::Raya);
+        let opts = LayerOpts { win: None, defeat: None, flash: (0.0, WHITE) };
+        for previous in [Cell::Movement(3), Cell::Movement(6), Cell::Movement(7),
+            Cell::Reaction(8), Cell::Reaction(9), Cell::Reaction(10), Cell::Reaction(11)] {
+            let mut w = World::new(CharacterId::Raya, CharacterId::Kogan);
+            let mut h = History::default(); h.record(&w, [previous, Cell::Pose(Pose::Idle)]);
+            w.frame += 1; w.fighters[0].action = Action::Stand;
+            let hash = w.state_hash();
+            let body = layers(&w, 0, &sprites, &h, &opts);
+            assert_eq!(body.len(), 1, "{previous:?}: no previous body remains over idle");
+            assert_eq!(body[0].cell, Cell::Pose(Pose::Idle));
+            assert_eq!(w.state_hash(), hash);
+            w.fighters[0].start_move(MoveId::StP);
+            assert_eq!(crate::sequences::movement_cell(&w.fighters[0]), None);
+            h.reset();
+            assert_eq!(layers(&w, 0, &sprites, &h, &opts).len(), 1);
+        }
     }
 
     #[test]

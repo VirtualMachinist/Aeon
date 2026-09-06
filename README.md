@@ -126,3 +126,5 @@ KO review: `cargo run --release -p aeon -- --kit-preview --kit-ko`. Default vict
 Crouching punch review: `cargo run --release -p aeon -- --kit-preview --kit-crp`. Twenty cases cover hit, standing/crouching guard, crouched hit and whiff, both facings at center/corners. Kogan CrP is reviewed with four drawn phases and unchanged 4/2/6; `--kit-raya` is available for future Raya review.
 
 Airborne exchange review: `cargo run --release -p aeon -- --kit-preview --kit-air-exchange`. Kogan has16 CrHS anti-airs and24 uppercut/RC/normal juggles; `--kit-raya` selects24 Kogan-receiver juggles. Move and case filters isolate routes. Four defensive keys retain the forward saber through the existing landing.
+
+Raya movement review: `cargo run --release -p aeon -- --kit-preview --kit-movement --kit-raya`. Twenty-four standalone jumps cover hop/full, neutral/forward/back and both facings at center/corners. Eight drawings preserve a compact hop and full-size jump with clean original 0f/2f returns. All cases, 64 shared airborne exchanges and retained integration are reviewed; broader Raya attacks/reactions remain open.

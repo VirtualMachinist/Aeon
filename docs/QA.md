@@ -234,7 +234,6 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 
 144 tests pass (89 sim + 55 client), clippy and locked/offline release pass. All 2,400 final, 240 focused and 2,100 integration ticks match baseline. Complete new 35s integration reviewed at 1×; eight smoke PNGs match preceding inspected air-light evidence. S2/G2 refraction, excluded blade-tip cells, exact prompts and archive paths are in the full-kit report. Remaining Kogan families and Raya stay open, including her legacy reaction ghosts and the broader old/new style transition.
 
-
 ## September 5 Kogan crouching saber review
 
 | ID | Check | Evidence |
@@ -299,3 +298,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART29 | Airborne contact and non-knockdown recovery retain readable bodies and legal support | All64 before/final cases /160 s each viewed at1× in1280×720: sixteen CrHS anti-airs,24 Kogan normal juggles and24 Kogan-receiver juggles. Four new V1 recoil/tuck/feet/compression drawings; selected contacts and complete landing stepped in both facings/corners. |
 
 169 tests (89 sim +80 client), clippy and locked/offline release pass. All9,600 final and2,100 integration ticks equal baseline; complete new35 s integration reviewed. Fresh repeat smoke contains eight PNGs equal to inspected CrP evidence; first seven-PNG run retained as incomplete. G2/G1/S2/S1 informs consequence, gathered descent and intact weapon continuity. Original timing and all sim values remain fixed. Remaining grounded lights/kicks, Raya and physical play stay open. Exact review: full-kit report and air-recovery-verification.json.
+
+## September 5 Raya movement review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART30 | Compact hop and full-size jump preserve support, identity and legal return | All 24 before/final jumps / 24 s each and 64 shared airborne exchanges / 160 s viewed at 1× in 1280×720; preparation, full arc, clean landing and mirrored/corner phases stepped. G1/K1/S1 refraction recorded. |
+
+170 tests (89 sim + 81 client), clippy and locked/offline release pass. All 1,440 movement, 9,600 shared exchange and 2,100 integration ticks equal baseline. Complete new 35 s integration viewed, including stepped uppercut landing. Eight smoke PNGs: seven match prior inspected evidence, changed training tick pair directly inspected. Original failed candidate is retained as incomplete; fresh candidate2 is the unchanged accepted V1. Broader Raya attack/reaction families and physical play remain open. Exact evidence: full-kit report and raya-movement-verification.json.
