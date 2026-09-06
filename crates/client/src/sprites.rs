@@ -457,9 +457,10 @@ impl SpriteSet {
         let overhead = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD).await
         } else { None };
-        let crouch_low = if body == CharacterId::Kogan {
-            Atlas::load("assets/animation/kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW).await
-        } else { None };
+        let crouch_low = match body {
+            CharacterId::Kogan => Atlas::load("assets/animation/kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW).await,
+            CharacterId::Raya => Atlas::load("assets/animation/raya-crouch-low-v1-green.png", (1024, 1536), &RAYA_CROUCH_LOW).await,
+        };
         let standing_lights = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-standing-lights-v1-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS).await
         } else { None };
@@ -477,9 +478,10 @@ impl SpriteSet {
         let crouch_punch = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-crouch-punch-v1-green.png", (1254, 1254), &KOGAN_CROUCH_PUNCH).await
         } else { None };
-        let crouch_saber = if body == CharacterId::Kogan {
-            Atlas::load("assets/animation/kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER).await
-        } else { None };
+        let crouch_saber = match body {
+            CharacterId::Kogan => Atlas::load("assets/animation/kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER).await,
+            CharacterId::Raya => Atlas::load("assets/animation/raya-crouch-crystals-v1-green.png", (1024, 1536), &RAYA_CROUCH_CRYSTALS).await,
+        };
         let (flash_file, flash_specs) = match body {
             CharacterId::Kogan => ("kogan-flash-v2-green.png", &KOGAN_FLASH),
             CharacterId::Raya => ("raya-flash-style-v1-green.png", &RAYA_FLASH),

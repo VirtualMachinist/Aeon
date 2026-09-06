@@ -100,8 +100,8 @@ fn overhead_cases() -> Vec<Case> {
     normal_cases(CharacterId::Kogan, &[MoveId::Overhead, MoveId::SpecialOverhead])
 }
 
-fn crouching_saber_cases() -> Vec<Case> {
-    normal_cases(CharacterId::Kogan, &[MoveId::CrS, MoveId::CrHS, MoveId::CrFL, MoveId::CrST])
+fn crouching_saber_cases(body: CharacterId) -> Vec<Case> {
+    normal_cases(body, &[MoveId::CrS, MoveId::CrHS, MoveId::CrFL, MoveId::CrST])
 }
 
 fn normal_cases(body: CharacterId, moves: &[MoveId]) -> Vec<Case> {
@@ -702,8 +702,7 @@ pub async fn run(assets: &Assets) {
         assert!(body == CharacterId::Kogan, "overhead cases currently cover Kogan");
         overhead_cases()
     } else if args.iter().any(|a| a == "--kit-crouch") {
-        assert!(body == CharacterId::Kogan, "crouching saber cases currently cover Kogan");
-        crouching_saber_cases()
+        crouching_saber_cases(body)
     } else if args.iter().any(|a| a == "--kit-flash") {
         flash_cases(body)
     } else if args.iter().any(|a| a == "--kit-air") {
@@ -1571,8 +1570,8 @@ mod tests {
 
     #[test]
     fn crouching_saber_preview_preserves_low_guard_rules_and_supported_recovery() {
-        let cases = crouching_saber_cases();
-        assert_eq!(cases.len(), 80);
+        let cases = [CharacterId::Kogan, CharacterId::Raya].into_iter().flat_map(crouching_saber_cases).collect::<Vec<_>>();
+        assert_eq!(cases.len(), 160);
         for case in cases {
             let mut world = case.world();
             let mut started = false;
