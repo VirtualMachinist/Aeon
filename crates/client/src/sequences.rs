@@ -789,9 +789,18 @@ pub const KOGAN_UTILITY: [Spec; 8] = [
     ([732, 550, 1075, 1086], 936, 400), ([1075, 550, 1448, 1086], 1274, 400),
 ];
 
+// Complete Rite reach/withdrawal and prayer glide, measured at stable anatomy.
+pub const RAYA_UTILITY: [Spec; 8] = [
+    ([0, 0, 360, 490], 230, 408), ([360, 0, 775, 490], 560, 408),
+    ([775, 0, 1130, 490], 960, 408), ([1130, 0, 1536, 490], 1320, 408),
+    ([0, 490, 340, 1024], 220, 426), ([340, 490, 730, 1024], 540, 426),
+    ([730, 490, 1125, 1024], 955, 426), ([1125, 490, 1536, 1024], 1310, 426),
+];
+
 pub fn utility_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan { return None; }
     let Action::Attack { move_id, frame, connected } = f.action else { return None; };
+    // Raya's normal throw retains its own pending dedicated review.
+    if f.id == aeon_sim::CharacterId::Raya && move_id == MoveId::Throw { return None; }
     let mv = f.data().move_def(move_id)?;
     let cell = match move_id {
         MoveId::CommandGrab | MoveId::Throw => {
@@ -948,6 +957,7 @@ mod tests {
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_CUTS[..]),
             ("kogan-uppercut-compact-v1-green.png", (1536, 1024), &KOGAN_UPPERCUT_COMPACT[..]),
             ("kogan-cape-step-v3-green.png", (1448, 1086), &KOGAN_UTILITY[..]),
+            ("raya-utility-v1-green.png", (1536, 1024), &RAYA_UTILITY[..]),
             ("kogan-ranged-v5-green.png", (1448, 1086), &KOGAN_RANGED[..]),
             ("raya-movement-v1-green.png", (1672, 941), &RAYA_MOVEMENT[..]),
             ("raya-air-lights-v1-green.png", (1024, 1536), &RAYA_AIR_LIGHTS[..]),

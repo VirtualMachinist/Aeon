@@ -418,3 +418,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART44 | Distinct overhead preparation, downward contact and supported return | All20 before/accepted cases30s each played1×; six phases, standing/crouched guards, whiff and mirrored corner return PNGs inspected. S2/S1/A2 refraction; no stale raised crystal or duplicate body through recovery. |
 
 176 tests (89 sim +87 client), clean clippy and locked/offline release pass. All1800 focused/2100 integration ticks match baseline. Fresh35s integration video/71 diagnostics equal previously reviewed ART43/ART42 evidence. Eight smoke PNGs: seven byte-identical, changed selection-screen pair directly inspected. Evidence: `raya-overhead-verification.json`, full-kit report and `RAYA-OVERHEAD-2026-09-06.md`. Shared close-idle overlap, remaining kits and physical play remain open.
+
+## September 6 Raya Rite and Processional review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART45 | Complete ritual reach/withdrawal and supported prayer glide/stop | All28 before/accepted cases70s each at1×; all eight phases, mirrored/corner captures, jump escapes, misses and pass-through PNGs inspected. G1/G2/A1/A2/S2 refraction; contained loop, full support and clean return. |
+
+176tests(89sim+87client), clean clippy and locked/offline release pass. All4200focused/2100integrationticks equal baseline. Fresh35s integration played completely; two changed Rite gather/ready pairs inspected,69diagnostics equal ART44. Eight smoke PNGs: seven identical, changed select pair inspected. Evidence: `raya-utility-verification.json`, full-kit report and `RAYA-UTILITY-2026-09-06.md`. Remaining full kits, close idle overlap and physical play remain open.

@@ -87,7 +87,7 @@ fn throw_cases() -> Vec<Case> {
 }
 
 fn feint_cases() -> Vec<Case> {
-    let base = saber_cases(CharacterId::Kogan).into_iter().chain(ranged_cases()).chain(utility_cases())
+    let base = saber_cases(CharacterId::Kogan).into_iter().chain(ranged_cases()).chain(utility_cases(CharacterId::Kogan))
         .chain(disc_cases()).chain(overhead_cases(CharacterId::Kogan))
         .filter(|c| c.response == Response::Hit
             && CharacterId::Kogan.data().move_def(c.move_id).is_some_and(|m| m.feintable))
@@ -181,7 +181,7 @@ fn ranged_cases() -> Vec<Case> {
     result
 }
 
-fn utility_cases() -> Vec<Case> {
+fn utility_cases(body: CharacterId) -> Vec<Case> {
     let mut result = Vec::new();
     for move_id in [MoveId::CommandGrab, MoveId::CommandDash] {
         let responses = if move_id == MoveId::CommandGrab {
@@ -190,7 +190,7 @@ fn utility_cases() -> Vec<Case> {
         for &response in responses {
             for corner in [false, true] {
                 for right in [true, false] {
-                    result.push(Case { body: CharacterId::Kogan, move_id, response,
+                    result.push(Case { body, move_id, response,
                         right, corner, jump: None, air: false, ranged: false, utility: true, saber: false, disc: false, reaction: false, ground: None, feint: None });
                 }
             }
@@ -313,7 +313,8 @@ impl Case {
                 if self.corner { "corner" } else { "center" });
         }
         if self.utility && self.move_id == MoveId::CommandDash {
-            return format!("KOGAN threshold-step · {} · {} · {}",
+            return format!("{} {} · {} · {} · {}", self.body.name(),
+                if self.body == CharacterId::Kogan { "threshold-step" } else { "processional" },
                 if self.response == Response::Whiff { "free travel" } else { "near opponent" },
                 if self.right { "right" } else { "left" },
                 if self.corner { "corner" } else { "center" });
@@ -731,8 +732,7 @@ pub async fn run(assets: &Assets) {
     } else if args.iter().any(|a| a == "--kit-saber") {
         saber_cases(body)
     } else if args.iter().any(|a| a == "--kit-utility") {
-        assert!(body == CharacterId::Kogan, "utility cases currently cover Kogan");
-        utility_cases()
+        utility_cases(body)
     } else if args.iter().any(|a| a == "--kit-ranged") {
         assert!(body == CharacterId::Kogan, "ranged cases currently cover Kogan");
         ranged_cases()
@@ -1406,8 +1406,12 @@ mod tests {
 
     #[test]
     fn utility_preview_exercises_snare_evasion_and_step_without_new_mechanics() {
-        for case in utility_cases() {
+        for case in [CharacterId::Kogan, CharacterId::Raya].into_iter().flat_map(utility_cases) {
             let mut world = case.world();
+            let start_x = world.fighters[0].pos.x;
+            let defender_x = world.fighters[1].pos.x;
+            let hp = world.fighters[1].health;
+            let mut frozen = None;
             let mut started = false;
             let mut grabs = 0;
             let mut throws = 0;
@@ -1421,7 +1425,12 @@ mod tests {
                 started |= world.fighters[0].action.attacking()
                     .is_some_and(|(id, _, _)| id == case.move_id);
                 if frame >= PRESS { travel += (world.fighters[0].pos.x - x).abs(); }
-                if let Some(cell) = crate::sequences::utility_cell(&world.fighters[0]) { drawings.insert(cell); }
+                let cell = crate::sequences::utility_cell(&world.fighters[0]);
+                if let Some(cell) = cell { drawings.insert(cell); }
+                if let Some((frame, previous)) = frozen {
+                    if world.frame == frame { assert_eq!(cell, previous, "freeze holds utility drawing"); }
+                }
+                frozen = Some((world.frame, cell));
                 for event in &world.events {
                     grabs += usize::from(event.kind == EventKind::Grab);
                     throws += usize::from(event.kind == EventKind::Throw);
@@ -1437,9 +1446,15 @@ mod tests {
             for phase in 0..4 {
                 assert!(drawings.contains(&crate::sprites::Cell::Utility(base + phase)), "{case:?} phase {phase}");
             }
+            let damage = if case.body == CharacterId::Raya { 180 } else { case.body.data().move_def(MoveId::CommandGrab).unwrap().damage };
+            assert_eq!(hp-world.fighters[1].health, if connects { damage } else { 0 }, "{case:?}: original damage");
             if case.move_id == MoveId::CommandDash {
-                assert!(travel > 0 && travel <= px(60), "{case:?} authored travel");
-                if case.response == Response::Whiff { assert_eq!(travel, px(60), "{case:?}"); }
+                let limit = if case.body == CharacterId::Kogan { px(60) } else { px(112) };
+                assert!(travel > 0 && travel <= limit, "{case:?} authored travel");
+                if case.response == Response::Whiff { assert_eq!(travel, limit, "{case:?}"); }
+                if case.body == CharacterId::Raya && case.response == Response::Hit && !case.corner {
+                    assert_ne!((start_x-defender_x).signum(), (world.fighters[0].pos.x-defender_x).signum(), "processional passes through the body");
+                }
             }
         }
     }

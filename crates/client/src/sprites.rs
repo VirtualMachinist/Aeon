@@ -417,11 +417,14 @@ impl SpriteSet {
             Atlas::load("assets/animation/kogan-ranged-v5-green.png",
                 (1448, 1086), &KOGAN_RANGED).await
         } else { None };
-        let utility = if body == CharacterId::Kogan
-            && !std::env::args().any(|a| a == "--kit-legacy-utility") {
-            Atlas::load("assets/animation/kogan-cape-step-v3-green.png",
-                (1448, 1086), &KOGAN_UTILITY).await
-        } else { None };
+        let utility = if std::env::args().any(|a| a == "--kit-legacy-utility") { None } else {
+            match body {
+                CharacterId::Kogan => Atlas::load("assets/animation/kogan-cape-step-v3-green.png",
+                    (1448, 1086), &KOGAN_UTILITY).await,
+                CharacterId::Raya => Atlas::load("assets/animation/raya-utility-v1-green.png",
+                    (1536, 1024), &RAYA_UTILITY).await,
+            }
+        };
         let compact_uppercut = match body {
             CharacterId::Kogan => Atlas::load("assets/animation/kogan-uppercut-compact-v1-green.png",
                 (1536, 1024), &KOGAN_UPPERCUT_COMPACT).await,
