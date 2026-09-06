@@ -138,7 +138,18 @@ impl History {
                 || (c.state == crate::sequences::GroundState::Stand
                     && c.from == crate::sequences::GroundState::Crouch && c.age < 2)
         });
-        if low == [true, false] { [1, 0] } else { [0, 1] }
+        if low[0] != low[1] {
+            return if low[0] { [1, 0] } else { [0, 1] };
+        }
+        // In quiet mixed neutral, the narrower linen silhouette sits in front
+        // of the broad copper body. This stays stable through walk/run/stop,
+        // while the contact, height and crouch rules above retain priority.
+        if low == [false, false] && w.fighters[0].id != w.fighters[1].id
+            && w.fighters.iter().all(|f| !f.airborne
+                && matches!(f.action, Action::Stand | Action::Walk { .. } | Action::Run)) {
+            return if w.fighters[0].id == CharacterId::Raya { [1, 0] } else { [0, 1] };
+        }
+        [0, 1]
     }
 
     /// Record once per simulation tick, after the world stepped. Frozen ticks
@@ -1196,6 +1207,40 @@ mod tests {
                 assert_eq!(history.draw_order(&w)[1], 1 - croucher, "attacking hands retain priority");
                 assert_eq!(w.state_hash(), hash);
             }
+        }
+    }
+
+    #[test]
+    fn mixed_neutral_keeps_both_silhouettes_readable_without_overriding_action_priority() {
+        for raya in [0, 1] {
+            let kogan = 1-raya;
+            let mut w = if raya == 0 { World::new(CharacterId::Raya, CharacterId::Kogan) }
+                else { World::new(CharacterId::Kogan, CharacterId::Raya) };
+            let history = History::default();
+            for right in [true, false] {
+                w.fighters[0].facing_right = right;
+                w.fighters[1].facing_right = !right;
+                for state in [Action::Stand, Action::Walk { forward: true }, Action::Walk { forward: false }, Action::Run] {
+                    for f in &mut w.fighters { f.action = state.clone(); }
+                    let hash = w.state_hash();
+                    assert_eq!(history.draw_order(&w), [kogan, raya]);
+                    assert_eq!(w.state_hash(), hash);
+                }
+            }
+            for active in [raya, kogan] {
+                for f in &mut w.fighters { f.action = Action::Stand; }
+                w.fighters[active].start_move(MoveId::StS);
+                assert_eq!(history.draw_order(&w)[1], active, "single attack still owns contact");
+                w.fighters[active].action = Action::Crouch;
+                assert_eq!(history.draw_order(&w)[1], active, "low silhouette keeps priority");
+                w.fighters[active].action = Action::Stand;
+                w.fighters[active].pos.y = 100 * SUB;
+                assert_eq!(history.draw_order(&w)[1], active, "higher body keeps priority");
+                w.fighters[active].pos.y = 0;
+            }
+        }
+        for body in [CharacterId::Kogan, CharacterId::Raya] {
+            assert_eq!(History::default().draw_order(&World::new(body, body)), [0, 1]);
         }
     }
 
