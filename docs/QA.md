@@ -508,3 +508,7 @@ Invisible green RGB is neutralized with unchanged alpha/visible source pixels. R
 ### ART57 dark key spill
 
 Dark green below the previous brightness threshold is neutralized without changing alpha. Regression fails before/passes after;185 tests (89 sim +96 client), clippy/release pass. Full32s replay and35s integration reviewed at1x1280x720;1,920/2,100 trace rows unchanged and960 saved/loaded PNG pairs exact. Replay0240 and six changed smoke scenes inspected;two menus match ART56. No body-coverage regression observed. Fine legacy curl color remains explicit source polish; old/new style and Kogan StK/CrK remain material gates. Production training keys and physical stick acceptance remain pending.
+
+### ART58 Kogan quiet stance
+
+Approved Flash ready cell 3 now supplies quiet grounded Stand. Full 32s replay, 35s integration and 24-case/33.6s freeze fixture reviewed at 1×; exact replay 0080 and four changed smoke scenes inspected. Both corners, full blade, floor support and close opponent visibility pass. All 185 tests, clippy/release pass; 1,920/2,100/1,440 trace rows/ticks unchanged, 960 saved/loaded pairs and 576 paused redraws exact. Archives checksum verified. Deliberate held neutral accepted; legacy walk/contact finish, StK/CrK art and actual training-key dispatch remain open.

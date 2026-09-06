@@ -192,3 +192,5 @@ ART55: mixed neutral visibility reviewed;183 workspace tests pass with clippy/re
 ART56: transparent key filtering reviewed;184 workspace tests,clippy/release pass. Remaining source-art and physical-play gates are in `docs/FULL-KIT-2026-09-05.md`.
 
 ART57: dark key spill reviewed with unchanged alpha;185 workspace tests,clippy/release pass. Shared style,Kogan StK/CrK and production training keys remain open. See `docs/FULL-KIT-2026-09-05.md`.
+
+ART58: quiet Kogan Stand shares the approved drawn ready pose. Replay, integration, corner/freeze and smoke reviewed; 185 tests, clippy/release pass. Legacy walk/contact finish, StK/CrK and actual training-key dispatch remain open.
