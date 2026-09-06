@@ -67,8 +67,8 @@ struct Case {
 
 fn cases(body: CharacterId) -> Vec<Case> { normal_cases(body, &MOVES) }
 
-fn flash_cases() -> Vec<Case> {
-    normal_cases(CharacterId::Kogan, &[MoveId::StFL, MoveId::StST])
+fn flash_cases(body: CharacterId) -> Vec<Case> {
+    normal_cases(body, &[MoveId::StFL, MoveId::StST])
 }
 
 fn throw_cases() -> Vec<Case> {
@@ -699,8 +699,7 @@ pub async fn run(assets: &Assets) {
         assert!(body == CharacterId::Kogan, "crouching saber cases currently cover Kogan");
         crouching_saber_cases()
     } else if args.iter().any(|a| a == "--kit-flash") {
-        assert!(body == CharacterId::Kogan, "flash cases currently cover Kogan");
-        flash_cases()
+        flash_cases(body)
     } else if args.iter().any(|a| a == "--kit-air") {
         assert!(body == CharacterId::Kogan, "air cases currently cover Kogan");
         if args.iter().any(|a| a == "--kit-air-early") { early_air_cases() } else { air_cases() }
@@ -1595,8 +1594,8 @@ mod tests {
 
     #[test]
     fn flash_preview_reaches_both_mid_normals_and_recovers_after_contact() {
-        let cases = flash_cases();
-        assert_eq!(cases.len(), 40);
+        let cases = [CharacterId::Kogan, CharacterId::Raya].into_iter().flat_map(flash_cases).collect::<Vec<_>>();
+        assert_eq!(cases.len(), 80);
         for case in cases {
             let mut world = case.world();
             let mut started = false;

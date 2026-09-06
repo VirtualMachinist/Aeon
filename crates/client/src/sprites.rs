@@ -180,6 +180,7 @@ pub struct SpriteSet {
     air_shot: Option<crate::sequences::Atlas>,
     air_saber: Option<crate::sequences::Atlas>,
     flash: Option<crate::sequences::Atlas>,
+    flash_contact: Option<crate::sequences::Atlas>,
     overhead: Option<crate::sequences::Atlas>,
     throw_tech: Option<crate::sequences::Atlas>,
     victory: Option<crate::sequences::Atlas>,
@@ -471,8 +472,14 @@ impl SpriteSet {
         let crouch_saber = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER).await
         } else { None };
-        let flash = if body == CharacterId::Kogan {
-            Atlas::load("assets/animation/kogan-flash-v2-green.png", (1024, 1536), &KOGAN_FLASH).await
+        let (flash_file, flash_specs) = match body {
+            CharacterId::Kogan => ("kogan-flash-v2-green.png", &KOGAN_FLASH),
+            CharacterId::Raya => ("raya-flash-style-v1-green.png", &RAYA_FLASH),
+        };
+        let flash = Atlas::load(&format!("assets/animation/{flash_file}"), (1024, 1536), flash_specs).await;
+        // Retain seven V1 cells and the corrected short cape-contact hem.
+        let flash_contact = if body == CharacterId::Raya {
+            Atlas::load("assets/animation/raya-flash-style-v3-green.png", (1024, 1536), &RAYA_FLASH[5..6]).await
         } else { None };
         let air_lights = if body == CharacterId::Kogan {
             Atlas::load_with_roots("assets/animation/kogan-air-lights-v1-green.png", (1024, 1536),
@@ -513,7 +520,7 @@ impl SpriteSet {
             CharacterId::Raya => ("raya-recoil-v1-green.png", (941, 1672), &RAYA_RECOIL),
         };
         let recoil = Atlas::load(&format!("assets/animation/{recoil_file}"), recoil_size, recoil_specs).await;
-        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, overhead, throw_tech, victory, standing_lights, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
+        Self { textures, body, atlas, thrust, reactions, uppercut, compact_uppercut, cuts, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, victory, standing_lights, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -534,6 +541,7 @@ impl SpriteSet {
             air_shot: None,
             air_saber: None,
             flash: None,
+            flash_contact: None,
             overhead: None,
             throw_tech: None,
             victory: None,
@@ -609,7 +617,7 @@ impl SpriteSet {
         if self.crouch_saber.is_some() && self.crouch_low.is_some() {
             if let Some(cell) = crate::sequences::crouch_saber_cell(fighter) { return cell; }
         }
-        if self.flash.is_some() {
+        if self.flash.is_some() && (self.body != CharacterId::Raya || self.flash_contact.is_some()) {
             if let Some(cell) = crate::sequences::flash_cell(fighter) { return cell; }
         }
         if self.air_lights.is_some() && self.air_lights_contact.is_some() {
@@ -693,6 +701,7 @@ impl SpriteSet {
             Cell::CrouchPunch(cell) => self.crouch_punch.as_ref()?.frame(cell),
             Cell::CrouchSaber(cell @ 8..=15) => self.crouch_low.as_ref()?.frame(cell - 8),
             Cell::CrouchSaber(cell) => self.crouch_saber.as_ref()?.frame(cell),
+            Cell::Flash(5) if self.body == CharacterId::Raya => self.flash_contact.as_ref()?.frame(0),
             Cell::Flash(cell) => self.flash.as_ref()?.frame(cell),
             Cell::AirSaber(cell) => self.air_saber.as_ref()?.frame(cell),
             Cell::AirLights(cell @ 1..=3) => self.air_lights_contact.as_ref()?.frame(cell - 1),
