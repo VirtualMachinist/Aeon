@@ -88,7 +88,7 @@ fn throw_cases() -> Vec<Case> {
 
 fn feint_cases() -> Vec<Case> {
     let base = saber_cases(CharacterId::Kogan).into_iter().chain(ranged_cases()).chain(utility_cases())
-        .chain(disc_cases()).chain(overhead_cases())
+        .chain(disc_cases()).chain(overhead_cases(CharacterId::Kogan))
         .filter(|c| c.response == Response::Hit
             && CharacterId::Kogan.data().move_def(c.move_id).is_some_and(|m| m.feintable))
         .collect::<Vec<_>>();
@@ -97,8 +97,9 @@ fn feint_cases() -> Vec<Case> {
     })).collect()
 }
 
-fn overhead_cases() -> Vec<Case> {
-    normal_cases(CharacterId::Kogan, &[MoveId::Overhead, MoveId::SpecialOverhead])
+fn overhead_cases(body: CharacterId) -> Vec<Case> {
+    let moves: &[MoveId] = if body == CharacterId::Kogan { &[MoveId::Overhead, MoveId::SpecialOverhead] } else { &[MoveId::Overhead] };
+    normal_cases(body, moves)
 }
 
 fn crouching_saber_cases(body: CharacterId) -> Vec<Case> {
@@ -709,8 +710,7 @@ pub async fn run(assets: &Assets) {
         assert!(body == CharacterId::Kogan, "throw cases currently cover Kogan");
         throw_cases()
     } else if args.iter().any(|a| a == "--kit-overhead") {
-        assert!(body == CharacterId::Kogan, "overhead cases currently cover Kogan");
-        overhead_cases()
+        overhead_cases(body)
     } else if args.iter().any(|a| a == "--kit-crouch") {
         crouching_saber_cases(body)
     } else if args.iter().any(|a| a == "--kit-flash") {
@@ -1529,9 +1529,48 @@ mod tests {
     }
 
     #[test]
+    fn raya_overhead_preview_preserves_high_guard_and_grounded_recovery() {
+        use crate::{sequences::overhead_cell, sprites::Cell};
+        let cases = overhead_cases(CharacterId::Raya);
+        assert_eq!(cases.len(), 20);
+        for case in cases {
+            let mut world = case.world();
+            let hp = world.fighters[1].health;
+            let (mut started, mut hits, mut blocks) = (false, 0, 0);
+            let mut seen = std::collections::HashSet::new();
+            let mut frozen = None;
+            for tick in 0..case.duration() {
+                let [a, b] = case.inputs_for_world(tick, &world);
+                world.tick(a, b);
+                let f = &world.fighters[0];
+                let cell = overhead_cell(f);
+                if let Some(cell) = cell { seen.insert(cell); }
+                if let Some((frame, previous)) = frozen {
+                    if world.frame == frame { assert_eq!(cell, previous, "freeze holds the drawing"); }
+                }
+                frozen = Some((world.frame, cell));
+                if let Action::Attack { move_id, frame, .. } = f.action {
+                    let mv = f.data().move_def(move_id).unwrap();
+                    assert_eq!(cell == Some(Cell::Overhead(2)), mv.is_active(frame), "{case:?}: active-only downstroke");
+                }
+                started |= f.action.attacking().is_some_and(|(id, _, _)| id == MoveId::Overhead);
+                assert!(!f.airborne, "{case:?}: grounded overhead");
+                hits += world.events.iter().filter(|e| matches!(e.kind, EventKind::Hit | EventKind::Knockdown)).count();
+                blocks += world.events.iter().filter(|e| e.kind == EventKind::Block).count();
+            }
+            for phase in 0..6 { assert!(seen.contains(&Cell::Overhead(phase)), "{case:?}: phase {phase}"); }
+            let expected = match case.response { Response::Whiff => (0, 0), Response::StandBlock => (0, 1), _ => (1, 0) };
+            assert!(started, "{case:?}: legal HS+ST chord");
+            assert_eq!((hits, blocks), expected, "{case:?}");
+            assert_eq!(hp-world.fighters[1].health, if expected.0==1 { 100 } else { 0 }, "{case:?}: authored damage");
+            assert!(world.fighters.iter().all(|f| !f.airborne && f.action.actionable()), "{case:?}: full recovery");
+        }
+    }
+
+    #[test]
     fn overhead_preview_uses_legal_chord_and_motion_with_high_guard_and_landing() {
         use crate::{sequences::{air_saber_cell, overhead_cell, cell_for}, sprites::Cell};
-        let cases = overhead_cases();
+        let cases = overhead_cases(CharacterId::Kogan);
         assert_eq!(cases.len(), 40);
         for case in cases {
             let mut world = case.world();

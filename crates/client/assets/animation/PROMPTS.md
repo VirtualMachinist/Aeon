@@ -126,3 +126,5 @@ Raya airborne JP/JK/JFL: six V1 gathered/low-contact/fold/ready drawings. [Exact
 Raya airborne JS/JHS/JST: three V1 low crystal contacts plus approved air-light gather/fold/ready. [Exact prompt and review](RAYA-AIR-CRYSTALS-2026-09-06.md).
 
 Raya CrHS: one longer vertical-crystal contact with normalized body scale and visor-clearing root. [Exact prompt and review](RAYA-AIR-EXCHANGES-2026-09-06.md).
+
+Raya overhead: six drawn phases with downward contact and composed return at unchanged timing. [Exact prompt and review](RAYA-OVERHEAD-2026-09-06.md).

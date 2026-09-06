@@ -455,9 +455,10 @@ impl SpriteSet {
         let throw_tech = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH).await
         } else { None };
-        let overhead = if body == CharacterId::Kogan {
-            Atlas::load("assets/animation/kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD).await
-        } else { None };
+        let overhead = match body {
+            CharacterId::Kogan => Atlas::load("assets/animation/kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD).await,
+            CharacterId::Raya => Atlas::load("assets/animation/raya-overhead-v1-green.png", (1024, 1536), &RAYA_OVERHEAD).await,
+        };
         let crouch_low = match body {
             CharacterId::Kogan => Atlas::load("assets/animation/kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW).await,
             CharacterId::Raya => Atlas::load("assets/animation/raya-crouch-low-v1-green.png", (1024, 1536), &RAYA_CROUCH_LOW).await,
