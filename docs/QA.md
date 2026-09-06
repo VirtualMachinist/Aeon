@@ -516,3 +516,7 @@ Approved Flash ready cell 3 now supplies quiet grounded Stand. Full 32s replay, 
 ### ART59 Kogan walking finish
 
 Four V1 drawings retain six-tick forward/reversed backward cells. Complete before/final 12s each and fresh 35s integration reviewed at 1×; all four footfalls, ready return, mirrored corner and four changed integration diagnostics inspected. Eight smoke PNGs equal inspected ART58. All 185 tests, clippy/release pass; 720 focused/2,100 integration ticks unchanged. Real-asset region test covers the new sheet; archives checksum verified. Legacy contact finish, StK/CrK and actual training keys remain open.
+
+### ART61 Kogan first-cut finish
+
+Four V1 drawings preserve original choreography and clocks. All64 sword cases/168s and16 affected feints/32s per before/final version reviewed at1×, both facings/corners. Exact contact, low guards, chain boundary, whiff/feint return and changed integration0135 inspected.185 tests(89 sim+96 client),clippy/release pass;10,080 sword/1,920 feint/2,100 integration ticks unchanged. New35s integration reviewed;8 smoke PNGs equal inspected ART59. Feint baseline exercises legacy fallback with an isolated asset view. Complete evidence checksum archived. Legacy backcut/thrust/jab finish, StK/CrK and production training keys remain open; full milestone incomplete.
