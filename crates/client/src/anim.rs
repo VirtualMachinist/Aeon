@@ -134,7 +134,7 @@ impl History {
             let f = &w.fighters[i];
             let c = self.ground_context(w, i);
             matches!(f.action, Action::Crouch)
-                || (f.id == CharacterId::Kogan && c.state == crate::sequences::GroundState::Stand
+                || (c.state == crate::sequences::GroundState::Stand
                     && c.from == crate::sequences::GroundState::Crouch && c.age < 2)
         });
         if low == [true, false] { [1, 0] } else { [0, 1] }
@@ -357,14 +357,14 @@ pub fn layers(
     let mut out = Vec::with_capacity(6);
 
     if let Some((color, count, spacing)) = m.ghosts {
-        let count = if f.id == CharacterId::Kogan { count.min(2) } else { count };
+        let count = if f.id == CharacterId::Kogan || matches!(cell, Cell::Ground(_)) { count.min(2) } else { count };
         for k in (1..=count).rev() {
             let Some(snap) = history.at(i, w.frame.saturating_sub(k * spacing)) else {
                 continue;
             };
             // A changing step silhouette must not trail an old stance or
             // put a previous leaning head ahead of the braking body.
-            if (matches!(cell, Cell::Utility(_) | Cell::AirRecovery(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
+            if (matches!(cell, Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Ground(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
             // A body that has not moved leaves no trail.
             if (snap.x - sub(f.pos.x)).abs() + (snap.y - sub(f.pos.y)).abs() < 1.0 {
                 continue;
@@ -399,7 +399,7 @@ pub fn layers(
     // old silhouettes creates duplicate limbs and weapons through these cuts.
     if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
         !(cuts || [cell, prev.cell].into_iter().any(|c| {
-            matches!(c, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_) | Cell::AirRecovery(_))
+            matches!(c, Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
                 || kogan_combat_cell(f.id, c)
                 || matches!((f.id, c), (CharacterId::Raya, Cell::Reaction(8..=11)))
         }))
@@ -445,7 +445,7 @@ fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
 }
 
 fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
-    matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_) | Cell::AirRecovery(_))
+    matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
         || kogan_combat_cell(id, cell)
 }
 
@@ -908,68 +908,72 @@ mod tests {
     fn ground_phase_clock_freezes_resets_and_yields_to_new_actions() {
         use crate::sequences::{ground_cell, GroundState};
         use aeon_sim::{Btn, InputFrame};
-        let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
-        let mut history = History::default();
-        let cells = [Cell::Pose(Pose::Idle); 2];
-        history.record(&w, cells);
-        for dir in [6, 5, 6] {
-            w.tick(InputFrame::dir(dir), InputFrame::dir(5));
+        for body in [CharacterId::Kogan, CharacterId::Raya] {
+            let mut w = World::new(body, CharacterId::Kogan);
+            let mut history = History::default();
+            let cells = [Cell::Pose(Pose::Idle); 2];
             history.record(&w, cells);
-        }
-        let context = history.ground_context(&w, 0);
-        assert_eq!((context.state, context.age), (GroundState::Run, 0));
-        assert_eq!(ground_cell(&w.fighters[0], context), Some(Cell::Utility(4)));
-        for _ in 0..12 {
-            w.tick(InputFrame::dir(6), InputFrame::dir(5));
-            history.record(&w, cells);
-        }
-        let before = history.ground_context(&w, 0);
-        assert_eq!(ground_cell(&w.fighters[0], before), Some(Cell::Ground(1)));
-        w.hitstop = 3;
-        for _ in 0..3 {
-            let hash = w.state_hash();
-            for _ in 0..5 {
-                assert_eq!(history.ground_context(&w, 0), before);
+            for dir in [6, 5, 6] {
+                w.tick(InputFrame::dir(dir), InputFrame::dir(5));
                 history.record(&w, cells);
             }
-            assert_eq!(hash, w.state_hash(), "presentation queries are read only");
-            w.tick(InputFrame::dir(6), InputFrame::dir(5));
+            let context = history.ground_context(&w, 0);
+            assert_eq!((context.state, context.age), (GroundState::Run, 0));
+            assert_eq!(ground_cell(&w.fighters[0], context), Some(if body == CharacterId::Kogan { Cell::Utility(4) } else { Cell::Ground(6) }));
+            for _ in 0..12 {
+                w.tick(InputFrame::dir(6), InputFrame::dir(5));
+                history.record(&w, cells);
+            }
+            let before = history.ground_context(&w, 0);
+            assert_eq!(ground_cell(&w.fighters[0], before), Some(Cell::Ground(1)));
+            w.hitstop = 3;
+            for _ in 0..3 {
+                let hash = w.state_hash();
+                for _ in 0..5 {
+                    assert_eq!(history.ground_context(&w, 0), before);
+                    history.record(&w, cells);
+                }
+                assert_eq!(hash, w.state_hash(), "presentation queries are read only");
+                w.tick(InputFrame::dir(6), InputFrame::dir(5));
+                history.record(&w, cells);
+                assert_eq!(history.ground_context(&w, 0), before, "frozen ticks hold the drawing clock");
+            }
+            w.tick(InputFrame::dir(5), InputFrame::dir(5));
             history.record(&w, cells);
-            assert_eq!(history.ground_context(&w, 0), before, "frozen ticks hold the drawing clock");
-        }
-        w.tick(InputFrame::dir(5), InputFrame::dir(5));
-        history.record(&w, cells);
-        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Utility(6)));
-        w.tick(InputFrame::press(Btn::S), InputFrame::dir(5));
-        history.record(&w, cells);
-        assert!(w.fighters[0].action.attacking().is_some());
-        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), None,
-            "the visible brake never masks an immediate attack");
-        w = World::new(CharacterId::Kogan, CharacterId::Raya);
-        history.record(&w, cells);
-        let reset = history.ground_context(&w, 0);
-        assert_eq!((reset.age, reset.from), (0, GroundState::Other), "replay reset clears old movement");
-        w.tick(InputFrame::dir(2), InputFrame::dir(5));
-        history.record(&w, cells);
-        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Ground(2)));
-        for _ in 0..2 {
+            assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(if body == CharacterId::Kogan { Cell::Utility(6) } else { Cell::Ground(6) }));
+            w.tick(InputFrame::press(Btn::S), InputFrame::dir(5));
+            history.record(&w, cells);
+            assert!(w.fighters[0].action.attacking().is_some());
+            assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), None,
+                "the visible brake never masks an immediate attack");
+            w = World::new(body, CharacterId::Kogan);
+            history.record(&w, cells);
+            let reset = history.ground_context(&w, 0);
+            assert_eq!((reset.age, reset.from), (0, GroundState::Other), "replay reset clears old movement");
             w.tick(InputFrame::dir(2), InputFrame::dir(5));
             history.record(&w, cells);
+            assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Ground(2)));
+            for _ in 0..2 {
+                w.tick(InputFrame::dir(2), InputFrame::dir(5));
+                history.record(&w, cells);
+            }
+            assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Ground(3)));
+            w.tick(InputFrame::dir(5), InputFrame::dir(5));
+            history.record(&w, cells);
+            assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Ground(2)));
+            history.reset();
+            assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), None,
+                "training reset discards a pending rise");
         }
-        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Ground(3)));
-        w.tick(InputFrame::dir(5), InputFrame::dir(5));
-        history.record(&w, cells);
-        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), Some(Cell::Ground(2)));
-        history.reset();
-        assert_eq!(ground_cell(&w.fighters[0], history.ground_context(&w, 0)), None,
-            "training reset discards a pending rise");
     }
 
     #[test]
-    fn raya_landing_return_cuts_previous_bodies_and_leaves_immediate_control() {
+    fn raya_movement_return_cuts_previous_bodies_and_leaves_immediate_control() {
         let sprites = set(CharacterId::Raya);
         let opts = LayerOpts { win: None, defeat: None, flash: (0.0, WHITE) };
-        for previous in [Cell::Movement(3), Cell::Movement(6), Cell::Movement(7),
+        for previous in [Cell::Ground(0), Cell::Ground(1), Cell::Ground(2), Cell::Ground(3),
+            Cell::Ground(4), Cell::Ground(5), Cell::Ground(6), Cell::Ground(7), Cell::Atlas(0),
+            Cell::Movement(3), Cell::Movement(6), Cell::Movement(7),
             Cell::Reaction(8), Cell::Reaction(9), Cell::Reaction(10), Cell::Reaction(11),
             Cell::AirRecovery(0), Cell::AirRecovery(1), Cell::AirRecovery(2), Cell::AirRecovery(3)] {
             let mut w = World::new(CharacterId::Raya, CharacterId::Kogan);
@@ -1130,29 +1134,31 @@ mod tests {
     #[test]
     fn close_crouch_and_rise_stay_visible_without_hiding_attacks() {
         use aeon_sim::{Btn, InputFrame};
-        for croucher in 0..2 {
-            let mut w = World::new(CharacterId::Kogan, CharacterId::Kogan);
-            let mut history = History::default();
-            let cells = [Cell::Pose(Pose::Idle); 2];
-            let mut inputs = [InputFrame::dir(5); 2];
-            inputs[croucher] = InputFrame::dir(2);
-            w.tick(inputs[0], inputs[1]);
-            history.record(&w, cells);
-            assert_eq!(history.draw_order(&w)[1], croucher);
-            w.tick(InputFrame::dir(5), InputFrame::dir(5));
-            history.record(&w, cells);
-            assert_eq!(history.draw_order(&w)[1], croucher, "the half-rise stays visible");
-            for _ in 0..2 {
+        for body in [CharacterId::Kogan, CharacterId::Raya] {
+            for croucher in 0..2 {
+                let mut w = World::new(body, body);
+                let mut history = History::default();
+                let cells = [Cell::Pose(Pose::Idle); 2];
+                let mut inputs = [InputFrame::dir(5); 2];
+                inputs[croucher] = InputFrame::dir(2);
+                w.tick(inputs[0], inputs[1]);
+                history.record(&w, cells);
+                assert_eq!(history.draw_order(&w)[1], croucher);
                 w.tick(InputFrame::dir(5), InputFrame::dir(5));
                 history.record(&w, cells);
+                assert_eq!(history.draw_order(&w)[1], croucher, "the half-rise stays visible");
+                for _ in 0..2 {
+                    w.tick(InputFrame::dir(5), InputFrame::dir(5));
+                    history.record(&w, cells);
+                }
+                assert_eq!(history.draw_order(&w), [0, 1], "rest restores stable ordering");
+                inputs[1 - croucher] = InputFrame::press(Btn::S);
+                w.tick(inputs[0], inputs[1]);
+                history.record(&w, cells);
+                let hash = w.state_hash();
+                assert_eq!(history.draw_order(&w)[1], 1 - croucher, "attacking hands retain priority");
+                assert_eq!(w.state_hash(), hash);
             }
-            assert_eq!(history.draw_order(&w), [0, 1], "rest restores stable ordering");
-            inputs[1 - croucher] = InputFrame::press(Btn::S);
-            w.tick(inputs[0], inputs[1]);
-            history.record(&w, cells);
-            let hash = w.state_hash();
-            assert_eq!(history.draw_order(&w)[1], 1 - croucher, "attacking hands retain priority");
-            assert_eq!(w.state_hash(), hash);
         }
     }
 

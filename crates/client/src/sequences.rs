@@ -408,6 +408,20 @@ pub const KOGAN_GROUND: [Spec; 8] = [
     ([780, 500, 1150, 1024], 953, 340), ([1150, 500, 1536, 1024], 1350, 340),
 ];
 
+// Raya holds her glide legs while linen/copper advance through two folds.
+// A gentle knee bend gathers a run; supported brake/ready serve either direction.
+pub const RAYA_GROUND: [Spec; 8] = [
+    ([0, 0, 420, 460], 270, 380), ([420, 0, 830, 460], 670, 380),
+    ([830, 0, 1210, 460], 1033, 380), ([1210, 0, 1672, 460], 1426, 380),
+    ([0, 460, 420, 941], 268, 380), ([420, 460, 830, 941], 632, 380),
+    ([830, 460, 1210, 941], 1033, 380), ([1210, 460, 1672, 941], 1412, 380),
+];
+
+pub const RAYA_WALK: [Spec; 4] = [
+    ([0, 0, 285, 318], 160, 294), ([285, 0, 590, 318], 450, 294),
+    ([590, 0, 925, 318], 754, 294), ([925, 0, 1254, 318], 1070, 294),
+];
+
 // Walk uses the existing four drawings, extracted at real green gaps.
 pub const KOGAN_WALK: [Spec; 4] = [
     ([0, 0, 313, 320], 175, 277), ([313, 0, 614, 320], 470, 277),
@@ -444,15 +458,16 @@ pub struct GroundContext {
 }
 
 pub fn ground_cell(f: &Fighter, context: GroundContext) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    let kogan = f.id == aeon_sim::CharacterId::Kogan;
     match f.action {
-        Action::Run if context.age < 2 => Some(Cell::Utility(4)),
+        Action::Run if context.age < 2 => Some(if kogan { Cell::Utility(4) } else { Cell::Ground(6) }),
         Action::Run => Some(Cell::Ground(((context.age - 2) / 8 % 2) as usize)),
         Action::Crouch => Some(Cell::Ground(if context.age < 2 { 2 } else { 3 })),
         Action::BackDash { frame } => Some(Cell::Ground(if frame < 3 { 4 }
             else if frame < 9 { 5 } else if frame < 12 { 6 } else { 7 })),
         Action::Stand if context.from == GroundState::Run && context.age < 4 => {
-            Some(Cell::Utility(if context.age < 2 { 6 } else { 7 }))
+            let phase = if context.age < 2 { 6 } else { 7 };
+            Some(if kogan { Cell::Utility(phase) } else { Cell::Ground(phase) })
         }
         Action::Stand if context.from == GroundState::Crouch && context.age < 2 => Some(Cell::Ground(2)),
         _ => None,
@@ -709,6 +724,8 @@ mod tests {
             ("kogan-recoil-v2-green.png", (1024, 1536), &KOGAN_RECOIL[..]),
             ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND[..]),
             ("kogan-v1-green.png", (1254, 1254), &KOGAN_WALK[..]),
+            ("raya-v1-green.png", (1254, 1254), &RAYA_WALK[..]),
+            ("raya-ground-v1-green.png", (1672, 941), &RAYA_GROUND[..]),
             ("kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH[..]),
             ("kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY[..]),
             ("kogan-overhead-v1-green.png", (1254, 1254), &KOGAN_OVERHEAD[..]),
