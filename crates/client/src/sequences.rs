@@ -541,10 +541,19 @@ pub const KOGAN_MOVEMENT_ROOT_Y: [Option<u16>; 8] = [
     Some(800), Some(810), Some(830), None,
 ];
 
+// Raya keeps a compact hop and a longer full jump at common anatomical scale.
+pub const RAYA_MOVEMENT: [Spec; 8] = [
+    ([0, 0, 410, 420], 287, 400), ([410, 0, 820, 420], 662, 400),
+    ([820, 0, 1210, 420], 1057, 400), ([1210, 0, 1672, 420], 1435, 400),
+    ([0, 420, 410, 941], 269, 400), ([410, 420, 820, 941], 646, 400),
+    ([820, 420, 1210, 941], 1050, 400), ([1210, 420, 1672, 941], 1437, 400),
+];
+pub const RAYA_MOVEMENT_ROOT_Y: [Option<u16>; 8] = [
+    None, Some(425), Some(380), Some(430),
+    Some(855), Some(850), Some(825), None,
+];
+
 pub fn movement_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan {
-        return None;
-    }
     match f.action {
         Action::Prejump { .. } => Some(Cell::Movement(0)),
         Action::Jump { air_ok: false, .. } if f.last_move == Some(MoveId::Uppercut) => None,
@@ -709,6 +718,7 @@ mod tests {
             ("kogan-uppercut-compact-v1-green.png", (1536, 1024), &KOGAN_UPPERCUT_COMPACT[..]),
             ("kogan-cape-step-v3-green.png", (1448, 1086), &KOGAN_UTILITY[..]),
             ("kogan-ranged-v5-green.png", (1448, 1086), &KOGAN_RANGED[..]),
+            ("raya-movement-v1-green.png", (1672, 941), &RAYA_MOVEMENT[..]),
             ("kogan-movement-v2-green.png", (1672, 941), &KOGAN_MOVEMENT[..]),
             ("kogan-reactions-v1-green.png", (1448, 1086), &KOGAN_REACTIONS[..]),
             ("raya-reactions-v1-green.png", (1448, 1086), &RAYA_REACTIONS[..]),

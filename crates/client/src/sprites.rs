@@ -391,10 +391,13 @@ impl SpriteSet {
             Atlas::load("assets/animation/kogan-uppercut-coil-v1-green.png", (1254, 1254), &KOGAN_COIL).await
         } else { None };
         let legacy_movement = std::env::args().any(|a| a == "--kit-legacy-movement");
-        let movement = if body == CharacterId::Kogan && !legacy_movement {
-            Atlas::load_with_roots("assets/animation/kogan-movement-v2-green.png",
-                (1672, 941), &KOGAN_MOVEMENT, &KOGAN_MOVEMENT_ROOT_Y).await
-        } else { None };
+        let movement = if legacy_movement { None } else {
+            let (file, specs, roots) = match body {
+                CharacterId::Kogan => ("kogan-movement-v2-green.png", &KOGAN_MOVEMENT, &KOGAN_MOVEMENT_ROOT_Y),
+                CharacterId::Raya => ("raya-movement-v1-green.png", &RAYA_MOVEMENT, &RAYA_MOVEMENT_ROOT_Y),
+            };
+            Atlas::load_with_roots(&format!("assets/animation/{file}"), (1672, 941), specs, roots).await
+        };
         let ranged = if body == CharacterId::Kogan
             && !std::env::args().any(|a| a == "--kit-legacy-ranged") {
             Atlas::load("assets/animation/kogan-ranged-v5-green.png",

@@ -1093,12 +1093,12 @@ mod tests {
                 }
                 assert!(rising && falling && landed, "{case:?} complete arc");
                 assert_eq!(landing_ticks, if case.jump.unwrap().1 { 0 } else { 2 }, "{case:?}");
-                if body == CharacterId::Kogan {
-                    let base = if case.jump.unwrap().1 { 1 } else { 4 };
-                    for cell in [0, base, base + 1, base + 2] {
-                        assert!(drawings.contains(&crate::sprites::Cell::Movement(cell)), "{case:?} cell {cell}");
-                    }
+                let base = if case.jump.unwrap().1 { 1 } else { 4 };
+                for cell in [0, base, base + 1, base + 2] {
+                    assert!(drawings.contains(&crate::sprites::Cell::Movement(cell)), "{case:?} cell {cell}");
                 }
+                assert_eq!(drawings.contains(&crate::sprites::Cell::Movement(7)), !case.jump.unwrap().1,
+                    "only the authored full-jump landing displays compression");
             }
         }
     }
