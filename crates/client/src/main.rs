@@ -131,7 +131,7 @@ impl Presentation {
 
     fn draw(&self, view: &View, assets: &Assets, w: &World, boxes: bool) {
         self.effects.draw_behind(view, w);
-        let order = self.victory.winner().filter(|&i| w.fighters[i].id == CharacterId::Kogan)
+        let order = self.victory.winner()
             .map(|i| [1-i,i]).unwrap_or_else(|| self.history.draw_order(w));
         for i in order {
             let sprites = assets.sprites(w.fighters[i].id);

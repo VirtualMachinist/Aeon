@@ -464,9 +464,10 @@ impl SpriteSet {
         };
         let ground = Atlas::load(&format!("assets/animation/{ground_file}"),
             ground_size, ground_specs).await;
-        let victory = if body == CharacterId::Kogan {
-            Atlas::load("assets/animation/kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY).await
-        } else { None };
+        let victory = match body {
+            CharacterId::Kogan => Atlas::load("assets/animation/kogan-victory-v1-green.png", (1536, 1024), &KOGAN_VICTORY).await,
+            CharacterId::Raya => Atlas::load("assets/animation/raya-victory-v1-green.png", (1536, 1024), &RAYA_VICTORY).await,
+        };
         let throw_tech = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-throw-tech-v1-green.png", (1536, 1024), &KOGAN_THROW_TECH).await
         } else { None };

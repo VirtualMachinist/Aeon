@@ -466,3 +466,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART50 | Coherent grounded withdrawal and supported airborne cancel | All80 first/last startup cases,160s before/final at1x,both facings/corners;exact withdrawal/ready and late landing PNGs inspected. Garou387.747–389.956s plus G1/G2/S2 refraction. |
 
 179 tests(89 sim+90 client),clippy and locked/offline release pass;9,600 focused and2,100 integration ticks unchanged. Complete35s integration video,71 diagnostics and8 smoke PNGs equal inspected ART49 evidence. Approved art reuse recorded in `RAYA-FEINT-2026-09-06.md`. Shared overlap/key polish and remaining kit stay open.
+
+## September 6 Raya victory review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART51 | Supported offering after legal recovery;correct round/reset behavior |16 before/final cases,64s each at1x,both facings/corners;four phases,crouch rise,air landing and resets inspected. A1/A2/S2 and original AC104.795–110.230s refraction. |
+
+179 tests(89 sim+90 client),clippy and locked/offline release pass.3,840 focused and2,100 integration ticks unchanged;complete35s video/71 diagnostics equal inspected ART50/ART49. Seven smoke PNGs equal;changed winner pair inspected. New source and exact prompt recorded in `RAYA-VICTORY-2026-09-06.md`. Remaining Kogan attacks and shared polish stay open.

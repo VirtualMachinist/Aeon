@@ -100,7 +100,7 @@ impl History {
         let f = &w.fighters[i];
         if !victory_at_rest(f) { return false; }
         let c = self.ground_context(w,i);
-        !(f.id == CharacterId::Kogan && matches!(f.action,Action::Stand)
+        !(matches!(f.action,Action::Stand)
             && c.from == crate::sequences::GroundState::Crouch && c.age < 2)
     }
 
@@ -366,7 +366,7 @@ pub fn layers(
             };
             // A changing step silhouette must not trail an old stance or
             // put a previous leaning head ahead of the braking body.
-            if (matches!(cell, Cell::Judgment(_) | Cell::ThrowContact | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
+            if (matches!(cell, Cell::Judgment(_) | Cell::Victory(_) | Cell::ThrowContact | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
             // A body that has not moved leaves no trail.
             if (snap.x - sub(f.pos.x)).abs() + (snap.y - sub(f.pos.y)).abs() < 1.0 {
                 continue;
@@ -401,7 +401,7 @@ pub fn layers(
     // old silhouettes creates duplicate limbs and weapons through these cuts.
     if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
         !(cuts || [cell, prev.cell].into_iter().any(|c| {
-            matches!(c, Cell::ThrowContact | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Judgment(_) | Cell::Ritual(_) | Cell::Ranged(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
+            matches!(c, Cell::Victory(_) | Cell::ThrowContact | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Judgment(_) | Cell::Ritual(_) | Cell::Ranged(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
                 || kogan_combat_cell(f.id, c)
                 || matches!((f.id, c), (CharacterId::Raya, Cell::Reaction(_)))
         }))
@@ -447,12 +447,12 @@ fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
 }
 
 fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
-    matches!(cell, Cell::ThrowContact | Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Judgment(_) | Cell::Ritual(_) | Cell::Ranged(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
+    matches!(cell, Cell::Victory(_) | Cell::ThrowContact | Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Judgment(_) | Cell::Ritual(_) | Cell::Ranged(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
         || kogan_combat_cell(id, cell)
 }
 
 fn respect_authored_drawing(id: CharacterId, cell: Cell, m: &mut Motion) {
-    if id == CharacterId::Raya && matches!(cell, Cell::Judgment(_) | Cell::Ritual(_) | Cell::Ranged(_) | Cell::ThrowContact | Cell::Utility(_)) || matches!(cell, Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_)) || id == CharacterId::Kogan && matches!(cell, Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::CrouchPunch(_) | Cell::Overhead(_) | Cell::ThrowTech(_) | Cell::Victory(_)) {
+    if id == CharacterId::Raya && matches!(cell, Cell::Victory(_) | Cell::Judgment(_) | Cell::Ritual(_) | Cell::Ranged(_) | Cell::ThrowContact | Cell::Utility(_)) || matches!(cell, Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_)) || id == CharacterId::Kogan && matches!(cell, Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::CrouchPunch(_) | Cell::Overhead(_) | Cell::ThrowTech(_) | Cell::Victory(_)) {
         // Commitment is drawn; extra shifts detach the weapon from its contact line.
         m.dx = 0.0;
         m.dy = 0.0;
@@ -1239,7 +1239,8 @@ mod tests {
     }
     #[test]
     fn winner_gesture_keeps_the_existing_two_tick_crouch_rise() {
-        let mut w=World::new(CharacterId::Kogan,CharacterId::Raya);
+        for body in [CharacterId::Kogan,CharacterId::Raya] {
+        let mut w=World::new(body,CharacterId::Raya);
         let mut history=History::default();
         w.frame=51;
         w.fighters[0].action=Action::Attack { move_id:MoveId::CrHS,frame:28,connected:aeon_sim::Connect::Hit };
@@ -1257,6 +1258,7 @@ mod tests {
         assert!(!history.victory_ready(&w,0),"new actions retain their drawing");
         history.reset();w.fighters[0].action=Action::Stand;
         assert!(history.victory_ready(&w,0),"no stale rise after reset");
+        }
     }
 
     #[test]
