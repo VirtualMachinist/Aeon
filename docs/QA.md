@@ -442,3 +442,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART47 | Crystal/EX low release and empty withdrawal; glyph/EX spoken gesture and separate effect lifetime | All64 before/accepted cases /224s each at1×, both facings/corners, hit/both guards/miss; exact release/recovery/return, blast and expiry PNGs inspected. A2/S2 refraction plus reopened original AC. |
 
 177 tests (89 sim +88 client), clippy and locked/offline release pass. All13,440 focused and2,100 integration ticks equal baseline. Integration video/all71 diagnostics byte-identical to fully reviewed ART45; seven smoke images equal and changed versus-glyph pair inspected. Evidence: `raya-ranged-verification.json` and `RAYA-RANGED-2026-09-06.md`. Remaining kit, shared polish and physical play open.
+
+## September 6 Raya ritual review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART48 | Supported Charge descent, hold and rise; empty-hand manual Detonate and return | All 32 before/accepted cases, 64s each at 1×; both facings/corners, tap/release/max/interruption and manual hit/both guards/miss. Exact support, command, withdrawal and return PNGs inspected. A1/A2/S2 and reopened original AC refraction. |
+
+178 tests (89 sim + 89 client), clippy and locked/offline release pass. All 3,840 focused and 2,100 integration ticks equal baseline. Integration video/all 71 diagnostics equal fully reviewed ART45; eight smoke PNGs equal inspected ART47. Evidence: `raya-ritual-verification.json` and `RAYA-RITUAL-2026-09-06.md`. Charge feints, remaining kit, shared overlap/polish and physical play remain open.
