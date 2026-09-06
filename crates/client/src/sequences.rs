@@ -645,6 +645,17 @@ pub const KOGAN_UPPERCUT_COMPACT: [Spec; 2] = [
 /// Complete the upward blade line during the early rise, then gather the
 /// body near the apex. The previous tall pose at maximum height hid the HUD.
 pub fn compact_uppercut_cell(f: &Fighter) -> Option<Cell> {
+    if f.id == aeon_sim::CharacterId::Raya {
+        let mv = f.data().move_def(MoveId::Uppercut)?;
+        return match f.action {
+            Action::Attack { move_id: MoveId::Uppercut, frame, .. } if mv.is_active(frame) => Some(Cell::UppercutCompact(0)),
+            Action::Attack { move_id: MoveId::Uppercut, frame, .. }
+                if frame > mv.last_active() && f.airborne && (f.vel.y >= 0 || f.pos.y > aeon_sim::px(100)) => Some(Cell::UppercutCompact(1)),
+            Action::Jump { air_ok: false, .. } if f.last_move == Some(MoveId::Uppercut)
+                && f.airborne && f.pos.y > aeon_sim::px(100) => Some(Cell::UppercutCompact(1)),
+            _ => None,
+        };
+    }
     if f.id != aeon_sim::CharacterId::Kogan { return None; }
     match f.action {
         Action::Attack { move_id: MoveId::Uppercut, frame, .. } => {
@@ -661,6 +672,9 @@ pub fn compact_uppercut_cell(f: &Fighter) -> Option<Cell> {
     }
 }
 
+pub const RAYA_UPPERCUT_COMPACT: [Spec; 2] = [
+    ([0, 0, 887, 887], 510, 640), ([887, 0, 1774, 887], 1240, 640),
+];
 pub const RAYA_UPPERCUT: [Spec; 4] = [
     ([0, 0, 627, 580], 346, 430), ([627, 0, 1254, 580], 866, 444),
     ([0, 580, 627, 1254], 334, 455), ([627, 580, 1254, 1254], 888, 432),
@@ -877,6 +891,7 @@ mod tests {
             ("raya-reactions-v1-green.png", (1448, 1086), &RAYA_REACTIONS[..]),
             ("kogan-uppercut-v1-green.png", (1254, 1254), &KOGAN_UPPERCUT[..]),
             ("raya-uppercut-v1-green.png", (1254, 1254), &RAYA_UPPERCUT[..]),
+            ("raya-uppercut-compact-v2-green.png", (1774, 887), &RAYA_UPPERCUT_COMPACT[..]),
             ("kogan-uppercut-coil-v1-green.png", (1254, 1254), &KOGAN_COIL[..]),
         ] {
             let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/animation").join(name);
@@ -1187,6 +1202,27 @@ mod tests {
                 w.tick(Default::default(), Default::default());
             }
             assert!(seen[2..8].iter().all(|v| *v), "{id:?}: {seen:?}");
+        }
+    }
+
+    #[test]
+    fn raya_ascension_releases_only_while_active_and_gathers_above_the_floor() {
+        for facing in [false, true] {
+            let mut f = Fighter::spawn(CharacterId::Raya, px(200), facing);
+            let mv = f.data().move_def(MoveId::Uppercut).unwrap();
+            f.airborne = true; f.pos.y = px(110); f.vel.y = px(1);
+            for frame in 0..mv.total_frames() {
+                f.action = Action::Attack { move_id: MoveId::Uppercut, frame, connected: Connect::None };
+                let cell = compact_uppercut_cell(&f);
+                assert_eq!(cell == Some(Cell::UppercutCompact(0)), mv.is_active(frame));
+                if frame > mv.last_active() { assert_eq!(cell, Some(Cell::UppercutCompact(1))); }
+            }
+            f.vel.y = -px(1); f.pos.y = px(99);
+            assert_eq!(compact_uppercut_cell(&f), None);
+            for action in [Action::Stand, Action::Crouch, Action::Landing { frame: 0, total: 12 },
+                Action::Feint { frame: 0 }, Action::Hit { stun: 8, knockdown: false }] {
+                f.action = action; assert_eq!(compact_uppercut_cell(&f), None);
+            }
         }
     }
 

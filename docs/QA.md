@@ -370,3 +370,11 @@ Related: [[Aeon/HANDOFF]] · [[Aeon/DESIGN]] · [[Aeon/FRAME-DATA]] · [[Aeon/IN
 | ART38 | Three syllables show distinct active contact, withdrawal, ready and legal continuation | All60 final3 cases/160s at1×1280×720, phase PNGs and mirrored/corner/guard/hit/miss review; G2/S2/A1/A2 refraction. |
 
 174 tests (89sim+85client),clippy and locked/offline release pass. All9600 focused and2100 integration ticks equal baseline; new35s integration reviewed. Corrected smoke3 has eight PNGs, six identical and two menu pairs directly reviewed. Previous seven-image runs remain incomplete. Smoke-only fixed tick scheduling and local menu holds prevent missing captures; a regression covers display jitter and30 start offsets. Full-kit completion and physical play remain open. Exact evidence: RAYA-CHANTS-2026-09-06.md, full-kit report and raya-chants-verification.json.
+
+## September 6 Raya Ascension review
+
+| Gate | Requirement | Evidence |
+|---|---|---|
+| ART39 | Low active release, gathered apex below HUD, coherent descent/landing | All20 final V2 cases/50s at1×1280×720; exact phase, mirrored corner, guard and miss PNGs; A2/K1/G1/S1 refraction. |
+
+175 tests (89sim+86client),clippy and locked/offline release pass. All3000/2100 focused/integration ticks equal baseline; complete new35s integration reviewed. All eight smoke PNGs equal inspected chants smoke3. Timer-overlap defect closed for this move. Full kits and physical play remain open; exact evidence in the full-kit report, RAYA-ASCENSION-2026-09-06.md and raya-ascension-verification.json.
