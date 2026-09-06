@@ -86,7 +86,7 @@ fn throw_cases() -> Vec<Case> {
 }
 
 fn feint_cases() -> Vec<Case> {
-    let base = saber_cases().into_iter().chain(ranged_cases()).chain(utility_cases())
+    let base = saber_cases(CharacterId::Kogan).into_iter().chain(ranged_cases()).chain(utility_cases())
         .chain(disc_cases()).chain(overhead_cases())
         .filter(|c| c.response == Response::Hit
             && CharacterId::Kogan.data().move_def(c.move_id).is_some_and(|m| m.feintable))
@@ -191,14 +191,19 @@ fn utility_cases() -> Vec<Case> {
     result
 }
 
-fn saber_cases() -> Vec<Case> {
+fn saber_cases(body: CharacterId) -> Vec<Case> {
     let mut result = Vec::new();
     for move_id in [MoveId::StS, MoveId::StHS, MoveId::StHSClose, MoveId::Rekka1,
         MoveId::Rekka2, MoveId::Rekka3, MoveId::ExA, MoveId::Uppercut] {
-        for response in [Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff] {
+        // Raya's EX is a placed glyph and belongs to her projectile fixture.
+        if body == CharacterId::Raya && move_id == MoveId::ExA { continue; }
+        let responses = if body == CharacterId::Raya {
+            &[Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::CrouchHit, Response::Whiff][..]
+        } else { &[Response::Hit, Response::StandBlock, Response::CrouchBlock, Response::Whiff][..] };
+        for &response in responses {
             for corner in [false, true] {
                 for right in [true, false] {
-                    result.push(Case { body: CharacterId::Kogan, move_id, response,
+                    result.push(Case { body, move_id, response,
                         right, corner, jump: None, air: false, ranged: false, utility: false, saber: true, disc: false, reaction: false, ground: None, feint: None });
                 }
             }
@@ -581,6 +586,7 @@ impl Case {
             let defender = match self.response {
                 Response::StandBlock if frame >= PRESS => 4,
                 Response::CrouchBlock => 1,
+                Response::CrouchHit => 2,
                 _ if close_evade && (PRESS - 8..PRESS - 1).contains(&frame) => 8,
                 _ => 5,
             };
@@ -714,8 +720,7 @@ pub async fn run(assets: &Assets) {
         assert!(body == CharacterId::Kogan, "disc cases cover Kogan");
         disc_cases()
     } else if args.iter().any(|a| a == "--kit-saber") {
-        assert!(body == CharacterId::Kogan, "saber cases currently cover Kogan");
-        saber_cases()
+        saber_cases(body)
     } else if args.iter().any(|a| a == "--kit-utility") {
         assert!(body == CharacterId::Kogan, "utility cases currently cover Kogan");
         utility_cases()
@@ -1277,7 +1282,7 @@ mod tests {
             }
         }
         let mut seen = std::collections::HashSet::new();
-        for case in saber_cases().into_iter().filter(|c| c.move_id == MoveId::Uppercut) {
+        for case in saber_cases(CharacterId::Kogan).into_iter().filter(|c| c.move_id == MoveId::Uppercut) {
             let mut world = case.world();
             for frame in 0..case.duration() {
                 let [p1, p2] = case.inputs_for_world(frame, &world);
@@ -1320,7 +1325,7 @@ mod tests {
             let root = x0 as f32 + anchor.x * (x1 - x0) as f32;
             ((left as f32 - root) * scale, (right as f32 - root) * scale)
         }).collect();
-        for case in saber_cases().into_iter().filter(|c| c.move_id == MoveId::Rekka3) {
+        for case in saber_cases(CharacterId::Kogan).into_iter().filter(|c| c.move_id == MoveId::Rekka3) {
             let mut world = case.world();
             for frame in 0..case.duration() {
                 let [p1, p2] = case.inputs_for_world(frame, &world);
@@ -1345,7 +1350,7 @@ mod tests {
 
     #[test]
     fn saber_preview_reaches_normals_rekka_followups_ex_and_reversal_legally() {
-        for case in saber_cases() {
+        for case in [CharacterId::Kogan, CharacterId::Raya].into_iter().flat_map(saber_cases) {
             let mut world = case.world();
             let mut started = std::collections::HashSet::new();
             let mut hits = 0;
@@ -1371,12 +1376,14 @@ mod tests {
             if case.move_id == MoveId::Rekka3 {
                 assert!(started.contains(&MoveId::Rekka1) && started.contains(&MoveId::Rekka2));
             }
-            if case.response == Response::Whiff
-                || matches!(case.move_id, MoveId::StS | MoveId::Uppercut) && case.response == Response::CrouchBlock {
+            let crouched = matches!(case.response, Response::CrouchBlock | Response::CrouchHit);
+            let passes_above = crouched && (case.move_id == MoveId::Uppercut
+                || case.body == CharacterId::Kogan && case.move_id == MoveId::StS);
+            if case.response == Response::Whiff || passes_above {
                 assert_eq!((hits, blocks), (0, 0), "{case:?}");
             } else {
                 assert!(target_contact, "{case:?} target contact");
-                if case.response == Response::Hit { assert!(hits > 0 && blocks == 0, "{case:?}"); }
+                if matches!(case.response, Response::Hit | Response::CrouchHit) { assert!(hits > 0 && blocks == 0, "{case:?}"); }
                 else { assert!(blocks > 0 && hits == 0, "{case:?}"); }
             }
             if case.move_id == MoveId::Uppercut { assert!(air && landing, "{case:?} reversal landing"); }

@@ -141,3 +141,5 @@ Raya standing palm and low kick now have four reviewed phases each, with correct
 Raya crouching palm and ankle kick now have four reviewed phases and clean low returns. All40 cases /40 s and complete35 s integration reviewed;171 tests, clippy/release and unchanged simulation traces. Use `--kit-preview --kit-raya --kit-crp` or `--kit-move=CrK`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
 
 Raya standing Flash and Style now have four reviewed phases, aligned low gestures and clean returns. All 40 final2 cases / 40 s reviewed; 171 tests, clippy/release and unchanged simulation traces. Use `--kit-flash --kit-raya`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
+
+Raya medium palm and far/close heavies now have four reviewed phases, distinct low contact and clean returns. All60 cases/150s reviewed;172 tests,clippy/release,unchanged sim traces. Use `--kit-preview --kit-saber --kit-raya` and `--kit-move=StS|StHS|StHSClose`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.

@@ -15,8 +15,8 @@ fn cases() -> Vec<VictoryCase> {
     let mut out = Vec::new();
     for ending in [Ending::Standing, Ending::Air, Ending::NextRound, Ending::Rematch] {
         let (base, mv) = match ending {
-            Ending::Standing => (saber_cases(), MoveId::StS),
-            Ending::Air => (saber_cases(), MoveId::Uppercut),
+            Ending::Standing => (saber_cases(CharacterId::Kogan), MoveId::StS),
+            Ending::Air => (saber_cases(CharacterId::Kogan), MoveId::Uppercut),
             Ending::NextRound => (crouching_saber_cases(), MoveId::CrHS),
             Ending::Rematch => (ranged_cases(), MoveId::ShotA),
         };
