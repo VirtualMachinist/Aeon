@@ -504,3 +504,7 @@ Quiet mixed-character Stand/Walk/Run depth corrected and reviewed for both slots
 ### ART56 transparent key filtering
 
 Invisible green RGB is neutralized with unchanged alpha/visible source pixels. Regression fails before and passes after;184 tests (89sim+95client),clippy/release pass. Full32s replay and35s integration reviewed at1x1280x720;1,920/2,100 trace rows unchanged and960 saved/loaded PNG pairs exact. Exact replay0240 before/after and allsix changed smoke scenes inspected;two menus equal ART55. Fine legacy edge residue and old/new style remain open, alongside Kogan StK/CrK and production training keys. Full evidence in the full-kit report; whole milestone incomplete.
+
+### ART57 dark key spill
+
+Dark green below the previous brightness threshold is neutralized without changing alpha. Regression fails before/passes after;185 tests (89 sim +96 client), clippy/release pass. Full32s replay and35s integration reviewed at1x1280x720;1,920/2,100 trace rows unchanged and960 saved/loaded PNG pairs exact. Replay0240 and six changed smoke scenes inspected;two menus match ART56. No body-coverage regression observed. Fine legacy curl color remains explicit source polish; old/new style and Kogan StK/CrK remain material gates. Production training keys and physical stick acceptance remain pending.
