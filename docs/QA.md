@@ -520,3 +520,7 @@ Four V1 drawings retain six-tick forward/reversed backward cells. Complete befor
 ### ART61 Kogan first-cut finish
 
 Four V1 drawings preserve original choreography and clocks. All64 sword cases/168s and16 affected feints/32s per before/final version reviewed at1×, both facings/corners. Exact contact, low guards, chain boundary, whiff/feint return and changed integration0135 inspected.185 tests(89 sim+96 client),clippy/release pass;10,080 sword/1,920 feint/2,100 integration ticks unchanged. New35s integration reviewed;8 smoke PNGs equal inspected ART59. Feint baseline exercises legacy fallback with an isolated asset view. Complete evidence checksum archived. Legacy backcut/thrust/jab finish, StK/CrK and production training keys remain open; full milestone incomplete.
+
+### ART62 Kogan backcut finish
+
+Four V1 drawings preserve original front rising choreography and clocks. All 64 sword cases / 168s and 8 affected feints / 16s per before/final version reviewed at 1×; ART61 chain baseline review reused. Exact contact, mirrored low corner guards, both chain boundaries, whiff/feint return and changed integration 0255 inspected. 185 tests (89 sim + 96 client), clippy and release pass; 10,080 sword / 960 feint / 2,100 integration ticks unchanged. New 35s integration reviewed; eight smoke PNGs equal prior inspected evidence. Feint baseline exercises legacy fallback with an isolated asset view. Complete evidence checksum archived. Legacy thrust/jab finish, StK/CrK and actual training keys remain open; full milestone incomplete.
