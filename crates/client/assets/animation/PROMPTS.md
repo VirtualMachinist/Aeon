@@ -120,3 +120,5 @@ Raya chants: four medium-palm phases reused plus eight new V2/V1 drawings;60-cas
 Raya Ascension: retained gather/descent/landing with two compact V2 phases, low active crystal and folded hands below timer. [Prompts and calibration](RAYA-ASCENSION-2026-09-06.md).
 
 Raya crouching normals: sixteen V1 phases for horizontal/vertical crystals, low Flash and supported sweep. [Prompts and calibration](RAYA-CROUCH-NORMALS-2026-09-06.md).
+
+Raya airborne JP/JK/JFL: six V1 gathered/low-contact/fold/ready drawings. [Exact prompt and review](RAYA-AIR-LIGHTS-2026-09-06.md).

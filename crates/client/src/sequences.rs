@@ -367,8 +367,19 @@ pub const KOGAN_AIR_LIGHTS_ROOT_Y: [Option<u16>; 6] = [
     Some(535), Some(555), Some(980), Some(980), Some(1420), Some(1460),
 ];
 
+// Raya's palm, downward boot and small glyph share gathered preparation/return.
+// Anatomical scale is independent of each tucked silhouette's measured region.
+pub const RAYA_AIR_LIGHTS: [Spec; 6] = [
+    ([0, 0, 512, 480], 320, 480), ([512, 0, 1024, 480], 720, 480),
+    ([0, 480, 512, 925], 355, 480), ([512, 480, 1024, 925], 710, 480),
+    ([0, 925, 500, 1536], 300, 480), ([500, 925, 1024, 1536], 715, 480),
+];
+pub const RAYA_AIR_LIGHTS_ROOT_Y: [Option<u16>; 6] = [
+    Some(525), Some(510), Some(935), Some(920), Some(1410), Some(1420),
+];
+
 pub fn air_lights_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan || !f.airborne { return None; }
+    if !f.airborne { return None; }
     if matches!(f.action, Action::Jump { air_ok: false, .. })
         && matches!(f.last_move, Some(MoveId::JP | MoveId::JK | MoveId::JFL)) {
         return Some(Cell::AirLights(5));
@@ -904,6 +915,7 @@ mod tests {
             ("kogan-cape-step-v3-green.png", (1448, 1086), &KOGAN_UTILITY[..]),
             ("kogan-ranged-v5-green.png", (1448, 1086), &KOGAN_RANGED[..]),
             ("raya-movement-v1-green.png", (1672, 941), &RAYA_MOVEMENT[..]),
+            ("raya-air-lights-v1-green.png", (1024, 1536), &RAYA_AIR_LIGHTS[..]),
             ("kogan-movement-v2-green.png", (1672, 941), &KOGAN_MOVEMENT[..]),
             ("kogan-reactions-v1-green.png", (1448, 1086), &KOGAN_REACTIONS[..]),
             ("raya-reactions-v1-green.png", (1448, 1086), &RAYA_REACTIONS[..]),
@@ -1138,9 +1150,10 @@ mod tests {
 
     #[test]
     fn airborne_light_return_survives_attack_expiry_but_yields_to_every_new_state() {
-        for right in [false, true] {
+        for (body, right) in [CharacterId::Kogan, CharacterId::Raya].into_iter()
+            .flat_map(|body| [false, true].map(|right| (body, right))) {
             for move_id in [MoveId::JP, MoveId::JK, MoveId::JFL] {
-                let mut f = Fighter::spawn(CharacterId::Kogan, px(200), right);
+                let mut f = Fighter::spawn(body, px(200), right);
                 f.airborne = true;
                 f.last_move = Some(move_id);
                 f.action = Action::Jump { air_ok: false, hop: false };
@@ -1155,10 +1168,6 @@ mod tests {
                 assert_eq!(air_lights_cell(&f), None);
             }
         }
-        let mut raya = Fighter::spawn(CharacterId::Raya, px(200), true);
-        raya.airborne = true;
-        raya.action = Action::Attack { move_id: MoveId::JP, frame: 6, connected: Connect::None };
-        assert_eq!(air_lights_cell(&raya), None);
     }
 
     #[test]

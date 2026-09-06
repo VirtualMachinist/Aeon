@@ -366,7 +366,7 @@ pub fn layers(
             };
             // A changing step silhouette must not trail an old stance or
             // put a previous leaning head ahead of the braking body.
-            if (matches!(cell, Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
+            if (matches!(cell, Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
             // A body that has not moved leaves no trail.
             if (snap.x - sub(f.pos.x)).abs() + (snap.y - sub(f.pos.y)).abs() < 1.0 {
                 continue;
@@ -401,7 +401,7 @@ pub fn layers(
     // old silhouettes creates duplicate limbs and weapons through these cuts.
     if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
         !(cuts || [cell, prev.cell].into_iter().any(|c| {
-            matches!(c, Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
+            matches!(c, Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
                 || kogan_combat_cell(f.id, c)
                 || matches!((f.id, c), (CharacterId::Raya, Cell::Reaction(_)))
         }))
@@ -447,12 +447,12 @@ fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
 }
 
 fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
-    matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
+    matches!(cell, Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Ranged(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
         || kogan_combat_cell(id, cell)
 }
 
 fn respect_authored_drawing(id: CharacterId, cell: Cell, m: &mut Motion) {
-    if matches!(cell, Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_)) || id == CharacterId::Kogan && matches!(cell, Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::CrouchPunch(_) | Cell::Overhead(_) | Cell::ThrowTech(_) | Cell::Victory(_)) {
+    if matches!(cell, Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_)) || id == CharacterId::Kogan && matches!(cell, Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::CrouchPunch(_) | Cell::Overhead(_) | Cell::ThrowTech(_) | Cell::Victory(_)) {
         // Commitment is drawn; extra shifts detach the weapon from its contact line.
         m.dx = 0.0;
         m.dy = 0.0;
@@ -1007,7 +1007,7 @@ mod tests {
     fn raya_movement_return_cuts_previous_bodies_and_leaves_immediate_control() {
         let sprites = set(CharacterId::Raya);
         let opts = LayerOpts { win: None, defeat: None, flash: (0.0, WHITE) };
-        for previous in [Cell::CrouchSaber(0), Cell::CrouchSaber(1), Cell::CrouchSaber(2), Cell::CrouchSaber(3), Cell::CrouchSaber(4), Cell::CrouchSaber(5), Cell::CrouchSaber(6), Cell::CrouchSaber(7), Cell::CrouchSaber(8), Cell::CrouchSaber(9), Cell::CrouchSaber(10), Cell::CrouchSaber(11), Cell::CrouchSaber(12), Cell::CrouchSaber(13), Cell::CrouchSaber(14), Cell::CrouchSaber(15), Cell::Uppercut(0), Cell::Uppercut(1), Cell::Uppercut(2), Cell::Uppercut(3), Cell::UppercutCompact(0), Cell::UppercutCompact(1), Cell::Chant(0), Cell::Chant(1), Cell::Chant(2), Cell::Chant(3), Cell::Chant(4), Cell::Chant(5), Cell::Chant(6), Cell::Chant(7), Cell::Signature(0), Cell::Signature(1), Cell::Signature(2), Cell::Signature(3), Cell::Signature(4), Cell::Signature(5), Cell::Signature(6), Cell::Signature(7), Cell::Signature(8), Cell::Signature(9), Cell::Signature(10), Cell::Signature(11), Cell::Flash(0), Cell::Flash(1), Cell::Flash(2), Cell::Flash(3), Cell::Flash(4), Cell::Flash(5), Cell::Flash(6), Cell::Flash(7), Cell::CrouchLights(0), Cell::CrouchLights(1), Cell::CrouchLights(2), Cell::CrouchLights(3), Cell::CrouchLights(4), Cell::CrouchLights(5), Cell::CrouchLights(6), Cell::CrouchLights(7), Cell::StandingLights(0), Cell::StandingLights(1), Cell::StandingLights(2), Cell::StandingLights(3), Cell::StandingLights(4), Cell::StandingLights(5), Cell::StandingLights(6), Cell::StandingLights(7), Cell::Recoil(0), Cell::Recoil(1), Cell::Recoil(2), Cell::Recoil(3), Cell::Recoil(4), Cell::Recoil(5), Cell::Recoil(6), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(1), Cell::Reaction(2), Cell::Reaction(3), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(0), Cell::Ground(1), Cell::Ground(2), Cell::Ground(3),
+        for previous in [Cell::AirLights(0), Cell::AirLights(1), Cell::AirLights(2), Cell::AirLights(3), Cell::AirLights(4), Cell::AirLights(5), Cell::CrouchSaber(0), Cell::CrouchSaber(1), Cell::CrouchSaber(2), Cell::CrouchSaber(3), Cell::CrouchSaber(4), Cell::CrouchSaber(5), Cell::CrouchSaber(6), Cell::CrouchSaber(7), Cell::CrouchSaber(8), Cell::CrouchSaber(9), Cell::CrouchSaber(10), Cell::CrouchSaber(11), Cell::CrouchSaber(12), Cell::CrouchSaber(13), Cell::CrouchSaber(14), Cell::CrouchSaber(15), Cell::Uppercut(0), Cell::Uppercut(1), Cell::Uppercut(2), Cell::Uppercut(3), Cell::UppercutCompact(0), Cell::UppercutCompact(1), Cell::Chant(0), Cell::Chant(1), Cell::Chant(2), Cell::Chant(3), Cell::Chant(4), Cell::Chant(5), Cell::Chant(6), Cell::Chant(7), Cell::Signature(0), Cell::Signature(1), Cell::Signature(2), Cell::Signature(3), Cell::Signature(4), Cell::Signature(5), Cell::Signature(6), Cell::Signature(7), Cell::Signature(8), Cell::Signature(9), Cell::Signature(10), Cell::Signature(11), Cell::Flash(0), Cell::Flash(1), Cell::Flash(2), Cell::Flash(3), Cell::Flash(4), Cell::Flash(5), Cell::Flash(6), Cell::Flash(7), Cell::CrouchLights(0), Cell::CrouchLights(1), Cell::CrouchLights(2), Cell::CrouchLights(3), Cell::CrouchLights(4), Cell::CrouchLights(5), Cell::CrouchLights(6), Cell::CrouchLights(7), Cell::StandingLights(0), Cell::StandingLights(1), Cell::StandingLights(2), Cell::StandingLights(3), Cell::StandingLights(4), Cell::StandingLights(5), Cell::StandingLights(6), Cell::StandingLights(7), Cell::Recoil(0), Cell::Recoil(1), Cell::Recoil(2), Cell::Recoil(3), Cell::Recoil(4), Cell::Recoil(5), Cell::Recoil(6), Cell::Recoil(7), Cell::Reaction(0), Cell::Reaction(1), Cell::Reaction(2), Cell::Reaction(3), Cell::Reaction(4), Cell::Reaction(5), Cell::Reaction(6), Cell::Reaction(7), Cell::Ground(0), Cell::Ground(1), Cell::Ground(2), Cell::Ground(3),
             Cell::Ground(4), Cell::Ground(5), Cell::Ground(6), Cell::Ground(7), Cell::Atlas(0),
             Cell::Movement(3), Cell::Movement(6), Cell::Movement(7),
             Cell::Reaction(8), Cell::Reaction(9), Cell::Reaction(10), Cell::Reaction(11),

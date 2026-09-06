@@ -149,3 +149,5 @@ Raya three-syllable chant now has distinct contact and clean withdrawal/ready at
 Raya Ascension now has low crystal release and folded hands at the apex, resolving the timer overlap. All20 cases/50s and shared preview reviewed;175 tests,clippy/release,unchanged simulation traces. Use `--kit-preview --kit-saber --kit-raya --kit-move=Uppercut`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
 
 Raya CrS/CrHS/CrFL/CrST now have complete drawn preparation, contact, withdrawal and low return. All 80 grounded cases / 140s reviewed; 175 tests, clippy/release and unchanged simulation traces. Use `--kit-preview --kit-crouch --kit-raya`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
+
+Raya JP/JK/JFL now use three distinct low contacts and drawn gather/withdrawal/ready. All144 grounded-target/miss cases360s reviewed;175 tests,clippy/release,unchanged traces. Use `--kit-preview --kit-air --kit-raya --kit-move=JP`, optionally `--kit-air-rising`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.

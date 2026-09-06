@@ -491,11 +491,13 @@ impl SpriteSet {
         let flash_contact = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-flash-style-v3-green.png", (1024, 1536), &RAYA_FLASH[5..6]).await
         } else { None };
-        let air_lights = if body == CharacterId::Kogan {
-            Atlas::load_with_roots("assets/animation/kogan-air-lights-v1-green.png", (1024, 1536),
-                &KOGAN_AIR_LIGHTS, &KOGAN_AIR_LIGHTS_ROOT_Y).await
-        } else { None };
-        // Keep the reviewed V1 gather/return; only the contact limbs use the corrected atlas.
+        let (air_file, air_specs, air_roots) = match body {
+            CharacterId::Kogan => ("kogan-air-lights-v1-green.png", &KOGAN_AIR_LIGHTS, &KOGAN_AIR_LIGHTS_ROOT_Y),
+            CharacterId::Raya => ("raya-air-lights-v1-green.png", &RAYA_AIR_LIGHTS, &RAYA_AIR_LIGHTS_ROOT_Y),
+        };
+        let air_lights = Atlas::load_with_roots(&format!("assets/animation/{air_file}"),
+            (1024, 1536), air_specs, air_roots).await;
+        // Kogan keeps V1 gather/return and reviewed V4 contacts. Raya uses one coherent atlas.
         let air_lights_contact = if body == CharacterId::Kogan {
             Atlas::load_with_roots("assets/animation/kogan-air-lights-v4-green.png", (1024, 1536),
                 &KOGAN_AIR_LIGHTS_CONTACT, &KOGAN_AIR_LIGHTS_ROOT_Y[1..4]).await
@@ -652,7 +654,7 @@ impl SpriteSet {
         if self.flash.is_some() && (self.body != CharacterId::Raya || self.flash_contact.is_some()) {
             if let Some(cell) = crate::sequences::flash_cell(fighter) { return cell; }
         }
-        if self.air_lights.is_some() && self.air_lights_contact.is_some() {
+        if self.air_lights.is_some() && (self.body == CharacterId::Raya || self.air_lights_contact.is_some()) {
             if let Some(cell) = crate::sequences::air_lights_cell(fighter) { return cell; }
         }
         if self.air_saber.is_some() {
@@ -736,7 +738,7 @@ impl SpriteSet {
             Cell::Flash(5) if self.body == CharacterId::Raya => self.flash_contact.as_ref()?.frame(0),
             Cell::Flash(cell) => self.flash.as_ref()?.frame(cell),
             Cell::AirSaber(cell) => self.air_saber.as_ref()?.frame(cell),
-            Cell::AirLights(cell @ 1..=3) => self.air_lights_contact.as_ref()?.frame(cell - 1),
+            Cell::AirLights(cell @ 1..=3) if self.body == CharacterId::Kogan => self.air_lights_contact.as_ref()?.frame(cell - 1),
             Cell::AirLights(cell) => self.air_lights.as_ref()?.frame(cell),
             Cell::AirShot(3) => self.air_shot_return.as_ref()?.frame(0),
             Cell::AirShot(cell) => self.air_shot.as_ref()?.frame(cell),
