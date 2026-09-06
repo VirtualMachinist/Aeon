@@ -455,11 +455,11 @@ impl SpriteSet {
         let disc = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-disc-v2-green.png", (1536, 1024), &KOGAN_DISC).await
         } else { None };
-        let walk_specs = match body {
-            CharacterId::Kogan => &KOGAN_WALK,
-            CharacterId::Raya => &RAYA_WALK,
+        let (walk_file, walk_specs) = match body {
+            CharacterId::Kogan => ("kogan-walk-style-v1-green.png", &KOGAN_WALK),
+            CharacterId::Raya => ("raya-v1-green.png", &RAYA_WALK),
         };
-        let walk = Atlas::load(&format!("assets/animation/{dir}-v1-green.png"),
+        let walk = Atlas::load(&format!("assets/animation/{walk_file}"),
             (1254, 1254), walk_specs).await;
         let (ground_file, ground_size, ground_specs) = match body {
             CharacterId::Kogan => ("kogan-ground-v4-green.png", (1536, 1024), &KOGAN_GROUND),
