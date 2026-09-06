@@ -421,10 +421,12 @@ impl SpriteSet {
             Atlas::load("assets/animation/kogan-cape-step-v3-green.png",
                 (1448, 1086), &KOGAN_UTILITY).await
         } else { None };
-        let compact_uppercut = if body == CharacterId::Kogan {
-            Atlas::load("assets/animation/kogan-uppercut-compact-v1-green.png",
-                (1536, 1024), &KOGAN_UPPERCUT_COMPACT).await
-        } else { None };
+        let compact_uppercut = match body {
+            CharacterId::Kogan => Atlas::load("assets/animation/kogan-uppercut-compact-v1-green.png",
+                (1536, 1024), &KOGAN_UPPERCUT_COMPACT).await,
+            CharacterId::Raya => Atlas::load("assets/animation/raya-uppercut-compact-v2-green.png",
+                (1774, 887), &RAYA_UPPERCUT_COMPACT).await,
+        };
         let cuts = if body == CharacterId::Kogan {
             Atlas::load("assets/animation/kogan-v1-green.png", (1254, 1254), &KOGAN_CUTS).await
         } else { None };
