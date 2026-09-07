@@ -1974,7 +1974,7 @@ mod tests {
                     crouched_hit |= matches!(world.fighters[1].action, Action::Hit { .. })
                         && world.fighters[1].input().down();
                 }
-                assert_eq!(seen.len(), if case.move_id == MoveId::StP || (body == CharacterId::Raya && case.move_id == MoveId::StK) { 4 } else { 0 },
+                assert_eq!(seen.len(), if matches!(case.move_id, MoveId::StP | MoveId::StK) { 4 } else { 0 },
                     "{case:?}: four supported light phases appear;unmodified moves retain their selector");
                 assert_eq!(crate::sequences::standing_lights_cell(&world.fighters[0]), None, "no extra art recovery");
                 assert!(started, "{case:?} must start through real inputs");
