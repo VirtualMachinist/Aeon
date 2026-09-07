@@ -580,7 +580,8 @@ fn training_keys(t: &mut Training, toast: &mut Option<(String, u16)>, pres: &mut
             Err(e) => *toast = Some((format!("replay save failed: {e}"), 180)),
         }
     }
-    if is_key_pressed(KeyCode::F11) {
+    // R remains reachable when the OS reserves F11 for Show Desktop.
+    if is_key_pressed(KeyCode::F11) || is_key_pressed(KeyCode::R) {
         match Replay::load_latest() {
             Some(rep) => {
                 let p1 = rep.p1.unwrap_or(t.world.p1_char);
@@ -701,7 +702,7 @@ fn draw_training_hud(v: &View, t: &Training, pads: &Pads) {
                 lines.push(format!("{:<6} {}", if i == 0 { p2.id.name() } else { "" }, l));
             }
         }
-        lines.push("F1 dummy  F2 boxes  F3/F4 swap  F5 reset  SPACE pause  . step  = fill  - heal  F8 remap  F9 save replay  F11 play  F12 shot  / help".to_string());
+        lines.push("F1 dummy  F2 boxes  F3/F4 swap  F5 reset  SPACE pause  . step  = fill  - heal  F8 remap  F9 save replay  R/F11 play  F12 shot  / help".to_string());
         if !pads.announced.is_empty() {
             lines.push(format!("{}   map {}", pads.announced.join(" | "), pads.map.describe()));
         } else {

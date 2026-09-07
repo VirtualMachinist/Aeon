@@ -528,3 +528,13 @@ Four V1 drawings preserve original front rising choreography and clocks. All 64 
 ### ART63 Kogan thrust finish
 
 V1 short-blade output rejected; V2 source and all 16 chain cases / 48s plus eight feints / 16s per version reviewed at 1×. ART62 chain baseline review reused. Selected corner contact/low guards, held extension, withdrawal/feint return and both changed integration frames inspected. Extended tip retains about 10px margin in the inspected full-size corner contact. 185 tests, clippy and release pass; 2,880 sword / 960 feint / 2,100 integration ticks unchanged. New 35s integration reviewed; eight smoke PNGs equal prior inspected evidence; six capture archives checksum match. Full-kit goal incomplete: Kogan StK/CrK drawings, jab finish, fine curl color and actual training-key dispatch remain open.
+
+## ART64 — training replay shortcut and direct key verification
+
+On macOS, F11 can invoke Show Desktop before the game receives it. Training now also accepts R to load the latest replay; F11 remains supported. The help overlay and README list both keys. Combat controls and replay encoding are unchanged.
+
+Direct production input checks verified pause, period/comma stepping, dummy/box controls, both character swaps, reset, meter/gauge fill, healing, help, F9 saving and R loading. A 2,126-tick recording saved via F9 was loaded through R, paused, stepped, reset and allowed to complete. A retained 240-tick legal-input fixture supplied contact damage for the heal/reset checks. Sustained physical comma holding and arcade-stick acceptance are not claimed. The HUD hash is cached from the last completed tick; paused mutations can display the prior value until stepping.
+
+185 tests (89 sim + 96 client), clippy with warnings denied, and locked/offline release pass. The entire 2,100-tick integration trace, 35-second encoded video and 71 diagnostics equal ART63 byte for byte, so its complete motion review is reused. Six smoke images are identical; the two changed training images were inspected and differ only in the control legend. Simulation and animation remain unchanged.
+
+The full milestone is incomplete: Kogan grounded kick drawings and legacy jab contact finish remain open. Input-only replays still do not encode manual health/meter fills or mid-recording dummy changes.

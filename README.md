@@ -90,7 +90,7 @@ Specials: `236+S` rekka (press S again for parts 2, 3) · `623+S/HS` uppercut ·
 
 ## Training
 
-`F1` dummy (stand · crouch · block-all · jump · wakeup DP · wakeup P · tech · CPU off) · `F2` boxes (push / hurt / hit, aura outlined separately) · `F3 F4` swap bodies · `F5` reset · `Space` pause · `.` frame-step · `=` fill meter and gauge · `-` heal · `F9` save replay · `F11` play latest replay · `F12` screenshot. Frame advantage after every exchange is measured from the sim and shown as `ADV`.
+`F1` dummy (stand · crouch · block-all · jump · wakeup DP · wakeup P · tech · CPU off) · `F2` boxes (push / hurt / hit, aura outlined separately) · `F3 F4` swap bodies · `F5` reset · `Space` pause · `.` frame-step · `=` fill meter and gauge · `-` heal · `F9` save replay · `R` / `F11` play latest replay · `F12` screenshot. Frame advantage after every exchange is measured from the sim and shown as `ADV`.
 
 ## Versus
 
@@ -202,3 +202,5 @@ ART61: four larger Kogan first-cut drawings improve armor clarity with unchanged
 ART62: four larger Kogan backcut drawings improve armor clarity through the original front rising arc. Complete sword, chain, feint and integration motion reviewed; 185 tests, clippy and release pass. Legacy thrust/jab finish, StK/CrK and actual training keys remain open.
 
 ART63: four Kogan thrust drawings clarify armor and preserve complete straight blades through the chain and feint. Full focused and integration motion reviewed; 185 tests, clippy and release pass. Grounded kicks, jab finish and actual training keys remain open.
+
+ART64: Training accepts R or F11 to load the latest replay. R works when macOS reserves F11 for Show Desktop. Direct save/load, pause/step/reset and training controls verified; 185 tests, clippy and release pass. Full animation milestone remains incomplete.
