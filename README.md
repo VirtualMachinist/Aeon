@@ -8,7 +8,9 @@ A classical 1v1 2D fighter in Rust.
 
 Fast paced footsies, heinous oki pressure, high rewards for strong neutral play. 
 
-Let's build an awesome fighting game in rust! 
+Let's build an awesome fighting game in rust!
+
+Want to help with characters and competitive feel? See [CONTRIBUTE.md](CONTRIBUTE.md).
 
 - Law: [DESIGN.md](DESIGN.md). Numbers: [FRAME-DATA.md](docs/FRAME-DATA.md), generated from code and checked by a test. Grading: [QA.md](docs/QA.md).
 - Toolchain is pinned to **Rust 1.96.0** by `rust-toolchain.toml`.
