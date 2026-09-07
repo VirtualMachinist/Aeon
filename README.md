@@ -1,5 +1,9 @@
 # Aeon
 
+<p align="center">
+  <img src="docs/brand/title-tagline-aegis.jpg" alt="Aeon title — Aegis tagline" width="720" />
+</p>
+
 A grounded 1v1 2D fighter in Rust. Two bodies of the Sanctum — **Kogan** (saber, revolver, disc-shield) and **Raya** (voice glyphs, crystals, the rite). Super Turbo footsies, Samurai Shodown's tax on the heavy buttons, then a measured layer of Roman Cancel, hop, run and feint.
 
 Lights link. Weapon-heavies are minus. There are no normal chains. Two or three hits are typical; natural three-to-five-hit routes are allowed. Execution stays strict. The knockdown is the currency.
@@ -8,7 +12,7 @@ Lights link. Weapon-heavies are minus. There are no normal chains. Two or three 
 - Toolchain is pinned to **Rust 1.96.0** by `rust-toolchain.toml`.
 - Verified platform: Apple Silicon macOS. Other platforms have not yet been validated.
 
-![Aeon CI](https://img.shields.io/badge/CI-green-00FF00) ![Animation](https://img.shields.io/badge/Animation-69%2F69-00FFFF)
+![Aeon CI](https://img.shields.io/badge/CI-pass-B87333) ![Animation](https://img.shields.io/badge/Animation-69%2F69-00FFFF)
 
 ## Animation review milestone
 
