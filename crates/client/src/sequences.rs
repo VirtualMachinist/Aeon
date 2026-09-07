@@ -2,7 +2,7 @@
 //! existing action/velocity; they never extend an input or recovery window.
 use aeon_sim::{Action, Fighter, MoveId, GETUP_FRAMES};
 use macroquad::prelude::*;
-use crate::sprites::{key_green, upload, Cell, SpriteFrame};
+use crate::sprites::{key_green, Cell, SpriteFrame};
 
 /// Source region [left, top, right, bottom], projected root x, anatomical
 /// standing height, all in reference-image pixels. Green gaps define regions;
@@ -72,7 +72,8 @@ impl Atlas {
                 height: 1.20 / body_height * (cell_h - 4.0) / cell_h,
             });
         }
-        let texture = upload(&image);
+        let texture = Texture2D::from_image(&image);
+        texture.set_filter(FilterMode::Linear);
         eprintln!("[aeon] {path}: {} authored cells", frames.len());
         Some(Self { texture, frames })
     }

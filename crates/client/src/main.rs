@@ -4,7 +4,6 @@
 mod anim;
 mod fx;
 mod input;
-mod pack;
 mod preview;
 mod kit_preview;
 mod render;
@@ -173,7 +172,7 @@ impl Assets {
 /// Find the directory that holds `assets/`, so `cargo run -p aeon` from the
 /// workspace root, running from `crates/client`, and a shipped binary next
 /// to its assets all load the same files.
-fn locate_assets() -> Option<std::path::PathBuf> {
+fn locate_assets() {
     let mut candidates: Vec<std::path::PathBuf> = vec![".".into(), "crates/client".into()];
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
@@ -185,24 +184,15 @@ fn locate_assets() -> Option<std::path::PathBuf> {
         if c.join("assets").join("select").is_dir() {
             eprintln!("[aeon] assets: {}", c.display());
             set_pc_assets_folder(&c.to_string_lossy());
-            return Some(c);
+            return;
         }
     }
     eprintln!("[aeon] assets: none found; drawing box bodies");
-    None
 }
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let asset_root = locate_assets();
-    if std::env::args().any(|a| a == "--pack") {
-        match asset_root {
-            Some(root) => pack::run(&root).await,
-            None => eprintln!("[aeon] --pack: no assets directory found"),
-        }
-        return;
-    }
-    let load_started = std::time::Instant::now();
+    locate_assets();
     let assets = Assets {
         kogan: SpriteSet::load(CharacterId::Kogan).await,
         raya: SpriteSet::load(CharacterId::Raya).await,
@@ -213,7 +203,6 @@ async fn main() {
         ],
         flash: Flash::load(),
     };
-    eprintln!("[aeon] assets loaded in {} ms", load_started.elapsed().as_millis());
     if std::env::args().any(|a| a == "--polish-preview") {
         preview::run(&assets).await;
         return;
@@ -779,11 +768,11 @@ fn draw_title(v: &View, cursor: Menu, pads: &Pads, frame: u32, assets: &Assets) 
     v.text_center(&pad, VW / 2.0, VH - 60.0, 15.0, COPPER_DIM);
     v.text_center("up/down · P or ENTER confirm · F8 remap · F12 screenshot", VW / 2.0, VH - 36.0, 15.0, COPPER_DIM);
     let sprites = format!(
-        "{} {} · {} {} · stage {}",
+        "{} {} poses · {} {} poses · stage {}",
         assets.kogan.body().name(),
-        assets.kogan.describe(),
+        assets.kogan.count(),
         assets.raya.body().name(),
-        assets.raya.describe(),
+        assets.raya.count(),
         if assets.stage.backdrop.is_some() { "sanctum" } else { "procedural" }
     );
     v.text(&sprites, 24.0, VH - 12.0, 13.0, COPPER_DIM);
