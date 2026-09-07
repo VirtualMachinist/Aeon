@@ -6,7 +6,9 @@
 
 A classical 1v1 2D fighter in Rust. 
 
-Lights link. Weapon-heavies are minus. There are no normal chains. Two or three hits are typical; natural three-to-five-hit routes are allowed. Execution stays strict. The knockdown is the currency.
+Fast paced footsies, heinous oki pressure, high rewards for strong neutral play. 
+
+Let's build an awesome fighting game in rust! 
 
 - Law: [DESIGN.md](DESIGN.md). Numbers: [FRAME-DATA.md](docs/FRAME-DATA.md), generated from code and checked by a test. Grading: [QA.md](docs/QA.md).
 - Toolchain is pinned to **Rust 1.96.0** by `rust-toolchain.toml`.
