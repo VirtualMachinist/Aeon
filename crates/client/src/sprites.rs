@@ -194,6 +194,7 @@ pub struct SpriteSet {
     chant: Option<crate::sequences::Atlas>,
     chant_finisher: Option<crate::sequences::Atlas>,
     standing_palm_contact: Option<crate::sequences::Atlas>,
+    jab_contact: Option<crate::sequences::Atlas>,
     crouch_lights: Option<crate::sequences::Atlas>,
     crouch_kick_contact: Option<crate::sequences::Atlas>,
     crouch_punch: Option<crate::sequences::Atlas>,
@@ -501,6 +502,9 @@ impl SpriteSet {
             CharacterId::Kogan => Atlas::load("assets/animation/kogan-standing-kick-v5-green.png", (1254, 1254), &KOGAN_STANDING_KICK).await,
             CharacterId::Raya => Atlas::load("assets/animation/raya-standing-lights-v1-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS).await,
         };
+        let jab_contact = if body == CharacterId::Kogan {
+            Atlas::load("assets/animation/kogan-jab-contact-v2-green.png", (1254, 1254), &KOGAN_JAB_CONTACT).await
+        } else { None };
         // Keep seven sound original drawings; only the lowered contact uses V2.
         let standing_palm_contact = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-standing-lights-v2-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[1..2]).await
@@ -590,7 +594,7 @@ impl SpriteSet {
         let chant_finisher = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-chant3-v1-green.png", (1254, 1254), &RAYA_CHANT_III).await
         } else { None };
-        Self { textures, body, atlas, thrust, thrust_style, reactions, uppercut, compact_uppercut, cuts, first_cut, backcut, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, throw_contact, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_saber_contact, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, ritual, utility }
+        Self { textures, body, atlas, thrust, thrust_style, reactions, uppercut, compact_uppercut, cuts, first_cut, backcut, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, throw_contact, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, jab_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_saber_contact, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, ritual, utility }
     }
 
     /// A set with no textures: cells resolve to pose names only.
@@ -625,6 +629,7 @@ impl SpriteSet {
             chant: None,
             chant_finisher: None,
             standing_palm_contact: None,
+            jab_contact: None,
             crouch_lights: None,
             crouch_kick_contact: None,
             crouch_punch: None,
@@ -693,7 +698,7 @@ impl SpriteSet {
         }
         let standing_lights_ready = match self.body {
             CharacterId::Kogan if matches!(fighter.action, Action::Attack { move_id: MoveId::StK, .. }) => self.standing_lights.is_some(),
-            CharacterId::Kogan => self.flash.is_some() && self.textures.contains_key(&Pose::P),
+            CharacterId::Kogan => self.flash.is_some() && (self.jab_contact.is_some() || self.textures.contains_key(&Pose::P)),
             CharacterId::Raya => self.standing_lights.is_some() && self.standing_palm_contact.is_some(),
         };
         if standing_lights_ready {
@@ -823,13 +828,14 @@ impl SpriteSet {
             Cell::Judgment(cell) => self.judgment.as_ref()?.frame(cell),
             Cell::Floor(cell) => self.floor.as_ref()?.frame(cell),
             Cell::AirRecovery(cell) => self.air_recovery.as_ref()?.frame(cell),
-            // Kogan's approved complete jab contact is bracketed by his
-            // existing drawn fist gather/withdrawal and relaxed ready.
+            // The darker jab contact keeps the original fallback and is bracketed
+            // by the existing drawn fist gather/withdrawal and relaxed ready.
             Cell::StandingLights(cell) if self.body == CharacterId::Kogan => {
                 match cell {
                     0 | 2 => self.flash.as_ref()?.frame(2),
                     3 => self.flash.as_ref()?.frame(3),
-                    1 => self.frame(Cell::Pose(Pose::P)),
+                    1 => self.jab_contact.as_ref().and_then(|atlas| atlas.frame(0))
+                        .or_else(|| self.frame(Cell::Pose(Pose::P))),
                     4..=7 => self.standing_lights.as_ref()?.frame(cell - 4),
                     _ => None,
                 }

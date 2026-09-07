@@ -274,6 +274,9 @@ pub const RAYA_STANDING_LIGHTS: [Spec; 8] = [
     ([0, 1115, 500, 1536], 255, 330), ([500, 1115, 1024, 1536], 685, 330),
 ];
 
+// Material-matched jab contact retains the original complete fist and saber.
+pub const KOGAN_JAB_CONTACT: [Spec; 1] = [([0, 0, 1254, 1254], 630, 976)];
+
 // Four low-boot phases share anatomical scale; only the authored move clock advances them.
 pub const KOGAN_STANDING_KICK: [Spec; 4] = [
     ([0, 0, 627, 627], 300, 480), ([627, 0, 1254, 627], 885, 480),
@@ -1056,6 +1059,7 @@ mod tests {
             ("raya-air-recovery-v1-green.png", (1254, 1254), &RAYA_AIR_RECOVERY[..]),
             ("kogan-crouch-punch-v1-green.png", (1254, 1254), &KOGAN_CROUCH_PUNCH[..]),
             ("kogan-crouching-kick-v5-green.png", (1254, 1254), &KOGAN_CROUCH_KICK[..]),
+            ("kogan-jab-contact-v2-green.png", (1254, 1254), &KOGAN_JAB_CONTACT[..]),
             ("kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER[..]),
             ("kogan-flash-v2-green.png", (1024, 1536), &KOGAN_FLASH[..]),
             ("kogan-air-lights-v1-green.png", (1024, 1536), &KOGAN_AIR_LIGHTS[..]),
