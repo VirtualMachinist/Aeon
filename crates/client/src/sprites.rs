@@ -505,9 +505,10 @@ impl SpriteSet {
         let standing_palm_contact = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-standing-lights-v2-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[1..2]).await
         } else { None };
-        let crouch_lights = if body == CharacterId::Raya {
-            Atlas::load("assets/animation/raya-crouch-lights-v1-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS).await
-        } else { None };
+        let crouch_lights = match body {
+            CharacterId::Kogan => Atlas::load("assets/animation/kogan-crouching-kick-v5-green.png", (1254, 1254), &KOGAN_CROUCH_KICK).await,
+            CharacterId::Raya => Atlas::load("assets/animation/raya-crouch-lights-v1-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS).await,
+        };
         // Keep seven sound V1 drawings and use the compact V2 ankle contact.
         let crouch_kick_contact = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-crouch-lights-v2-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[5..6]).await
@@ -698,7 +699,7 @@ impl SpriteSet {
         if standing_lights_ready {
             if let Some(cell) = crate::sequences::standing_lights_cell(fighter) { return cell; }
         }
-        if self.crouch_lights.is_some() && self.crouch_kick_contact.is_some() {
+        if self.crouch_lights.is_some() && (self.body == CharacterId::Kogan || self.crouch_kick_contact.is_some()) {
             if let Some(cell) = crate::sequences::crouch_lights_cell(fighter) { return cell; }
         }
         if self.crouch_punch.is_some() {
@@ -803,6 +804,7 @@ impl SpriteSet {
             Cell::ThrowTech(cell) => self.throw_tech.as_ref()?.frame(cell),
             Cell::ThrowContact => self.throw_contact.as_ref()?.frame(0),
             Cell::Overhead(cell) => self.overhead.as_ref()?.frame(cell),
+            Cell::CrouchLights(cell @ 4..=7) if self.body == CharacterId::Kogan => self.crouch_lights.as_ref()?.frame(cell - 4),
             Cell::CrouchLights(5) => self.crouch_kick_contact.as_ref()?.frame(0),
             Cell::CrouchLights(cell) => self.crouch_lights.as_ref()?.frame(cell),
             Cell::CrouchPunch(cell) => self.crouch_punch.as_ref()?.frame(cell),
