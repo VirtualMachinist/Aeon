@@ -1,6 +1,4 @@
-# AEON
-
-Repository: [VirtualMachinist/Aeon](https://github.com/VirtualMachinist/Aeon). `main` contains the current integrated build.
+# Aeon
 
 A grounded 1v1 2D fighter in Rust. Two bodies of the Sanctum — **Kogan** (saber, revolver, disc-shield) and **Raya** (voice glyphs, crystals, the rite). Super Turbo footsies, Samurai Shodown's tax on the heavy buttons, then a measured layer of Roman Cancel, hop, run and feint.
 
@@ -10,9 +8,11 @@ Lights link. Weapon-heavies are minus. There are no normal chains. Two or three 
 - Toolchain is pinned to **Rust 1.96.0** by `rust-toolchain.toml`.
 - Verified platform: Apple Silicon macOS. Other platforms have not yet been validated.
 
+![Aeon CI](https://img.shields.io/badge/CI-green-00FF00) ![Animation](https://img.shields.io/badge/Animation-69%2F69-00FFFF)
+
 ## Animation review milestone
 
-All69 implemented moves and relevant states have recorded visual acceptance.185 tests,clippy and release pass;sim/frame data unchanged. See [the review guide](docs/ANIMATION-REVIEW.md),[coverage](docs/ANIMATION-COVERAGE.md),[references](docs/ANIMATION-REFERENCES.md) and [audit](docs/ANIMATION-AUDIT.md). Physical stick play and competitive balance follow.
+All 69 implemented moves and relevant states have recorded visual acceptance. 185 tests, clippy and release pass; sim/frame data unchanged. See [the review guide](docs/ANIMATION-REVIEW.md), [coverage](docs/ANIMATION-COVERAGE.md), [references](docs/ANIMATION-REFERENCES.md) and [audit](docs/ANIMATION-AUDIT.md). Physical stick play and competitive balance follow.
 
 ## Get started
 
@@ -25,7 +25,7 @@ cargo fetch --locked
 cargo run --release --locked -p aeon
 ```
 
-On macOS, after dependencies are fetched, double-click `Play-Aeon.command` for subsequent optimized playtests. Its build cache lives under `~/Library/Caches/AeonBuild`, outside the source tree. The launcher uses offline mode; a fresh checkout needs the initial fetch above.
+On macOS, after dependencies are fetched, double-click `Play-Aeon.command` for subsequent optimized playtests. Its build cache lives outside the source tree. The launcher uses offline mode; a fresh checkout needs the initial fetch above.
 
 ## Development commands
 
@@ -33,19 +33,10 @@ On macOS, after dependencies are fetched, double-click `Play-Aeon.command` for s
 cargo run --release -p aeon     # title → versus / training / remap
 cargo run -p aeon -- --smoke     # scripted launch; writes shots/smoke-*.png and exits
 cargo test --workspace          # simulation law plus client timing/animation checks
-cargo run --release -p aeon -- --polish-preview  # repeatable 35-second movement/rekka/whiff/reaction review
-cargo run --release -p aeon -- --polish-preview --capture # 30 fps PNGs + trace in shots/polish
-cargo run --release -p aeon -- --kit-preview --kit-movement # 24 isolated hop/jump cases
-cargo run --release -p aeon -- --kit-preview --kit-ranged # 48 gun/wave/EX hit, guard and miss cases
-cargo run --release -p aeon -- --kit-preview --kit-utility # 28 cape-snare / threshold-step cases
-cargo run --release -p aeon -- --kit-preview --kit-saber # 128 saber / rekka / reversal cases
-cargo run --release -p aeon -- --kit-preview --kit-disc # 20 defensive shield cases
-cargo run --release -p aeon -- --kit-preview --kit-ground # 36 walk / glide / crouch / retreat cases
-cargo run --release -p aeon -- --kit-preview --kit-reaction # 36 Kogan victim hit / guard / launch / floor cases
-cargo run --release -p aeon -- --kit-preview --kit-reaction --kit-raya # 36 Raya victim cases
-cargo run --release -p aeon -- --kit-preview --capture # 60 fps lights cases + trace in shots/kit
 cargo clippy --workspace --all-targets -- -D warnings
 ```
+
+See [Development guide](docs/DEVELOPMENT.md) for the repository workflow, checks, and full list of preview/capture commands.
 
 ## Layout
 
@@ -78,7 +69,7 @@ Six buttons in a 2×3, the same shape on stick and keyboard:
 | P S HS | West North RT | `Y U I` | `P [ ]` |
 | K FL ST | South East RT2 | `H J K` | `L ; '` |
 
-The default pad map is the Street-Fighter-on-Xbox convention, which is where a Mayflash F700 in Android mode lands. **F8** opens the in-game remap (records raw HID codes, saved to `~/.config/aeon/stick.cfg`). Startup prints every pad gilrs sees and the live map.
+The default pad map is the Street-Fighter-on-Xbox convention. **F8** opens the in-game remap (records raw HID codes, saved to `~/.config/aeon/stick.cfg`). Startup prints every pad gilrs sees and the live map.
 
 Tap up = **hop**, hold up = jump. `66` then hold = **run** (a glide). `44` = backdash. Run immediately stops, blocks, jumps or attacks. Hops add no landing recovery; full jumps add 2f, while committed moves keep their own landing tax.
 
@@ -104,109 +95,11 @@ Character select (any pairing, mirrors included) → best of three rounds, 99 s 
 
 Netcode, audio, camera effects, other bodies, and anything that puts a float in the sim.
 
-The current build has 185 passing tests and verified versus/training launches. [First polish pass](docs/POLISH-2026-09-05.md) and [motion pass](docs/MOTION-2026-09-05.md) notes record the changes and limits; the [motion QA review](docs/QA-MOTION-2026-09-05.md) records the preceding verification and follow-up fixes. Both kits are playable and every state of both bodies moves through anticipation, contact and recovery with impact effects; the [reaction iteration](docs/REACTIONS-2026-09-05.md) adds 32 selected drawings for reactions, uppercuts, floor recovery and landing. The [full-kit animation batches](docs/FULL-KIT-2026-09-05.md) add reviewed Kogan jump, ground movement, ranged, utility, saber/reversal, disc, recoil, floor recovery, Judgment, airborne revolver and distinct airborne saber/fist/boot/knee and standing Flash/Style and crouching saber and overhead/throw/tech phases plus focused comparison previews, informed by inspected fighting-game footage. Full-kit animation, stick feel and competitive balance remain ongoing work. Finish Kogan and Raya before expanding the roster.
+## Status
 
-[Development guide](docs/DEVELOPMENT.md) covers the repository workflow and checks. [Animation prompts](crates/client/assets/animation/PROMPTS.md) preserve the generated-art provenance.
+The current build has 185 passing tests and verified versus/training launches. Both kits are playable and every state of both bodies moves through anticipation, contact and recovery with impact effects. Full-kit animation, stick feel and competitive balance remain ongoing work. Finish Kogan and Raya before expanding the roster.
 
-Judgment comparison: `cargo run --release -p aeon -- --kit-preview --kit-super`. Sixteen legal super cases cover hit, standing/crouching guard and miss in both facings at center/corners; `--kit-response` filters before `--kit-case`.
+[Animation prompts](crates/client/assets/animation/PROMPTS.md) preserve the generated-art provenance.
 
-Airborne comparison: `cargo run --release -p aeon -- --kit-preview --kit-air --kit-move=AirShot`. Thirty-two gun cases cover hop/full jump, hit/standing/low guard/miss, both facings at center/corners. `--kit-jump=hop|full`, move and response filters apply before `--kit-case`. JS/JHS/JST and JP/JK/JFL each have a reviewed 120-case matrix including early misses. Add --kit-air-early for legal apex-input misses that expose full-jump withdrawal.
-
-Air-saber comparison: `cargo run --release -p aeon -- --kit-preview --kit-air --kit-air-early --kit-move=JHS --kit-jump=full`. Original timing and landing rules are preserved; the full-kit report records 300s of final playback and all three contact paths.
-
-Air fist/boot/knee comparison: `cargo run --release -p aeon -- --kit-preview --kit-air --kit-move=JFL --kit-response=CrouchBlock`. Empty-cylinder JFL uses a bent knee; JP and JK retain distinct downward fist and boot contacts. The full-kit report records the corrected 300s final review and unchanged timing.
-
-Crouching saber comparison: `cargo run --release -p aeon -- --kit-preview --kit-crouch`. Eighty legal cases cover CrS/CrHS/CrFL/CrST, hit/high and low guard/crouched hit/miss in both facings at center/corners. `--kit-move`, `--kit-response` and `--kit-case` isolate an exchange. The full-kit report records all 140s of final playback and the unchanged low-guard/knockdown rules.
-
-Overhead comparison: `cargo run --release -p aeon -- --kit-preview --kit-overhead`. Forty legal cases cover standing and falling overheads against hit, standing guard, crouching guard, crouched hit and miss in both facings at center/corners. Move/response/case filters isolate exchanges. All 80s of final playback and the unchanged landing rules are documented in the full-kit report.
-
-Throw comparison: `cargo run --release -p aeon -- --kit-preview --kit-throw`. Thirty-two legal cases cover hit, both guards, crouched hit, miss, jump escape and early/late throw tech in both facings at center/corners. Move/response/case filters isolate exchanges; all 80s of final playback and original timing are documented in the full-kit report.
-
-Feint comparison: `cargo run --release -p aeon -- --kit-preview --kit-feint`. All eleven feintable Kogan commitments have early/late startup cases in both facings at center/corners (88 cases / 176s). `--kit-feint-timing=early|late` and move/response filters precede `--kit-case=N`. Original eight-frame cancel and legal landing behavior are retained.
-
-Victory review: `cargo run --release -p aeon -- --kit-preview --kit-victory`. Sixteen real KO cases cover standing and airborne finishes, crouch recovery, next round and rematch in both facings at center/corners. `--kit-victory-state=Standing|Air|NextRound|Rematch` filters before `--kit-case=N`. Kogan winner art is reviewed; defeated-body continuity remains open.
-
-KO review: `cargo run --release -p aeon -- --kit-preview --kit-ko`. Default victim is Kogan; `--kit-raya` selects Raya. `--kit-move=StP|CrK|Uppercut|CrST|Throw|CommandGrab` filters before `--kit-case=N`. Forty-eight real KO cases cover both facings/corners, grounded collapse, actual landing, persistent floor, next round and rematch. Both defeated bodies are reviewed; remaining kit work continues.
-
-Crouching punch review: `cargo run --release -p aeon -- --kit-preview --kit-crp`. Twenty cases cover hit, standing/crouching guard, crouched hit and whiff, both facings at center/corners. Kogan CrP is reviewed with four drawn phases and unchanged 4/2/6; `--kit-raya` is available for future Raya review.
-
-Airborne exchange review: `cargo run --release -p aeon -- --kit-preview --kit-air-exchange`. Kogan has16 CrHS anti-airs and24 uppercut/RC/normal juggles; `--kit-raya` selects24 Kogan-receiver juggles. Move and case filters isolate routes. Four defensive keys retain the forward saber through the existing landing.
-
-Raya movement review: `cargo run --release -p aeon -- --kit-preview --kit-movement --kit-raya`. Twenty-four standalone jumps cover hop/full, neutral/forward/back and both facings at center/corners. Eight drawings preserve a compact hop and full-size jump with clean original 0f/2f returns. All cases, 64 shared airborne exchanges and retained integration are reviewed; broader Raya attacks/reactions remain open.
-
-Raya airborne recovery review: `cargo run --release -p aeon -- --kit-preview --kit-air-exchange --kit-move=JST`. Four defensive keys recover diagonal recoil into gathered descent, feet and support within original stun and landing. Forty affected anti-air/juggle cases are reviewed; move/case filters isolate them. Broader Raya ground/knockdown and attack coverage remains open.
-
-Raya ground review: `cargo run --release -p aeon -- --kit-preview --kit-ground --kit-raya`. Nine walk/crouch/run-exit/retreat states in both facings at center/corners; state/case filters isolate sequences. All36 cases/54 s reviewed; shallow run gather and supported retreat preserve immediate control and original timing.
-
-Raya grounded hit/guard and retained floor recovery are reviewed across36 cases /90 s, with eight Kogan low-return regression cases and complete35 s integration. 171 workspace tests, clippy and release pass; simulation traces unchanged. Full-kit work continues; see [review evidence](docs/FULL-KIT-2026-09-05.md).
-
-Raya standing palm and low kick now have four reviewed phases each, with corrected contact height and clean return. All40 cases /40 s and complete35 s integration reviewed;171 tests, clippy/release and unchanged simulation traces. Use `--kit-preview --kit-raya --kit-move=StP` or `StK`. See [full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
-
-Raya crouching palm and ankle kick now have four reviewed phases and clean low returns. All40 cases /40 s and complete35 s integration reviewed;171 tests, clippy/release and unchanged simulation traces. Use `--kit-preview --kit-raya --kit-crp` or `--kit-move=CrK`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
-
-Raya standing Flash and Style now have four reviewed phases, aligned low gestures and clean returns. All 40 final2 cases / 40 s reviewed; 171 tests, clippy/release and unchanged simulation traces. Use `--kit-flash --kit-raya`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
-
-Raya medium palm and far/close heavies now have four reviewed phases, distinct low contact and clean returns. All60 cases/150s reviewed;172 tests,clippy/release,unchanged sim traces. Use `--kit-preview --kit-saber --kit-raya` and `--kit-move=StS|StHS|StHSClose`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
-
-Raya three-syllable chant now has distinct contact and clean withdrawal/ready at existing timing. All60 cases/160s reviewed;174 tests,clippy/release,unchanged sim traces. Smoke captures all eight scenes using one tick per rendered frame and local menu holds. Use `--kit-preview --kit-saber --kit-raya --kit-move=Rekka1|Rekka2|Rekka3`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
-
-Raya Ascension now has low crystal release and folded hands at the apex, resolving the timer overlap. All20 cases/50s and shared preview reviewed;175 tests,clippy/release,unchanged simulation traces. Use `--kit-preview --kit-saber --kit-raya --kit-move=Uppercut`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
-
-Raya CrS/CrHS/CrFL/CrST now have complete drawn preparation, contact, withdrawal and low return. All 80 grounded cases / 140s reviewed; 175 tests, clippy/release and unchanged simulation traces. Use `--kit-preview --kit-crouch --kit-raya`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
-
-Raya JP/JK/JFL now use three distinct low contacts and drawn gather/withdrawal/ready. All144 grounded-target/miss cases360s reviewed;175 tests,clippy/release,unchanged traces. Use `--kit-preview --kit-air --kit-raya --kit-move=JP`, optionally `--kit-air-rising`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
-
-Raya JS/JHS/JST now use three distinct low crystal contacts and drawn gather/withdrawal/ready. All144 grounded-target/miss cases360s reviewed;175 tests,clippy/release,unchanged traces. Use `--kit-preview --kit-air --kit-raya --kit-move=JS`, optionally `--kit-air-rising`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
-
-Raya CrHS now visibly meets full-jump targets and retains clear grounded guards. All16 anti-air cases,20 ground regressions and24 normal juggles reviewed;175 tests,clippy/release and unchanged traces. Use `--kit-preview --kit-air-exchange --kit-raya --kit-move=CrHS`. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md); broader goal continues.
-
-Raya overhead now has six reviewed grounded phases. Use `--kit-preview --kit-overhead --kit-raya` for20 legal hit/high-guard/low-guard/crouched-hit/miss cases. Complete30s review,176 tests,clippy/release and unchanged focused/integration traces; [full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining full-kit review is ongoing.
-
-Raya Rite and Processional now have eight reviewed phases. Use `--kit-preview --kit-utility --kit-raya --kit-move=CommandGrab` or `CommandDash`. All28cases/70s reviewed,176tests/clippy/release pass, focused/integration traces unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work is ongoing.
-
-Raya normal throw and escape now have reviewed drawn phases. Use `--kit-preview --kit-throw --kit-raya`. All 32 cases / 80s reviewed, 176 tests/clippy/release pass, focused/integration traces unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work is ongoing.
-
-Raya crystal, glyph and EX versions now have reviewed drawn phases. Use `--kit-preview --kit-ranged --kit-raya`. All64 cases /224s reviewed;177 tests/clippy/release pass;simulation traces unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
-
-Raya consecrate and manual shatter have reviewed drawn phases. Use `--kit-preview --kit-ritual --kit-raya`. All 32 cases /64s reviewed; 178 tests/clippy/release pass; simulation traces unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
-
-Raya Convergence has reviewed drawn phases. Use `--kit-preview --kit-super --kit-raya`. All20 cases /50s reviewed;179 tests/clippy/release pass;simulation traces unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
-
-Raya feints now retain family-specific withdrawal and supported airborne return. `--kit-preview --kit-feint --kit-raya` selects80 reviewed early/late cases.179 tests/clippy/release pass;simulation unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
-
-Raya victory now retains supported recovery into a four-phase quiet offering. `--kit-preview --kit-victory --kit-raya` selects16 reviewed cases.179 tests/clippy/release pass;simulation unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Remaining milestone work continues.
-
-Kogan jab now uses drawn gather/contact/withdrawal/ready. `--kit-preview --kit-move=StP` selects20 reviewed cases.179 tests/clippy/release pass;simulation unchanged. [Full-kit evidence](docs/FULL-KIT-2026-09-05.md). Shared polish and remaining kicks stay open.
-
-Freeze comparison: `cargo run --release -p aeon -- --kit-preview --kit-freeze --capture --capture-1x`. Twenty-four legal hit, block and RC cases include exact paused redraws and single ticks; capture mode is required. Flash, drawing and effect lifetime share the world clock. Training replay validation and shared art polish remain ongoing.
-
-### Saved replay comparison
-
-After building release, run `--replay-review --capture --capture-1x` from a new empty directory. It saves four real input logs and captures recorded/loaded pairs (32 seconds at60fps); all960 loaded world hashes must match. The fixture covers both character orders and attacking slots, hit/guard, full jump/landing and presentation reset from hitstop. PNG hashes can compare every corresponding output image. See ART54 in `docs/FULL-KIT-2026-09-05.md` for inspected evidence and limits. This does not verify physical F9/F11 dispatch or record changes made through training health/meter/dummy controls.
-
-```sh
-aeon_review_bin="$(pwd)/target/release/aeon"
-aeon_review_dir="$(mktemp -d)"
-cd "$aeon_review_dir"
-"$aeon_review_bin" --replay-review --capture --capture-1x
-```
-
-ART55: mixed neutral visibility reviewed;183 workspace tests pass with clippy/release. See `docs/FULL-KIT-2026-09-05.md` for evidence and remaining art/physical-play gates.
-
-ART56: transparent key filtering reviewed;184 workspace tests,clippy/release pass. Remaining source-art and physical-play gates are in `docs/FULL-KIT-2026-09-05.md`.
-
-ART57: dark key spill reviewed with unchanged alpha;185 workspace tests,clippy/release pass. Shared style,Kogan StK/CrK and production training keys remain open. See `docs/FULL-KIT-2026-09-05.md`.
-
-ART58: quiet Kogan Stand shares the approved drawn ready pose. Replay, integration, corner/freeze and smoke reviewed; 185 tests, clippy/release pass. Legacy walk/contact finish, StK/CrK and actual training-key dispatch remain open.
-
-ART59: four larger Kogan walking drawings retain the existing step rhythm and improve dark armor detail. Full focused/integration motion reviewed; 185 tests, clippy/release pass. Legacy contact finish, StK/CrK and direct training keys remain open.
-
-ART61: four larger Kogan first-cut drawings improve armor clarity with unchanged choreography. Complete sword/feint/integration motion reviewed;185 tests,clippy/release pass. Legacy backcut/thrust/jab finish,StK/CrK and actual training keys remain open.
-
-ART62: four larger Kogan backcut drawings improve armor clarity through the original front rising arc. Complete sword, chain, feint and integration motion reviewed; 185 tests, clippy and release pass. Legacy thrust/jab finish, StK/CrK and actual training keys remain open.
-
-ART63: four Kogan thrust drawings clarify armor and preserve complete straight blades through the chain and feint. Full focused and integration motion reviewed; 185 tests, clippy and release pass. Grounded kicks, jab finish and actual training keys remain open.
-
-ART66: Kogan crouching kick now has four reviewed supported low-kick phases, a complete saber and direct crouch return. 185 tests, clippy and release pass; simulation traces are unchanged. All 69 implemented moves have reviewed phases; legacy jab contact finish and the final milestone audit remain open. Training replay loads through R or F11.
-
-ART67: Kogan jab contact now has broad dark armor and restrained copper edges, preserving the supported fist, complete saber and original4/2/6 phases.185 tests/clippy/release pass;20 cases reviewed, all1200/2100 ticks unchanged. All69 implemented moves have phase coverage; final milestone audit remains.
+---
+_Aeon is a project by VirtualMachinist._
