@@ -274,10 +274,15 @@ pub const RAYA_STANDING_LIGHTS: [Spec; 8] = [
     ([0, 1115, 500, 1536], 255, 330), ([500, 1115, 1024, 1536], 685, 330),
 ];
 
+// Four low-boot phases share anatomical scale; only the authored move clock advances them.
+pub const KOGAN_STANDING_KICK: [Spec; 4] = [
+    ([0, 0, 627, 627], 300, 480), ([627, 0, 1254, 627], 885, 480),
+    ([0, 627, 627, 1254], 300, 480), ([627, 627, 1254, 1254], 895, 480),
+];
+
 pub fn standing_lights_cell(f: &Fighter) -> Option<Cell> {
     if f.airborne { return None; }
     let Action::Attack { move_id, frame, .. } = f.action else { return None; };
-    if f.id == aeon_sim::CharacterId::Kogan && move_id != MoveId::StP { return None; }
     let base = match move_id { MoveId::StP => 0, MoveId::StK => 4, _ => return None };
     let mv = f.data().move_def(move_id)?;
     let phase = if frame < mv.first_active() { 0 }
@@ -1020,6 +1025,7 @@ mod tests {
             ("raya-v1-green.png", (1254, 1254), &RAYA_WALK[..]),
             ("raya-ground-v1-green.png", (1672, 941), &RAYA_GROUND[..]),
             ("raya-recoil-v1-green.png", (941, 1672), &RAYA_RECOIL[..]),
+            ("kogan-standing-kick-v5-green.png", (1254, 1254), &KOGAN_STANDING_KICK[..]),
             ("raya-standing-lights-v1-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[..]),
             ("raya-standing-lights-v2-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[1..2]),
             ("raya-crouch-lights-v1-green.png", (1024, 1536), &RAYA_CROUCH_LIGHTS[..]),

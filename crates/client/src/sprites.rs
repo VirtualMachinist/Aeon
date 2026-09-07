@@ -497,9 +497,10 @@ impl SpriteSet {
             CharacterId::Kogan => Atlas::load("assets/animation/kogan-crouch-low-v3-green.png", (1024, 1536), &KOGAN_CROUCH_LOW).await,
             CharacterId::Raya => Atlas::load("assets/animation/raya-crouch-low-v1-green.png", (1024, 1536), &RAYA_CROUCH_LOW).await,
         };
-        let standing_lights = if body == CharacterId::Raya {
-            Atlas::load("assets/animation/raya-standing-lights-v1-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS).await
-        } else { None };
+        let standing_lights = match body {
+            CharacterId::Kogan => Atlas::load("assets/animation/kogan-standing-kick-v5-green.png", (1254, 1254), &KOGAN_STANDING_KICK).await,
+            CharacterId::Raya => Atlas::load("assets/animation/raya-standing-lights-v1-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS).await,
+        };
         // Keep seven sound original drawings; only the lowered contact uses V2.
         let standing_palm_contact = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-standing-lights-v2-green.png", (1024, 1536), &RAYA_STANDING_LIGHTS[1..2]).await
@@ -690,6 +691,7 @@ impl SpriteSet {
             if let Some(cell) = crate::sequences::signature_cell(fighter) { return cell; }
         }
         let standing_lights_ready = match self.body {
+            CharacterId::Kogan if matches!(fighter.action, Action::Attack { move_id: MoveId::StK, .. }) => self.standing_lights.is_some(),
             CharacterId::Kogan => self.flash.is_some() && self.textures.contains_key(&Pose::P),
             CharacterId::Raya => self.standing_lights.is_some() && self.standing_palm_contact.is_some(),
         };
@@ -826,6 +828,7 @@ impl SpriteSet {
                     0 | 2 => self.flash.as_ref()?.frame(2),
                     3 => self.flash.as_ref()?.frame(3),
                     1 => self.frame(Cell::Pose(Pose::P)),
+                    4..=7 => self.standing_lights.as_ref()?.frame(cell - 4),
                     _ => None,
                 }
             }
