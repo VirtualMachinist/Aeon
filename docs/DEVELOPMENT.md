@@ -34,6 +34,8 @@ cargo clippy --workspace --all-targets --locked --offline -- -D warnings
 git diff --check
 ```
 
+Sprites are loaded from packed pages when `crates/client/assets/packed/` exists (`cargo run --release -p aeon -- --pack` builds it; git-ignored). After adding or changing a sheet, a spec in `sequences.rs`, or an entry in `sprites::SELECTORS` or `sprites::STYLES`, delete that directory or rerun `--pack`, otherwise the game keeps drawing the old pages. Tests never need the pages.
+
 For gameplay or rendering changes, launch the optimized client and inspect the affected exchanges:
 
 ```sh
