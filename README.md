@@ -203,4 +203,4 @@ ART62: four larger Kogan backcut drawings improve armor clarity through the orig
 
 ART63: four Kogan thrust drawings clarify armor and preserve complete straight blades through the chain and feint. Full focused and integration motion reviewed; 185 tests, clippy and release pass. Grounded kicks, jab finish and actual training keys remain open.
 
-ART65: Kogan standing kick now has four reviewed low-boot phases with a complete saber and clean return. 185 tests, clippy and release pass; simulation traces are unchanged. 68 of 69 implemented moves have reviewed phases; crouching kick and legacy jab finish remain open. Training replay loads through R or F11.
+ART66: Kogan crouching kick now has four reviewed supported low-kick phases, a complete saber and direct crouch return. 185 tests, clippy and release pass; simulation traces are unchanged. All 69 implemented moves have reviewed phases; legacy jab contact finish and the final milestone audit remain open. Training replay loads through R or F11.

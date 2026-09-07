@@ -300,9 +300,16 @@ pub const RAYA_CROUCH_LIGHTS: [Spec; 8] = [
     ([0, 1105, 480, 1536], 280, 450), ([480, 1105, 1024, 1536], 695, 450),
 ];
 
+// The planted support hand anchors the low kick; anatomy stays at one scale.
+pub const KOGAN_CROUCH_KICK: [Spec; 4] = [
+    ([0, 0, 600, 627], 300, 510), ([600, 0, 1254, 627], 890, 510),
+    ([0, 627, 600, 1254], 330, 510), ([600, 627, 1254, 1254], 900, 510),
+];
+
 pub fn crouch_lights_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Raya || f.airborne { return None; }
+    if f.airborne { return None; }
     let Action::Attack { move_id, frame, .. } = f.action else { return None; };
+    if f.id == aeon_sim::CharacterId::Kogan && move_id != MoveId::CrK { return None; }
     let base = match move_id { MoveId::CrP => 0, MoveId::CrK => 4, _ => return None };
     let mv = f.data().move_def(move_id)?;
     let phase = if frame < mv.first_active() { 0 }
@@ -1048,6 +1055,7 @@ mod tests {
             ("kogan-air-recovery-v1-green.png", (1254, 1254), &KOGAN_AIR_RECOVERY[..]),
             ("raya-air-recovery-v1-green.png", (1254, 1254), &RAYA_AIR_RECOVERY[..]),
             ("kogan-crouch-punch-v1-green.png", (1254, 1254), &KOGAN_CROUCH_PUNCH[..]),
+            ("kogan-crouching-kick-v5-green.png", (1254, 1254), &KOGAN_CROUCH_KICK[..]),
             ("kogan-crouch-saber-v1-green.png", (1024, 1536), &KOGAN_CROUCH_SABER[..]),
             ("kogan-flash-v2-green.png", (1024, 1536), &KOGAN_FLASH[..]),
             ("kogan-air-lights-v1-green.png", (1024, 1536), &KOGAN_AIR_LIGHTS[..]),

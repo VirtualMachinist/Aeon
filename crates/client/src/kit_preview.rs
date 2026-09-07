@@ -1029,7 +1029,7 @@ mod tests {
     #[test]
     fn crouching_lights_preserve_contact_guard_freeze_and_control() {
         use crate::{sequences::{crouch_punch_cell, crouch_lights_cell}, sprites::Cell};
-        for (body, moves) in [(CharacterId::Kogan, &[MoveId::CrP][..]),
+        for (body, moves) in [(CharacterId::Kogan, &[MoveId::CrP, MoveId::CrK][..]),
             (CharacterId::Raya, &[MoveId::CrP, MoveId::CrK][..])] {
             let cases = normal_cases(body, moves);
             assert_eq!(cases.len(), 20 * moves.len());
@@ -1045,7 +1045,7 @@ mod tests {
                     world.tick(a, b);
                     let f = &world.fighters[0];
                     let hash = world.state_hash();
-                    let cell = if body == CharacterId::Kogan { crouch_punch_cell(f) } else { crouch_lights_cell(f) };
+                    let cell = if body == CharacterId::Kogan && case.move_id == MoveId::CrP { crouch_punch_cell(f) } else { crouch_lights_cell(f) };
                     assert_eq!(world.state_hash(), hash);
                     if let Some(cell) = cell { seen.insert(cell); }
                     if let Some((action, previous)) = frozen {
@@ -1054,14 +1054,14 @@ mod tests {
                     frozen = Some((f.action.clone(), cell));
                     if let Action::Attack { move_id, frame, .. } = f.action {
                         let mv = f.data().move_def(move_id).unwrap();
-                        let active = if body == CharacterId::Kogan { Cell::CrouchPunch(1) }
+                        let active = if body == CharacterId::Kogan && move_id == MoveId::CrP { Cell::CrouchPunch(1) }
                             else { Cell::CrouchLights(if move_id == MoveId::CrK { 5 } else { 1 }) };
                         assert_eq!(cell == Some(active), mv.is_active(frame));
                     } else { assert_eq!(cell, None, "new actions own the body immediately"); }
                     blocked |= matches!(world.fighters[1].action, Action::Block { .. });
                 }
                 assert_eq!(seen.len(), 4, "{}: all four authored phases", case.label());
-                let low_beats_stand = body == CharacterId::Raya && case.move_id == MoveId::CrK;
+                let low_beats_stand = case.move_id == MoveId::CrK;
                 match case.response {
                     Response::Hit | Response::CrouchHit => assert_eq!(hp - world.fighters[1].health, damage),
                     Response::StandBlock if low_beats_stand => { assert!(!blocked); assert_eq!(hp - world.fighters[1].health, damage); }
