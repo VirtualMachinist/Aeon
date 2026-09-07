@@ -12,7 +12,7 @@ Lights link. Weapon-heavies are minus. There are no normal chains. Two or three 
 
 ## Animation review milestone
 
-All69 implemented moves and relevant states have recorded visual acceptance.185 tests,clippy and release pass;sim/frame data unchanged. See [the review guide](docs/ANIMATION-REVIEW.md),[coverage](docs/ANIMATION-COVERAGE.md),[references](docs/ANIMATION-REFERENCES.md) and [audit](docs/ANIMATION-AUDIT.md). Physical stick play and competitive balance follow.
+All 69 implemented moves and relevant states have recorded visual acceptance. 191 tests, clippy and release pass; sim/frame data unchanged. See [the review guide](docs/ANIMATION-REVIEW.md),[coverage](docs/ANIMATION-COVERAGE.md),[references](docs/ANIMATION-REFERENCES.md) and [audit](docs/ANIMATION-AUDIT.md). Physical stick play and competitive balance follow.
 
 ## Get started
 
@@ -22,10 +22,13 @@ Install Rust through rustup and the platform C/linker toolchain, then clone and 
 git clone https://github.com/VirtualMachinist/Aeon.git
 cd Aeon
 cargo fetch --locked
+cargo run --release --locked -p aeon -- --pack   # once: builds the sprite pages (a few seconds)
 cargo run --release --locked -p aeon
 ```
 
-On macOS, after dependencies are fetched, double-click `Play-Aeon.command` for subsequent optimized playtests. Its build cache lives under `~/Library/Caches/AeonBuild`, outside the source tree. The launcher uses offline mode; a fresh checkout needs the initial fetch above.
+`--pack` crops and packs every sprite into a few pages under `crates/client/assets/packed/` (git-ignored). The game loads those when present and falls back to the source sheets when not, so the pack step is optional but makes startup about three times faster and halves resident memory. Repack after changing any sprite sheet or selector.
+
+On macOS, after dependencies are fetched, double-click `Play-Aeon.command` for subsequent optimized playtests. It packs on first run. Its build cache lives under `~/Library/Caches/AeonBuild`, outside the source tree. The launcher uses offline mode; a fresh checkout needs the initial fetch above.
 
 ## Development commands
 
@@ -33,6 +36,7 @@ On macOS, after dependencies are fetched, double-click `Play-Aeon.command` for s
 cargo run --release -p aeon     # title → versus / training / remap
 cargo run -p aeon -- --smoke     # scripted launch; writes shots/smoke-*.png and exits
 cargo test --workspace          # simulation law plus client timing/animation checks
+cargo run --release -p aeon -- --pack             # build packed sprite pages into crates/client/assets/packed
 cargo run --release -p aeon -- --polish-preview  # repeatable 35-second movement/rekka/whiff/reaction review
 cargo run --release -p aeon -- --polish-preview --capture # 30 fps PNGs + trace in shots/polish
 cargo run --release -p aeon -- --kit-preview --kit-movement # 24 isolated hop/jump cases
@@ -53,7 +57,8 @@ cargo clippy --workspace --all-targets -- -D warnings
 crates/sim      aeon-sim: deterministic 60 Hz match. Integer subpixels. Zero dependencies.
                 No floats in World, no clock, no filesystem, no renderer (tests/purity.rs).
 crates/client   aeon: macroquad + gilrs client. Versus, training, stick remap, replays.
-                sequences.rs selects authored reactions/reversals; anim.rs adds motion; fx.rs draws impact.
+                sequences.rs picks authored cells; sprites.rs holds the selector and style tables
+                and loads packed pages; anim.rs adds motion; fx.rs draws impact; pack.rs builds pages.
 crates/client/assets/{kogan,raya}/*.png   one keyed 800×800 pose per state
 crates/client/assets/animation/*.png     authored walk/attack cells, keyed at load
 crates/client/assets/stage/sanctum.png    the Sanctum honeycomb vault
@@ -104,7 +109,7 @@ Character select (any pairing, mirrors included) → best of three rounds, 99 s 
 
 Netcode, audio, camera effects, other bodies, and anything that puts a float in the sim.
 
-The current build has 185 passing tests and verified versus/training launches. [First polish pass](docs/POLISH-2026-09-05.md) and [motion pass](docs/MOTION-2026-09-05.md) notes record the changes and limits; the [motion QA review](docs/QA-MOTION-2026-09-05.md) records the preceding verification and follow-up fixes. Both kits are playable and every state of both bodies moves through anticipation, contact and recovery with impact effects; the [reaction iteration](docs/REACTIONS-2026-09-05.md) adds 32 selected drawings for reactions, uppercuts, floor recovery and landing. The [full-kit animation batches](docs/FULL-KIT-2026-09-05.md) add reviewed Kogan jump, ground movement, ranged, utility, saber/reversal, disc, recoil, floor recovery, Judgment, airborne revolver and distinct airborne saber/fist/boot/knee and standing Flash/Style and crouching saber and overhead/throw/tech phases plus focused comparison previews, informed by inspected fighting-game footage. Full-kit animation, stick feel and competitive balance remain ongoing work. Finish Kogan and Raya before expanding the roster.
+The current build has 191 passing tests and verified versus/training launches. The [packer and selector-table pass](docs/PACK-2026-09-07.md) (2026-09-07) loads sprites from packed pages and chooses them from one table. [First polish pass](docs/POLISH-2026-09-05.md) and [motion pass](docs/MOTION-2026-09-05.md) notes record the changes and limits; the [motion QA review](docs/QA-MOTION-2026-09-05.md) records the preceding verification and follow-up fixes. Both kits are playable and every state of both bodies moves through anticipation, contact and recovery with impact effects; the [reaction iteration](docs/REACTIONS-2026-09-05.md) adds 32 selected drawings for reactions, uppercuts, floor recovery and landing. The [full-kit animation batches](docs/FULL-KIT-2026-09-05.md) add reviewed Kogan jump, ground movement, ranged, utility, saber/reversal, disc, recoil, floor recovery, Judgment, airborne revolver and distinct airborne saber/fist/boot/knee and standing Flash/Style and crouching saber and overhead/throw/tech phases plus focused comparison previews, informed by inspected fighting-game footage. Full-kit animation, stick feel and competitive balance remain ongoing work. Finish Kogan and Raya before expanding the roster.
 
 [Development guide](docs/DEVELOPMENT.md) covers the repository workflow and checks. [Animation prompts](crates/client/assets/animation/PROMPTS.md) preserve the generated-art provenance.
 

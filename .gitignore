@@ -3,3 +3,5 @@
 /replays
 **/*.rs.bk
 .DS_Store
+# Built by `aeon --pack`; regenerate rather than commit.
+/crates/client/assets/packed

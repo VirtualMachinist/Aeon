@@ -2,6 +2,8 @@
 //! poses cover the rest of each kit and provide a complete fallback.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 use aeon_sim::{Action, CharacterId, Fighter, MoveId};
 use macroquad::prelude::*;
@@ -166,6 +168,9 @@ impl Pose {
 }
 
 pub struct SpriteSet {
+    /// Packed pages, when `assets/packed/` exists. Then every other atlas
+    /// field is `None` and `frame` reads the manifest map.
+    packed: Option<Packed>,
     textures: HashMap<Pose, Texture2D>,
     body: CharacterId,
     atlas: Option<Texture2D>,
@@ -262,6 +267,385 @@ pub enum Cell {
     Utility(usize),
 }
 
+/// A cell's family: the variant without its index. Styles and manifest keys
+/// are per family.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Family {
+    Pose,
+    Walk,
+    Cut,
+    Thrust,
+    Reaction,
+    Uppercut,
+    UppercutCompact,
+    Poke,
+    Disc,
+    Judgment,
+    AirShot,
+    AirSaber,
+    AirLights,
+    Flash,
+    StandingLights,
+    Signature,
+    Chant,
+    CrouchLights,
+    CrouchPunch,
+    CrouchSaber,
+    Overhead,
+    ThrowTech,
+    ThrowContact,
+    Victory,
+    Floor,
+    AirRecovery,
+    Recoil,
+    Ground,
+    Movement,
+    Ranged,
+    Ritual,
+    Utility,
+}
+
+/// How the motion layer may treat a picture. Authored drawings already
+/// contain their bend, weight and weapon line; the flags say what the
+/// procedural layer must leave alone.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CellStyle {
+    /// No rotation or stretch: the drawing carries its own commitment.
+    pub rigid: bool,
+    /// No dx/dy shove: shifting would detach the weapon from its contact line.
+    pub pinned: bool,
+    /// Afterimages only from the same picture, never from an older stance.
+    pub trail_same_cell: bool,
+    /// Afterimages are capped at two.
+    pub trail_short: bool,
+    /// A change of picture cuts; the previous picture is not faded over it.
+    pub cut: bool,
+}
+
+// Flag bits per body for the style table below.
+const A: u8 = 1; // authored: rigid and cut
+const P: u8 = 2; // pinned
+const S: u8 = 4; // trail only from the same cell
+const T: u8 = 8; // trail capped at two
+
+/// One row per family: Kogan flags, Raya flags. Kogan's combat drawings all
+/// cap their trails and trail only from the same cell; that is the body-level
+/// `T` on every Kogan row rather than a special case in the motion code.
+const STYLES: &[(Family, u8, u8)] = &[
+    (Family::Pose, T, 0),
+    (Family::Walk, A | S | T, A),
+    (Family::Cut, A | S | T, 0),
+    (Family::Thrust, A | S | T, 0),
+    (Family::Reaction, A | S | T, A),
+    (Family::Uppercut, A | S | T, A | S),
+    (Family::UppercutCompact, A | S | T, A | S),
+    (Family::Poke, A | S | T, 0),
+    (Family::Disc, A | S | T, 0),
+    (Family::Judgment, A | S | T, A | P | S | T),
+    (Family::AirShot, A | P | S | T, 0),
+    (Family::AirSaber, A | P | S | T, A | P | S),
+    (Family::AirLights, A | P | S | T, A | P | S),
+    (Family::Flash, A | P | S | T, A | P | S),
+    (Family::StandingLights, A | P | S | T, A | P | S),
+    (Family::Signature, A | P | S | T, A | P | S),
+    (Family::Chant, A | P | S | T, A | P | S),
+    (Family::CrouchLights, A | P | S | T, A | P | S),
+    (Family::CrouchPunch, A | P | S | T, 0),
+    (Family::CrouchSaber, A | P | S | T, A | P | S),
+    (Family::Overhead, A | P | S | T, A | P | S),
+    (Family::ThrowTech, A | P | S | T, 0),
+    (Family::ThrowContact, A | S | T, A | P | S),
+    (Family::Victory, A | P | S | T, A | P | S),
+    (Family::Floor, A | S | T, 0),
+    (Family::AirRecovery, A | S | T, A | S),
+    (Family::Recoil, A | S | T, A | S),
+    (Family::Ground, A | S | T, A | S | T),
+    (Family::Movement, A | T, A),
+    (Family::Ranged, A | T, A | P),
+    (Family::Ritual, A | T, A | P),
+    (Family::Utility, A | S | T, A | P | S),
+];
+
+impl Cell {
+    pub fn family(self) -> Family {
+        match self {
+            Cell::Pose(_) => Family::Pose,
+            Cell::Atlas(0..=3) => Family::Walk,
+            Cell::Atlas(_) => Family::Cut,
+            Cell::Thrust(_) => Family::Thrust,
+            Cell::Reaction(_) => Family::Reaction,
+            Cell::Uppercut(_) => Family::Uppercut,
+            Cell::UppercutCompact(_) => Family::UppercutCompact,
+            Cell::Poke(_) => Family::Poke,
+            Cell::Disc(_) => Family::Disc,
+            Cell::Judgment(_) => Family::Judgment,
+            Cell::AirShot(_) => Family::AirShot,
+            Cell::AirSaber(_) => Family::AirSaber,
+            Cell::AirLights(_) => Family::AirLights,
+            Cell::Flash(_) => Family::Flash,
+            Cell::StandingLights(_) => Family::StandingLights,
+            Cell::Signature(_) => Family::Signature,
+            Cell::Chant(_) => Family::Chant,
+            Cell::CrouchLights(_) => Family::CrouchLights,
+            Cell::CrouchPunch(_) => Family::CrouchPunch,
+            Cell::CrouchSaber(_) => Family::CrouchSaber,
+            Cell::Overhead(_) => Family::Overhead,
+            Cell::ThrowTech(_) => Family::ThrowTech,
+            Cell::ThrowContact => Family::ThrowContact,
+            Cell::Victory(_) => Family::Victory,
+            Cell::Floor(_) => Family::Floor,
+            Cell::AirRecovery(_) => Family::AirRecovery,
+            Cell::Recoil(_) => Family::Recoil,
+            Cell::Ground(_) => Family::Ground,
+            Cell::Movement(_) => Family::Movement,
+            Cell::Ranged(_) => Family::Ranged,
+            Cell::Ritual(_) => Family::Ritual,
+            Cell::Utility(_) => Family::Utility,
+        }
+    }
+
+    pub fn style(self, body: CharacterId) -> CellStyle {
+        let family = self.family();
+        let bits = STYLES
+            .iter()
+            .find(|(f, _, _)| *f == family)
+            .map(|(_, k, r)| match body {
+                CharacterId::Kogan => *k,
+                CharacterId::Raya => *r,
+            })
+            .unwrap_or(0);
+        CellStyle {
+            rigid: bits & A != 0,
+            pinned: bits & P != 0,
+            trail_same_cell: bits & S != 0,
+            trail_short: bits & T != 0,
+            cut: bits & A != 0,
+        }
+    }
+
+    /// Manifest key: `family:index`, or `pose:<file>`.
+    pub fn key(self) -> String {
+        let (name, index) = match self {
+            Cell::Pose(p) => return format!("pose:{}", p.file()),
+            Cell::Atlas(i) => ("atlas", i),
+            Cell::Thrust(i) => ("thrust", i),
+            Cell::Reaction(i) => ("reaction", i),
+            Cell::Uppercut(i) => ("uppercut", i),
+            Cell::UppercutCompact(i) => ("uppercutcompact", i),
+            Cell::Poke(i) => ("poke", i),
+            Cell::Disc(i) => ("disc", i),
+            Cell::Judgment(i) => ("judgment", i),
+            Cell::AirShot(i) => ("airshot", i),
+            Cell::AirSaber(i) => ("airsaber", i),
+            Cell::AirLights(i) => ("airlights", i),
+            Cell::Flash(i) => ("flash", i),
+            Cell::StandingLights(i) => ("standinglights", i),
+            Cell::Signature(i) => ("signature", i),
+            Cell::Chant(i) => ("chant", i),
+            Cell::CrouchLights(i) => ("crouchlights", i),
+            Cell::CrouchPunch(i) => ("crouchpunch", i),
+            Cell::CrouchSaber(i) => ("crouchsaber", i),
+            Cell::Overhead(i) => ("overhead", i),
+            Cell::ThrowTech(i) => ("throwtech", i),
+            Cell::ThrowContact => ("throwcontact", 0),
+            Cell::Victory(i) => ("victory", i),
+            Cell::Floor(i) => ("floor", i),
+            Cell::AirRecovery(i) => ("airrecovery", i),
+            Cell::Recoil(i) => ("recoil", i),
+            Cell::Ground(i) => ("ground", i),
+            Cell::Movement(i) => ("movement", i),
+            Cell::Ranged(i) => ("ranged", i),
+            Cell::Ritual(i) => ("ritual", i),
+            Cell::Utility(i) => ("utility", i),
+        };
+        format!("{name}:{index}")
+    }
+
+    pub fn parse(key: &str) -> Option<Cell> {
+        let (name, rest) = key.split_once(':')?;
+        if name == "pose" {
+            return Pose::ALL.iter().copied().find(|p| p.file() == rest).map(Cell::Pose);
+        }
+        let i: usize = rest.parse().ok()?;
+        Some(match name {
+            "atlas" => Cell::Atlas(i),
+            "thrust" => Cell::Thrust(i),
+            "reaction" => Cell::Reaction(i),
+            "uppercut" => Cell::Uppercut(i),
+            "uppercutcompact" => Cell::UppercutCompact(i),
+            "poke" => Cell::Poke(i),
+            "disc" => Cell::Disc(i),
+            "judgment" => Cell::Judgment(i),
+            "airshot" => Cell::AirShot(i),
+            "airsaber" => Cell::AirSaber(i),
+            "airlights" => Cell::AirLights(i),
+            "flash" => Cell::Flash(i),
+            "standinglights" => Cell::StandingLights(i),
+            "signature" => Cell::Signature(i),
+            "chant" => Cell::Chant(i),
+            "crouchlights" => Cell::CrouchLights(i),
+            "crouchpunch" => Cell::CrouchPunch(i),
+            "crouchsaber" => Cell::CrouchSaber(i),
+            "overhead" => Cell::Overhead(i),
+            "throwtech" => Cell::ThrowTech(i),
+            "throwcontact" => Cell::ThrowContact,
+            "victory" => Cell::Victory(i),
+            "floor" => Cell::Floor(i),
+            "airrecovery" => Cell::AirRecovery(i),
+            "recoil" => Cell::Recoil(i),
+            "ground" => Cell::Ground(i),
+            "movement" => Cell::Movement(i),
+            "ranged" => Cell::Ranged(i),
+            "ritual" => Cell::Ritual(i),
+            "utility" => Cell::Utility(i),
+            _ => return None,
+        })
+    }
+
+    /// Every cell the selectors could name, for the packer to try.
+    pub fn candidates() -> Vec<Cell> {
+        let mut out: Vec<Cell> = Pose::ALL.iter().map(|p| Cell::Pose(*p)).collect();
+        for i in 0..16 {
+            out.extend([
+                Cell::Atlas(i),
+                Cell::Thrust(i),
+                Cell::Reaction(i),
+                Cell::Uppercut(i),
+                Cell::UppercutCompact(i),
+                Cell::Poke(i),
+                Cell::Disc(i),
+                Cell::Judgment(i),
+                Cell::AirShot(i),
+                Cell::AirSaber(i),
+                Cell::AirLights(i),
+                Cell::Flash(i),
+                Cell::StandingLights(i),
+                Cell::Signature(i),
+                Cell::Chant(i),
+                Cell::CrouchLights(i),
+                Cell::CrouchPunch(i),
+                Cell::CrouchSaber(i),
+                Cell::Overhead(i),
+                Cell::ThrowTech(i),
+                Cell::Victory(i),
+                Cell::Floor(i),
+                Cell::AirRecovery(i),
+                Cell::Recoil(i),
+                Cell::Ground(i),
+                Cell::Movement(i),
+                Cell::Ranged(i),
+                Cell::Ritual(i),
+                Cell::Utility(i),
+            ]);
+        }
+        out.push(Cell::ThrowContact);
+        out
+    }
+}
+
+/// Set by the packer so every keyed source image is retained beside its
+/// texture; the game never pays for this.
+pub static KEEP_IMAGES: AtomicBool = AtomicBool::new(false);
+static IMAGES: Mutex<Vec<(miniquad::TextureId, Image)>> = Mutex::new(Vec::new());
+
+/// Upload a keyed image, remembering it when the packer asked.
+pub(crate) fn upload(image: &Image) -> Texture2D {
+    let texture = Texture2D::from_image(image);
+    texture.set_filter(FilterMode::Linear);
+    if KEEP_IMAGES.load(Ordering::Relaxed) {
+        IMAGES
+            .lock()
+            .unwrap()
+            .push((texture.raw_miniquad_id(), image.clone()));
+    }
+    texture
+}
+
+/// The retained source image for a texture (packer only).
+pub fn retained_image(texture: &Texture2D) -> Option<Image> {
+    let id = texture.raw_miniquad_id();
+    IMAGES
+        .lock()
+        .unwrap()
+        .iter()
+        .find(|(t, _)| *t == id)
+        .map(|(_, image)| image.clone())
+}
+
+/// A cell in a packed page.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PackedFrame {
+    pub page: usize,
+    pub source: Rect,
+    pub anchor: Vec2,
+    pub height: f32,
+}
+
+/// Re-express a frame's anchor and height for a crop of its source
+/// rectangle. Feet stay where the sim puts them; the drawn body keeps its
+/// size, because height is relative to the source rectangle's height.
+pub fn refit(source: Rect, anchor: Vec2, height: f32, crop: Rect) -> (Vec2, f32) {
+    let anchor = vec2(
+        (anchor.x * source.w - (crop.x - source.x)) / crop.w,
+        (anchor.y * source.h - (crop.y - source.y)) / crop.h,
+    );
+    (anchor, height * crop.h / source.h)
+}
+
+pub struct Packed {
+    pages: Vec<Texture2D>,
+    frames: HashMap<Cell, PackedFrame>,
+}
+
+impl Packed {
+    pub fn parse(manifest: &str) -> HashMap<Cell, PackedFrame> {
+        let mut frames = HashMap::new();
+        for line in manifest.lines() {
+            let mut it = line.split_whitespace();
+            let (Some(key), Some(page)) = (it.next(), it.next()) else { continue };
+            let nums: Vec<f32> = it.filter_map(|v| v.parse().ok()).collect();
+            let (Some(cell), Ok(page)) = (Cell::parse(key), page.parse::<usize>()) else {
+                continue;
+            };
+            let [x, y, w, h, ax, ay, height] = nums[..] else {
+                continue;
+            };
+            frames.insert(
+                cell,
+                PackedFrame {
+                    page,
+                    source: Rect::new(x, y, w, h),
+                    anchor: vec2(ax, ay),
+                    height,
+                },
+            );
+        }
+        frames
+    }
+
+    fn frame(&self, cell: Cell) -> Option<SpriteFrame<'_>> {
+        let lookup = |cell: Cell| {
+            self.frames.get(&cell).map(|f| SpriteFrame {
+                texture: &self.pages[f.page],
+                source: Some(f.source),
+                anchor: f.anchor,
+                height: f.height,
+            })
+        };
+        if let Cell::Pose(pose) = cell {
+            let mut p = Some(pose);
+            while let Some(cur) = p {
+                if let Some(f) = lookup(Cell::Pose(cur)) {
+                    return Some(f);
+                }
+                p = cur.fallback();
+            }
+            return None;
+        }
+        lookup(cell)
+    }
+}
+
 /// Shared normalized layout lets framing checks measure the same complete
 /// source region and projected root used by the renderer.
 pub fn thrust_layout(cell: usize) -> (Rect, Vec2, f32) {
@@ -356,28 +740,167 @@ pub(crate) fn key_green(image: &mut Image) {
     }
 }
 
+/// A selector in priority order: what it picks, and which cells must be
+/// present before any of its family is used, so a partly missing family
+/// never mixes authored and fallback pictures inside one move.
+pub struct Selector {
+    pub name: &'static str,
+    pub pick: fn(&Fighter) -> Option<Cell>,
+    pub requires: &'static [(Option<CharacterId>, Cell)],
+}
+
+const K: Option<CharacterId> = Some(CharacterId::Kogan);
+const R: Option<CharacterId> = Some(CharacterId::Raya);
+
+pub const SELECTORS: &[Selector] = &[
+    Selector { name: "feint", pick: crate::sequences::feint_cell, requires: &[] },
+    Selector { name: "throw tech", pick: crate::sequences::throw_tech_cell, requires: &[] },
+    Selector { name: "overhead", pick: crate::sequences::overhead_cell, requires: &[(None, Cell::Overhead(0))] },
+    Selector {
+        name: "chant",
+        pick: crate::sequences::chant_cell,
+        requires: &[(None, Cell::Signature(0)), (None, Cell::Chant(0)), (None, Cell::Chant(4))],
+    },
+    Selector {
+        name: "signature",
+        pick: crate::sequences::signature_cell,
+        requires: &[(None, Cell::Signature(0)), (None, Cell::Signature(4))],
+    },
+    Selector {
+        name: "standing lights",
+        pick: crate::sequences::standing_lights_cell,
+        requires: &[(None, Cell::StandingLights(0)), (None, Cell::StandingLights(1))],
+    },
+    Selector {
+        name: "crouch lights",
+        pick: crate::sequences::crouch_lights_cell,
+        requires: &[(None, Cell::CrouchLights(0)), (None, Cell::CrouchLights(5))],
+    },
+    Selector { name: "crouch punch", pick: crate::sequences::crouch_punch_cell, requires: &[(None, Cell::CrouchPunch(0))] },
+    Selector {
+        name: "crouch saber",
+        pick: crate::sequences::crouch_saber_cell,
+        requires: &[(None, Cell::CrouchSaber(0)), (None, Cell::CrouchSaber(8))],
+    },
+    Selector { name: "flash", pick: crate::sequences::flash_cell, requires: &[(None, Cell::Flash(0)), (R, Cell::Flash(5))] },
+    Selector {
+        name: "air lights",
+        pick: crate::sequences::air_lights_cell,
+        requires: &[(None, Cell::AirLights(0)), (K, Cell::AirLights(1))],
+    },
+    Selector {
+        name: "air saber",
+        pick: crate::sequences::air_saber_cell,
+        requires: &[(None, Cell::AirSaber(1)), (R, Cell::AirSaber(0))],
+    },
+    Selector { name: "air shot", pick: crate::sequences::air_shot_cell, requires: &[(None, Cell::AirShot(0)), (None, Cell::AirShot(3))] },
+    Selector { name: "judgment", pick: crate::sequences::judgment_cell, requires: &[(None, Cell::Judgment(0))] },
+    Selector { name: "floor", pick: crate::sequences::floor_cell, requires: &[(None, Cell::Floor(0))] },
+    Selector { name: "air recovery", pick: crate::sequences::air_recovery_cell, requires: &[(None, Cell::AirRecovery(0))] },
+    Selector { name: "recoil", pick: crate::sequences::recoil_cell, requires: &[(None, Cell::Recoil(0))] },
+    Selector { name: "disc", pick: crate::sequences::disc_cell, requires: &[(None, Cell::Disc(0))] },
+    Selector { name: "poke", pick: crate::sequences::poke_cell, requires: &[(None, Cell::Poke(0))] },
+    Selector { name: "utility", pick: crate::sequences::utility_cell, requires: &[(None, Cell::Utility(0))] },
+    Selector { name: "ritual", pick: crate::sequences::ritual_cell, requires: &[(None, Cell::Ritual(0))] },
+    Selector { name: "ranged", pick: crate::sequences::ranged_cell, requires: &[(None, Cell::Ranged(0))] },
+    Selector { name: "movement", pick: crate::sequences::movement_cell, requires: &[(None, Cell::Movement(0))] },
+    Selector { name: "compact uppercut", pick: crate::sequences::compact_uppercut_cell, requires: &[(None, Cell::UppercutCompact(0))] },
+    Selector { name: "reactions and reversals", pick: crate::sequences::cell_for, requires: &[] },
+];
+
 impl SpriteSet {
-    pub async fn load(body: CharacterId) -> Self {
-        let dir = match body {
+    fn dir(body: CharacterId) -> &'static str {
+        match body {
             CharacterId::Kogan => "kogan",
             CharacterId::Raya => "raya",
-        };
+        }
+    }
+
+    /// Packed pages when the packer has run, else every source sheet.
+    pub async fn load(body: CharacterId) -> Self {
+        if let Some(set) = Self::load_packed(body).await {
+            return set;
+        }
+        Self::load_unpacked(body).await
+    }
+
+    /// `assets/packed/<body>.manifest` plus its pages: already keyed, already
+    /// cropped, a few textures instead of sixty.
+    pub async fn load_packed(body: CharacterId) -> Option<Self> {
+        let dir = Self::dir(body);
+        let manifest = load_string(&format!("assets/packed/{dir}.manifest")).await.ok()?;
+        let frames = Packed::parse(&manifest);
+        let page_count = frames.values().map(|f| f.page + 1).max()?;
+        let mut bytes = Vec::with_capacity(page_count);
+        for n in 0..page_count {
+            bytes.push(load_file(&format!("assets/packed/{dir}-{n}.png")).await.ok()?);
+        }
+        // PNG inflate is the whole startup cost now. Decode two pages at a
+        // time on worker threads and upload each pair before decoding the
+        // next, so the transient memory stays at two pages, not all of them.
+        let mut pages: Vec<Texture2D> = Vec::with_capacity(page_count);
+        for pair in bytes.chunks(2) {
+            let images: Vec<Image> = std::thread::scope(|scope| {
+                let handles: Vec<_> = pair
+                    .iter()
+                    .map(|b| scope.spawn(|| Image::from_file_with_format(b, Some(ImageFormat::Png))))
+                    .collect();
+                handles.into_iter().filter_map(|h| h.join().ok()?.ok()).collect()
+            });
+            if images.len() != pair.len() {
+                return None;
+            }
+            for image in &images {
+                let page = Texture2D::from_image(image);
+                page.set_filter(FilterMode::Linear);
+                pages.push(page);
+            }
+        }
+        eprintln!(
+            "[aeon] {} packed: {} cells on {} pages",
+            body.name(),
+            frames.len(),
+            pages.len()
+        );
+        let mut set = Self::empty_set(body);
+        set.packed = Some(Packed { pages, frames });
+        set.log_selectors();
+        Some(set)
+    }
+
+    /// Which authored families this set can draw, in selector order.
+    fn log_selectors(&self) {
+        let ready: Vec<&str> = SELECTORS
+            .iter()
+            .filter(|s| !s.requires.is_empty() && self.have(s.requires))
+            .map(|s| s.name)
+            .collect();
+        eprintln!("[aeon] {} selectors ready: {}", self.body.name(), ready.join(", "));
+    }
+
+    /// One line for the title screen.
+    pub fn describe(&self) -> String {
+        match &self.packed {
+            Some(p) => format!("{} cells packed on {} page(s)", p.frames.len(), p.pages.len()),
+            None => format!("{} poses from sheets", self.textures.len()),
+        }
+    }
+
+    pub async fn load_unpacked(body: CharacterId) -> Self {
+        let dir = Self::dir(body);
         let mut textures = HashMap::new();
         for pose in Pose::ALL {
             let path = format!("assets/{dir}/{}.png", pose.file());
             if let Ok(mut image) = load_image(&path).await {
                 key_green(&mut image);
-                let tex = Texture2D::from_image(&image);
-                tex.set_filter(FilterMode::Linear);
-                textures.insert(pose, tex);
+                textures.insert(pose, upload(&image));
             }
         }
         eprintln!("[aeon] {} sprites: {} poses", body.name(), textures.len());
         let atlas = match load_image(&format!("assets/animation/{dir}-v1-green.png")).await {
             Ok(mut image) => {
                 key_green(&mut image);
-                let texture = Texture2D::from_image(&image);
-                texture.set_filter(FilterMode::Linear);
+                let texture = upload(&image);
                 eprintln!("[aeon] {} animation: 16 cells", body.name());
                 Some(texture)
             }
@@ -390,8 +913,7 @@ impl SpriteSet {
             match load_image("assets/animation/kogan-thrust-v2-green.png").await {
                 Ok(mut image) => {
                     key_green(&mut image);
-                    let texture = Texture2D::from_image(&image);
-                    texture.set_filter(FilterMode::Linear);
+                    let texture = upload(&image);
                     eprintln!("[aeon] KOGAN thrust animation: 4 wide cells");
                     Some(texture)
                 }
@@ -594,13 +1116,20 @@ impl SpriteSet {
         let chant_finisher = if body == CharacterId::Raya {
             Atlas::load("assets/animation/raya-chant3-v1-green.png", (1254, 1254), &RAYA_CHANT_III).await
         } else { None };
-        Self { textures, body, atlas, thrust, thrust_style, reactions, uppercut, compact_uppercut, cuts, first_cut, backcut, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, throw_contact, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, jab_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_saber_contact, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, ritual, utility }
+        let set = Self { packed: None, textures, body, atlas, thrust, thrust_style, reactions, uppercut, compact_uppercut, cuts, first_cut, backcut, poke, disc, judgment, air_shot, air_shot_return, air_saber, air_lights, air_lights_contact, flash, flash_contact, overhead, throw_tech, throw_contact, victory, standing_lights, signature, signature_contacts, chant, chant_finisher, standing_palm_contact, jab_contact, crouch_lights, crouch_kick_contact, crouch_punch, crouch_saber, crouch_saber_contact, crouch_low, floor, air_recovery, recoil, ground, walk, coil, movement, ranged, ritual, utility };
+        set.log_selectors();
+        set
     }
 
     /// A set with no textures: cells resolve to pose names only.
     #[cfg(test)]
     pub fn empty(body: CharacterId) -> Self {
+        Self::empty_set(body)
+    }
+
+    fn empty_set(body: CharacterId) -> Self {
         Self {
+            packed: None,
             textures: HashMap::new(),
             body,
             atlas: None,
@@ -652,8 +1181,12 @@ impl SpriteSet {
         }
     }
 
-    pub fn count(&self) -> usize {
-        self.textures.len()
+    /// Every cell that resolves to a picture in this set.
+    pub fn available_cells(&self) -> Vec<Cell> {
+        Cell::candidates()
+            .into_iter()
+            .filter(|c| self.frame(*c).is_some())
+            .collect()
     }
 
     pub fn body(&self) -> CharacterId {
@@ -679,104 +1212,32 @@ impl SpriteSet {
         self.cell_for(fighter, tick)
     }
 
-    /// The picture for this fighter on this simulation tick.
+    fn have(&self, requires: &[(Option<CharacterId>, Cell)]) -> bool {
+        requires
+            .iter()
+            .filter(|(body, _)| body.is_none_or(|b| b == self.body))
+            .all(|(_, cell)| self.frame(*cell).is_some())
+    }
+
+    /// The picture for this fighter on this simulation tick: the first
+    /// selector in `SELECTORS` whose family is present and whose pick
+    /// resolves, else the signature atlas, else a keyed pose.
     pub fn cell_for(&self, fighter: &Fighter, tick: u32) -> Cell {
-        if let Some(cell) = crate::sequences::feint_cell(fighter) {
-            if self.frame(cell).is_some() { return cell; }
-        }
-        if let Some(cell) = crate::sequences::throw_tech_cell(fighter) {
-            if self.frame(cell).is_some() { return cell; }
-        }
-        if self.overhead.is_some() {
-            if let Some(cell) = crate::sequences::overhead_cell(fighter) { return cell; }
-        }
-        if self.signature.is_some() && self.chant.is_some() && self.chant_finisher.is_some() {
-            if let Some(cell) = crate::sequences::chant_cell(fighter) { return cell; }
-        }
-        if self.signature.is_some() && self.signature_contacts.is_some() {
-            if let Some(cell) = crate::sequences::signature_cell(fighter) { return cell; }
-        }
-        let standing_lights_ready = match self.body {
-            CharacterId::Kogan if matches!(fighter.action, Action::Attack { move_id: MoveId::StK, .. }) => self.standing_lights.is_some(),
-            CharacterId::Kogan => self.flash.is_some() && (self.jab_contact.is_some() || self.textures.contains_key(&Pose::P)),
-            CharacterId::Raya => self.standing_lights.is_some() && self.standing_palm_contact.is_some(),
-        };
-        if standing_lights_ready {
-            if let Some(cell) = crate::sequences::standing_lights_cell(fighter) { return cell; }
-        }
-        if self.crouch_lights.is_some() && (self.body == CharacterId::Kogan || self.crouch_kick_contact.is_some()) {
-            if let Some(cell) = crate::sequences::crouch_lights_cell(fighter) { return cell; }
-        }
-        if self.crouch_punch.is_some() {
-            if let Some(cell) = crate::sequences::crouch_punch_cell(fighter) { return cell; }
-        }
-        if self.crouch_saber.is_some() && self.crouch_low.is_some() {
-            if let Some(cell) = crate::sequences::crouch_saber_cell(fighter) { return cell; }
-        }
-        if self.flash.is_some() && (self.body != CharacterId::Raya || self.flash_contact.is_some()) {
-            if let Some(cell) = crate::sequences::flash_cell(fighter) { return cell; }
-        }
-        if self.air_lights.is_some() && (self.body == CharacterId::Raya || self.air_lights_contact.is_some()) {
-            if let Some(cell) = crate::sequences::air_lights_cell(fighter) { return cell; }
-        }
-        if self.air_saber.is_some() && (self.body == CharacterId::Kogan || self.air_lights.is_some()) {
-            if let Some(cell) = crate::sequences::air_saber_cell(fighter) { return cell; }
-        }
-        if self.air_shot.is_some() && self.air_shot_return.is_some() {
-            if let Some(cell) = crate::sequences::air_shot_cell(fighter) { return cell; }
-        }
-        if self.judgment.is_some() {
-            if let Some(cell) = crate::sequences::judgment_cell(fighter) { return cell; }
-        }
-        if self.floor.is_some() {
-            if let Some(cell) = crate::sequences::floor_cell(fighter) { return cell; }
-        }
-        if self.air_recovery.is_some() {
-            if let Some(cell) = crate::sequences::air_recovery_cell(fighter) { return cell; }
-        }
-        if self.recoil.is_some() {
-            if let Some(cell) = crate::sequences::recoil_cell(fighter) { return cell; }
-        }
-        if self.disc.is_some() {
-            if let Some(cell) = crate::sequences::disc_cell(fighter) { return cell; }
-        }
-        if self.poke.is_some() {
-            if let Some(cell) = crate::sequences::poke_cell(fighter) { return cell; }
-        }
-        if self.utility.is_some() {
-            if let Some(cell) = crate::sequences::utility_cell(fighter) {
-                if self.frame(cell).is_some() { return cell; }
+        for selector in SELECTORS {
+            if !self.have(selector.requires) {
+                continue;
             }
-        }
-        if self.ritual.is_some() {
-            if let Some(cell)=crate::sequences::ritual_cell(fighter) {
-                if self.frame(cell).is_some() {return cell;}
-            }
-        }
-        if self.ranged.is_some() {
-            if let Some(cell) = crate::sequences::ranged_cell(fighter) {
-                return cell;
-            }
-        }
-        if self.movement.is_some() {
-            if let Some(cell) = crate::sequences::movement_cell(fighter) {
-                return cell;
-            }
-        }
-        if self.compact_uppercut.is_some() {
-            if let Some(cell) = crate::sequences::compact_uppercut_cell(fighter) { return cell; }
-        }
-        if let Some(cell) = crate::sequences::cell_for(fighter) {
-            if matches!(cell, Cell::Reaction(_)) && self.reactions.is_some()
-                || matches!(cell, Cell::Uppercut(_)) && self.uppercut.is_some() {
-                return cell;
+            if let Some(cell) = (selector.pick)(fighter) {
+                if self.frame(cell).is_some() {
+                    return cell;
+                }
             }
         }
         // Quiet neutral shares the authored ready pose used by attack returns.
         if fighter.id == CharacterId::Kogan
             && !fighter.airborne
             && matches!(fighter.action, Action::Stand)
-            && self.flash.is_some()
+            && self.frame(Cell::Flash(3)).is_some()
         {
             return Cell::Flash(3);
         }
@@ -788,10 +1249,10 @@ impl SpriteSet {
                     ..
                 }
             );
-            if thrust && (self.thrust_style.is_some() || self.thrust.is_some()) {
+            if thrust && self.frame(Cell::Thrust(cell % 4)).is_some() {
                 return Cell::Thrust(cell % 4);
             }
-            if self.atlas.is_some() {
+            if self.frame(Cell::Atlas(cell)).is_some() {
                 return Cell::Atlas(cell);
             }
         }
@@ -800,6 +1261,9 @@ impl SpriteSet {
 
     /// Resolve a cell to its texture, source rectangle and foot anchor.
     pub fn frame(&self, cell: Cell) -> Option<SpriteFrame<'_>> {
+        if let Some(packed) = &self.packed {
+            return packed.frame(cell);
+        }
         match cell {
             Cell::Movement(cell) => self.movement.as_ref()?.frame(cell),
             Cell::Ranged(cell) => self.ranged.as_ref()?.frame(cell),

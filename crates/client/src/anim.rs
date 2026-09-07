@@ -351,7 +351,19 @@ pub fn layers(
         };
     }
     let mut m = if opts.defeat.is_some() { Motion::REST } else { motion(f, w) };
-    respect_authored_drawing(f.id, cell, &mut m);
+    let style = cell.style(f.id);
+    if style.pinned {
+        // Commitment is drawn; extra shifts detach the weapon from its contact line.
+        m.dx = 0.0;
+        m.dy = 0.0;
+    }
+    if style.rigid {
+        // Dedicated drawings already contain the bend/tumble. Rotating them
+        // again around their feet puts the body below the floor.
+        m.rot = 0.0;
+        m.sx = 1.0;
+        m.sy = 1.0;
+    }
 
     // Hitstop: the struck body shudders in place, the striker leans on
     // the hit. Amplitude follows the weight of the contact.
@@ -370,14 +382,16 @@ pub fn layers(
     let mut out = Vec::with_capacity(6);
 
     if let Some((color, count, spacing)) = m.ghosts {
-        let count = if f.id == CharacterId::Kogan || matches!(cell, Cell::Ground(_) | Cell::Judgment(_)) { count.min(2) } else { count };
+        let count = if style.trail_short { count.min(2) } else { count };
         for k in (1..=count).rev() {
             let Some(snap) = history.at(i, w.frame.saturating_sub(k * spacing)) else {
                 continue;
             };
             // A changing step silhouette must not trail an old stance or
             // put a previous leaning head ahead of the braking body.
-            if (matches!(cell, Cell::Judgment(_) | Cell::Victory(_) | Cell::ThrowContact | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_)) || kogan_combat_cell(f.id, cell)) && snap.cell != cell { continue; }
+            if style.trail_same_cell && snap.cell != cell {
+                continue;
+            }
             // A body that has not moved leaves no trail.
             if (snap.x - sub(f.pos.x)).abs() + (snap.y - sub(f.pos.y)).abs() < 1.0 {
                 continue;
@@ -387,7 +401,7 @@ pub fn layers(
                 x: snap.x,
                 y: snap.y,
                 facing_right: snap.facing_right,
-                rot: if authored_drawing(f.id, snap.cell) { 0.0 } else { m.rot * 0.5 },
+                rot: if snap.cell.style(f.id).rigid { 0.0 } else { m.rot * 0.5 },
                 sx: 1.0,
                 sy: 1.0,
                 alpha: 0.17 * (1.0 - (k - 1) as f32 / count as f32),
@@ -410,13 +424,10 @@ pub fn layers(
     let cuts = opts.defeat.is_some() || matches!(f.action, Action::Knockdown { .. }) || (f.airborne && f.action.in_hitstun());
     // Authored movement/weapon phases already describe the transition. Overlaying
     // old silhouettes creates duplicate limbs and weapons through these cuts.
-    if let Some(prev) = history.previous_cell(i, cell).filter(|prev| {
-        !(cuts || [cell, prev.cell].into_iter().any(|c| {
-            matches!(c, Cell::Victory(_) | Cell::ThrowContact | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Judgment(_) | Cell::Ritual(_) | Cell::Ranged(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
-                || kogan_combat_cell(f.id, c)
-                || matches!((f.id, c), (CharacterId::Raya, Cell::Reaction(_)))
-        }))
-    }) {
+    if let Some(prev) = history
+        .previous_cell(i, cell)
+        .filter(|prev| !(cuts || style.cut || prev.cell.style(f.id).cut))
+    {
         let age = w.frame.saturating_sub(prev.frame);
         if (1..=CROSSFADE).contains(&age) {
             out.push(Layer {
@@ -449,30 +460,6 @@ pub fn layers(
         tint,
     });
     out
-}
-
-/// Dedicated drawings already contain the bend/tumble. Rotating them again
-/// around their feet puts the body below the floor and distorts sword arcs.
-fn kogan_combat_cell(id: CharacterId, cell: Cell) -> bool {
-    id == CharacterId::Kogan && matches!(cell, Cell::Atlas(0..=15) | Cell::Ground(_) | Cell::Disc(_) | Cell::Poke(_) | Cell::Thrust(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Reaction(_) | Cell::Recoil(_) | Cell::AirRecovery(_) | Cell::Floor(_) | Cell::Judgment(_) | Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::CrouchPunch(_) | Cell::Overhead(_) | Cell::ThrowTech(_) | Cell::Victory(_))
-}
-
-fn authored_drawing(id: CharacterId, cell: Cell) -> bool {
-    matches!(cell, Cell::Victory(_) | Cell::ThrowContact | Cell::Reaction(_) | Cell::Uppercut(_) | Cell::UppercutCompact(_) | Cell::Movement(_) | Cell::Judgment(_) | Cell::Ritual(_) | Cell::Ranged(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_) | Cell::Utility(_) | Cell::AirRecovery(_) | Cell::Recoil(_) | Cell::Ground(_) | Cell::Atlas(0..=3))
-        || kogan_combat_cell(id, cell)
-}
-
-fn respect_authored_drawing(id: CharacterId, cell: Cell, m: &mut Motion) {
-    if id == CharacterId::Raya && matches!(cell, Cell::Victory(_) | Cell::Judgment(_) | Cell::Ritual(_) | Cell::Ranged(_) | Cell::ThrowContact | Cell::Utility(_)) || matches!(cell, Cell::AirSaber(_) | Cell::AirLights(_) | Cell::CrouchSaber(_) | Cell::Flash(_) | Cell::Overhead(_) | Cell::Chant(_) | Cell::Signature(_) | Cell::StandingLights(_) | Cell::CrouchLights(_)) || id == CharacterId::Kogan && matches!(cell, Cell::AirShot(_) | Cell::AirSaber(_) | Cell::AirLights(_) | Cell::Flash(_) | Cell::CrouchSaber(_) | Cell::CrouchPunch(_) | Cell::Overhead(_) | Cell::ThrowTech(_) | Cell::Victory(_)) {
-        // Commitment is drawn; extra shifts detach the weapon from its contact line.
-        m.dx = 0.0;
-        m.dy = 0.0;
-    }
-    if authored_drawing(id, cell) {
-        m.rot = 0.0;
-        m.sx = 1.0;
-        m.sy = 1.0;
-    }
 }
 
 fn motion(f: &Fighter, w: &World) -> Motion {
@@ -732,6 +719,20 @@ mod tests {
 
     fn set(id: CharacterId) -> SpriteSet {
         SpriteSet::empty(id)
+    }
+
+    /// What the motion layer does with a cell's style, for the tests below.
+    fn respect_authored_drawing(id: CharacterId, cell: Cell, m: &mut Motion) {
+        let style = cell.style(id);
+        if style.pinned {
+            m.dx = 0.0;
+            m.dy = 0.0;
+        }
+        if style.rigid {
+            m.rot = 0.0;
+            m.sx = 1.0;
+            m.sy = 1.0;
+        }
     }
 
     #[test]
@@ -1154,7 +1155,7 @@ mod tests {
             respect_authored_drawing(CharacterId::Kogan, previous, &mut m);
             assert_eq!((m.rot, m.sx, m.sy), (0.0, 1.0, 1.0));
         }
-        assert!(!kogan_combat_cell(CharacterId::Raya, Cell::Atlas(6)), "Raya has separate review coverage");
+        assert!(!Cell::Atlas(6).style(CharacterId::Raya).rigid, "Raya has separate review coverage");
     }
 
     #[test]
@@ -1321,4 +1322,46 @@ mod tests {
         }
     }
 
+}
+
+#[cfg(test)]
+mod style_tests {
+    use super::*;
+
+    #[test]
+    fn style_table_reproduces_the_reviewed_rules() {
+        use CharacterId::{Kogan, Raya};
+        // Kogan's combat drawings: rigid, cut, same-cell short trails.
+        for cell in [Cell::Atlas(6), Cell::Thrust(2), Cell::Reaction(3), Cell::Floor(1), Cell::Disc(2)] {
+            let k = cell.style(Kogan);
+            assert!(k.rigid && k.cut && k.trail_same_cell && k.trail_short, "{cell:?}");
+        }
+        // The same families on Raya keep the procedural layer unless drawn for her.
+        assert!(!Cell::Atlas(6).style(Raya).rigid);
+        assert!(!Cell::Floor(1).style(Raya).rigid);
+        assert!(Cell::Reaction(3).style(Raya).rigid && !Cell::Reaction(3).style(Raya).trail_same_cell);
+        // Pinned families: no shove for either body.
+        for cell in [Cell::Flash(1), Cell::Overhead(2), Cell::CrouchSaber(4), Cell::Signature(1)] {
+            assert!(cell.style(Kogan).pinned && cell.style(Raya).pinned, "{cell:?}");
+        }
+        // Raya's ritual, ranged and victory drawings are pinned; Kogan's ranged are not.
+        assert!(Cell::Ritual(0).style(Raya).pinned && !Cell::Ritual(0).style(Kogan).pinned);
+        assert!(Cell::Ranged(0).style(Raya).pinned && !Cell::Ranged(0).style(Kogan).pinned);
+        // Trails: Kogan always short; Raya short only on ground and Judgment.
+        assert!(Cell::Movement(1).style(Kogan).trail_short);
+        assert!(!Cell::Movement(1).style(Raya).trail_short);
+        assert!(Cell::Ground(1).style(Raya).trail_short && Cell::Judgment(1).style(Raya).trail_short);
+        // Poses and Raya's cut cells fade and move freely.
+        let free = Cell::Pose(Pose::Idle).style(Raya);
+        assert!(!free.rigid && !free.pinned && !free.cut && !free.trail_same_cell);
+    }
+
+    #[test]
+    fn every_cell_has_a_manifest_key_that_parses_back() {
+        for cell in Cell::candidates() {
+            assert_eq!(Cell::parse(&cell.key()), Some(cell), "{cell:?}");
+        }
+        assert_eq!(Cell::parse("nonsense:1"), None);
+        assert_eq!(Cell::parse("pose:not-a-pose"), None);
+    }
 }
