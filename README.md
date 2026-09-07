@@ -4,7 +4,7 @@
   <img src="docs/brand/title-tagline-aegis.jpg" alt="Aeon title — Aegis tagline" width="720" />
 </p>
 
-A grounded 1v1 2D fighter in Rust. Two bodies of the Sanctum — **Kogan** (saber, revolver, disc-shield) and **Raya** (voice glyphs, crystals, the rite). Super Turbo footsies, Samurai Shodown's tax on the heavy buttons, then a measured layer of Roman Cancel, hop, run and feint.
+A classical 1v1 2D fighter in Rust. 
 
 Lights link. Weapon-heavies are minus. There are no normal chains. Two or three hits are typical; natural three-to-five-hit routes are allowed. Execution stays strict. The knockdown is the currency.
 
