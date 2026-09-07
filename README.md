@@ -10,6 +10,10 @@ Lights link. Weapon-heavies are minus. There are no normal chains. Two or three 
 - Toolchain is pinned to **Rust 1.96.0** by `rust-toolchain.toml`.
 - Verified platform: Apple Silicon macOS. Other platforms have not yet been validated.
 
+## Animation review milestone
+
+All69 implemented moves and relevant states have recorded visual acceptance.185 tests,clippy and release pass;sim/frame data unchanged. See [the review guide](docs/ANIMATION-REVIEW.md),[coverage](docs/ANIMATION-COVERAGE.md),[references](docs/ANIMATION-REFERENCES.md) and [audit](docs/ANIMATION-AUDIT.md). Physical stick play and competitive balance follow.
+
 ## Get started
 
 Install Rust through rustup and the platform C/linker toolchain, then clone and fetch dependencies once:
