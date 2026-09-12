@@ -28,7 +28,7 @@ Want to help with characters and competitive feel? See [CONTRIBUTE.md](CONTRIBUT
   <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-B87333?style=flat&colorA=1A1A1A" alt="Verified on macOS Apple Silicon">
 </p>
 
-`aeon-fighter` **0.1.0** on crates.io was published under MIT in error. That crate is not relicensed from here. This repository follows the [EULA](EULA.md), not MIT.
+`aeon-fighter` **0.1.0** on crates.io shipped under MIT by mistake and has been **yanked**. Current crate is **0.1.1** under this repo's [EULA](EULA.md) (source-available / proprietary). Prior MIT grants on 0.1.0 cannot be fully revoked for anyone who already obtained that version.
 
 ## Animation review milestone
 
