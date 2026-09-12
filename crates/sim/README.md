@@ -41,4 +41,6 @@ macroquad client lives in the same repository as the unpublished
 
 ## License
 
-MIT
+**DRAFT.** Copyright © Hedronite LLC. Source-available proprietary EULA — **not** open source, **not** MIT. See [EULA.md](../../EULA.md) in the repository root.
+
+`aeon-fighter` **0.1.0** on [crates.io](https://crates.io/crates/aeon-fighter) was published under MIT in error. That crate release is unchanged from here. This tree follows the EULA.
