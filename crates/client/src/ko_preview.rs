@@ -1,6 +1,6 @@
 //! Defeated-body continuity through grounded hits, launches, throws and resets.
 use super::*;
-use aeon_sim::{Match, Phase};
+use aeon_fighter::{Match, Phase};
 use crate::render::draw_match_overlay;
 
 const DURATION: u32 = 240;
@@ -116,7 +116,7 @@ pub async fn run(assets: &Assets, args: &[String]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aeon_sim::{Action,RoundOutcome};
+    use aeon_fighter::{Action,RoundOutcome};
     #[test]
     fn both_ko_bodies_reach_real_hits_floor_or_collapse_and_reset() {
         for victim in [CharacterId::Kogan,CharacterId::Raya] {

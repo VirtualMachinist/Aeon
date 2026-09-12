@@ -5,11 +5,11 @@
 
 mod common;
 
-use aeon_sim::fighter::{Action, LANDING_RECOVERY};
-use aeon_sim::geom::px;
-use aeon_sim::input::{Btn, Chord, InputFrame, CHARGE_FRAMES};
-use aeon_sim::moves::{MoveId, ShotBehavior, ThrowKind};
-use aeon_sim::{
+use aeon_fighter::fighter::{Action, LANDING_RECOVERY};
+use aeon_fighter::geom::px;
+use aeon_fighter::input::{Btn, Chord, InputFrame, CHARGE_FRAMES};
+use aeon_fighter::moves::{MoveId, ShotBehavior, ThrowKind};
+use aeon_fighter::{
     CharacterId, DummyMode, EventKind, Match, Phase, ProjectileKind, ShotState, World,
     FEINT_RECOVERY, RC_COST, RC_FREEZE_FRAMES,
 };
@@ -196,7 +196,7 @@ fn no_normal_chains_from_frame_data() {
 
 #[test]
 fn damage_scaling_is_100_80_60_45_35() {
-    use aeon_sim::collision::scale_damage;
+    use aeon_fighter::collision::scale_damage;
     assert_eq!(scale_damage(100, 0), 100);
     assert_eq!(scale_damage(100, 1), 80);
     assert_eq!(scale_damage(100, 2), 60);
@@ -281,7 +281,7 @@ fn roman_cancel_cannot_burst_from_hitstun_or_blockstun() {
         idle(),
         InputFrame {
             dir: 4,
-            buttons: aeon_sim::Buttons::chord(Chord::RomanCancel),
+            buttons: aeon_fighter::Buttons::chord(Chord::RomanCancel),
         },
     );
     assert!(
@@ -342,7 +342,7 @@ fn overhead_chord_is_high() {
         .data()
         .move_def(MoveId::Overhead)
         .unwrap();
-    assert_eq!(d.level, aeon_sim::HitLevel::High);
+    assert_eq!(d.level, aeon_fighter::HitLevel::High);
     // Beats crouch block.
     let mut w = free(CharacterId::Kogan, CharacterId::Kogan);
     let hp = w.fighters[1].health;
@@ -657,14 +657,14 @@ fn rekka_part_is_roman_cancellable() {
 fn special_cancel_window_is_tight() {
     // 5S on hit cancels into 236+S only up to CANCEL_LATE_FRAMES after active.
     let s = CharacterId::Kogan.data().move_def(MoveId::StS).unwrap();
-    let late = s.last_active() + aeon_sim::CANCEL_LATE_FRAMES;
+    let late = s.last_active() + aeon_fighter::CANCEL_LATE_FRAMES;
     let mut w = close_kogan();
     w.fighters[0].start_move(MoveId::StS);
     w.fighters[0].mark_connected(true);
     w.fighters[0].action = Action::Attack {
         move_id: MoveId::StS,
         frame: late + 1,
-        connected: aeon_sim::Connect::Hit,
+        connected: aeon_fighter::Connect::Hit,
     };
     motion(&mut w, &[2, 3, 6], Btn::S);
     assert!(
@@ -1029,7 +1029,7 @@ fn back_charge_release_is_not_a_stored_attack() {
         .data()
         .specials
         .iter()
-        .any(|r| matches!(r.motion, aeon_sim::Motion::ChargeBackForward)));
+        .any(|r| matches!(r.motion, aeon_fighter::Motion::ChargeBackForward)));
 }
 
 // ----------------------------------------------------------- placed shots
@@ -1296,7 +1296,7 @@ fn raya_glide_passes_through_the_body() {
 
 #[test]
 fn kogan_aura_never_extends_hurtboxes() {
-    let f = aeon_sim::Fighter::spawn(CharacterId::Kogan, px(300), true);
+    let f = aeon_fighter::Fighter::spawn(CharacterId::Kogan, px(300), true);
     let aura = f.visual_aura_box().expect("Kogan has a visual aura");
     let hurt = f.hurtboxes();
     assert!(aura.width() > hurt[0].width());
@@ -1361,7 +1361,7 @@ fn same_inputs_replay_to_the_same_state() {
 fn versus_is_first_to_two_rounds() {
     let mut m = Match::new(CharacterId::Kogan, CharacterId::Raya);
     assert!(matches!(m.phase, Phase::Intro { .. }));
-    for _ in 0..aeon_sim::versus::INTRO_FRAMES {
+    for _ in 0..aeon_fighter::versus::INTRO_FRAMES {
         m.tick(idle(), idle());
     }
     assert_eq!(m.phase, Phase::Fight);
@@ -1380,13 +1380,13 @@ fn versus_is_first_to_two_rounds() {
             round,
             m.phase
         );
-        for _ in 0..aeon_sim::versus::ROUND_END_FRAMES + 1 {
+        for _ in 0..aeon_fighter::versus::ROUND_END_FRAMES + 1 {
             m.tick(idle(), idle());
         }
         if round == 1 {
             assert_eq!(m.wins, [1, 0]);
             assert_eq!(m.round, 2);
-            for _ in 0..aeon_sim::versus::INTRO_FRAMES {
+            for _ in 0..aeon_fighter::versus::INTRO_FRAMES {
                 m.tick(idle(), idle());
             }
         }
@@ -1402,7 +1402,7 @@ fn time_over_goes_to_the_healthier_body() {
     w.time_left = 1;
     w.fighters[1].health -= 10;
     w.tick(idle(), idle());
-    assert_eq!(w.outcome, Some(aeon_sim::RoundOutcome::Winner(0)));
+    assert_eq!(w.outcome, Some(aeon_fighter::RoundOutcome::Winner(0)));
 }
 
 #[test]
@@ -1433,7 +1433,7 @@ fn dummy_block_all_reads_hit_level_from_move_data() {
 
 #[test]
 fn cornered_pushback_moves_the_attacker_but_shots_do_not() {
-    use aeon_sim::STAGE_W;
+    use aeon_fighter::STAGE_W;
     // Midscreen: a jab shoves only the defender.
     let mut w = close_kogan();
     let atk_x = w.fighters[0].pos.x;

@@ -1,6 +1,6 @@
 //! Authored reactions, floor recovery and reversals. Drawings follow the
 //! existing action/velocity; they never extend an input or recovery window.
-use aeon_sim::{Action, Fighter, MoveId, GETUP_FRAMES};
+use aeon_fighter::{Action, Fighter, MoveId, GETUP_FRAMES};
 use macroquad::prelude::*;
 use crate::sprites::{key_green, Cell, SpriteFrame};
 
@@ -121,9 +121,9 @@ pub fn feint_cell(f: &Fighter) -> Option<Cell> {
     let Action::Feint { frame } = f.action else { return None; };
     let move_id = f.last_move?;
     if !f.data().move_def(move_id)?.feintable { return None; }
-    let phase = usize::from(frame >= aeon_sim::fighter::FEINT_RECOVERY / 2);
+    let phase = usize::from(frame >= aeon_fighter::fighter::FEINT_RECOVERY / 2);
     if f.airborne { return Some([Cell::AirSaber(4), Cell::AirSaber(5)][phase]); }
-    if f.id == aeon_sim::CharacterId::Raya {
+    if f.id == aeon_fighter::CharacterId::Raya {
         if move_id == MoveId::Charge {
             return Some(Cell::Ritual(match frame { 0..=2 => 3, 3..=5 => 4, _ => 5 }));
         }
@@ -164,9 +164,9 @@ pub fn throw_tech_cell(f: &Fighter) -> Option<Cell> {
     if f.airborne { return None; }
     let Action::ThrowTech { frame } = f.action else { return None; };
     Some(if frame <= 5 {
-        if f.id == aeon_sim::CharacterId::Raya { Cell::Recoil(4) } else { Cell::ThrowTech(0) }
+        if f.id == aeon_fighter::CharacterId::Raya { Cell::Recoil(4) } else { Cell::ThrowTech(0) }
     } else if frame <= 10 {
-        if f.id == aeon_sim::CharacterId::Raya { Cell::Recoil(5) } else { Cell::ThrowTech(1) }
+        if f.id == aeon_fighter::CharacterId::Raya { Cell::Recoil(5) } else { Cell::ThrowTech(1) }
     } else { Cell::Utility(3) })
 }
 
@@ -189,13 +189,13 @@ pub fn overhead_cell(f: &Fighter) -> Option<Cell> {
     let Action::Attack { move_id: MoveId::Overhead, frame, .. } = f.action else { return None; };
     let mv = f.data().move_def(MoveId::Overhead)?;
     let phase = match f.id {
-        aeon_sim::CharacterId::Kogan => {
+        aeon_fighter::CharacterId::Kogan => {
             if frame < mv.first_active() { 0 }
             else if mv.is_active(frame) { 1 }
             else if frame <= mv.last_active() + u16::from(mv.recovery) / 2 { 2 }
             else { 3 }
         }
-        aeon_sim::CharacterId::Raya => {
+        aeon_fighter::CharacterId::Raya => {
             if frame < mv.first_active() / 2 { 0 }
             else if frame < mv.first_active() { 1 }
             else if mv.is_active(frame) { 2 }
@@ -228,7 +228,7 @@ pub const RAYA_SIGNATURE_CONTACTS: [Spec; 2] = [
 ];
 
 pub fn signature_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Raya || f.airborne { return None; }
+    if f.id != aeon_fighter::CharacterId::Raya || f.airborne { return None; }
     let Action::Attack { move_id, frame, .. } = f.action else { return None; };
     let column = match move_id { MoveId::StS => 0, MoveId::StHS => 1,
         MoveId::StHSClose => 2, _ => return None };
@@ -252,7 +252,7 @@ pub const RAYA_CHANT_III: [Spec; 4] = [
 ];
 
 pub fn chant_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Raya || f.airborne { return None; }
+    if f.id != aeon_fighter::CharacterId::Raya || f.airborne { return None; }
     let Action::Attack { move_id, frame, .. } = f.action else { return None; };
     let part = match move_id { MoveId::Rekka1 => 0, MoveId::Rekka2 => 1,
         MoveId::Rekka3 => 2, _ => return None };
@@ -312,7 +312,7 @@ pub const KOGAN_CROUCH_KICK: [Spec; 4] = [
 pub fn crouch_lights_cell(f: &Fighter) -> Option<Cell> {
     if f.airborne { return None; }
     let Action::Attack { move_id, frame, .. } = f.action else { return None; };
-    if f.id == aeon_sim::CharacterId::Kogan && move_id != MoveId::CrK { return None; }
+    if f.id == aeon_fighter::CharacterId::Kogan && move_id != MoveId::CrK { return None; }
     let base = match move_id { MoveId::CrP => 0, MoveId::CrK => 4, _ => return None };
     let mv = f.data().move_def(move_id)?;
     let phase = if frame < mv.first_active() { 0 }
@@ -331,7 +331,7 @@ pub const KOGAN_CROUCH_PUNCH: [Spec; 4] = [
 ];
 
 pub fn crouch_punch_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan || f.airborne { return None; }
+    if f.id != aeon_fighter::CharacterId::Kogan || f.airborne { return None; }
     let Action::Attack { move_id: MoveId::CrP, frame, .. } = f.action else { return None; };
     let mv = f.data().move_def(MoveId::CrP)?;
     Some(Cell::CrouchPunch(if frame < mv.first_active() { 0 }
@@ -488,7 +488,7 @@ pub fn air_saber_cell(f: &Fighter) -> Option<Cell> {
         return Some(Cell::AirSaber(5));
     }
     if let Action::Attack { move_id, frame, .. } = f.action {
-        let contact = match move_id { MoveId::JS => 1, MoveId::JHS => 2, MoveId::JST => 3, MoveId::SpecialOverhead if f.id == aeon_sim::CharacterId::Kogan => 3, _ => return None };
+        let contact = match move_id { MoveId::JS => 1, MoveId::JHS => 2, MoveId::JST => 3, MoveId::SpecialOverhead if f.id == aeon_fighter::CharacterId::Kogan => 3, _ => return None };
         let mv = f.data().move_def(move_id)?;
         return Some(Cell::AirSaber(if frame < mv.first_active() { 0 }
             else if mv.is_active(frame) { contact }
@@ -508,7 +508,7 @@ pub const KOGAN_AIR_SHOT_ROOT_Y: [Option<u16>; 4] = [
 ];
 
 pub fn air_shot_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan || !f.airborne { return None; }
+    if f.id != aeon_fighter::CharacterId::Kogan || !f.airborne { return None; }
     if let Action::Attack { move_id: MoveId::AirShot, frame, .. } = f.action {
         let first = f.data().move_def(MoveId::AirShot)?.first_active();
         return Some(Cell::AirShot(if frame < first / 2 { 0 }
@@ -531,7 +531,7 @@ pub const RAYA_CONVERGENCE: [Spec; 4] = [
 
 pub fn judgment_cell(f: &Fighter) -> Option<Cell> {
     if let Action::Attack { move_id: MoveId::Super, frame, .. } = f.action {
-        if f.id == aeon_sim::CharacterId::Raya {
+        if f.id == aeon_fighter::CharacterId::Raya {
             return Some(Cell::Judgment(match frame {0..=5=>0,6..=11=>1,12..=31=>2,_=>3}));
         }
         let mv = f.data().move_def(MoveId::Super)?;
@@ -549,7 +549,7 @@ pub const KOGAN_FLOOR: [Spec; 4] = [
 ];
 
 pub fn floor_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    if f.id != aeon_fighter::CharacterId::Kogan { return None; }
     match f.action {
         Action::Knockdown { .. } => Some(Cell::Floor(0)),
         Action::Getup { frame } => Some(Cell::Floor((frame * 4 / GETUP_FRAMES).min(3) as usize)),
@@ -581,7 +581,7 @@ pub fn air_recovery_cell(f: &Fighter) -> Option<Cell> {
     // A continuing knockdown keeps its established tumble. A normal juggle
     // retains recoil until the final four stun ticks; this never returns control.
     Some(Cell::AirRecovery(if f.vel.y > 0 || stun >= 4 { 0 }
-        else if f.pos.y > aeon_sim::px(24) { 1 } else { 2 }))
+        else if f.pos.y > aeon_fighter::px(24) { 1 } else { 2 }))
 }
 
 // Contact / release pairs retain a shared anatomical scale. The narrow
@@ -683,7 +683,7 @@ pub struct GroundContext {
 }
 
 pub fn ground_cell(f: &Fighter, context: GroundContext) -> Option<Cell> {
-    let kogan = f.id == aeon_sim::CharacterId::Kogan;
+    let kogan = f.id == aeon_fighter::CharacterId::Kogan;
     match f.action {
         Action::Run if context.age < 2 => Some(if kogan { Cell::Utility(4) } else { Cell::Ground(6) }),
         Action::Run => Some(Cell::Ground(((context.age - 2) / 8 % 2) as usize)),
@@ -728,7 +728,7 @@ pub const KOGAN_POKE: [Spec; 4] = [
 ];
 
 pub fn poke_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    if f.id != aeon_fighter::CharacterId::Kogan { return None; }
     let Action::Attack { move_id: MoveId::StS, frame, .. } = f.action else { return None; };
     let mv = f.data().move_def(MoveId::StS)?;
     let phase = if frame < mv.first_active() { 0 }
@@ -748,7 +748,7 @@ pub const KOGAN_DISC: [Spec; 4] = [
 /// The full disc exists only during the authored active brace. Dismissal
 /// and rising settle fit the existing recovery; no guard frames are added.
 pub fn disc_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    if f.id != aeon_fighter::CharacterId::Kogan { return None; }
     let Action::Attack { move_id: MoveId::Guard, frame, .. } = f.action else { return None; };
     let mv = f.data().move_def(MoveId::Guard)?;
     let phase = if frame < mv.first_active() { 0 }
@@ -770,29 +770,29 @@ pub const KOGAN_UPPERCUT_COMPACT: [Spec; 2] = [
 /// Complete the upward blade line during the early rise, then gather the
 /// body near the apex. The previous tall pose at maximum height hid the HUD.
 pub fn compact_uppercut_cell(f: &Fighter) -> Option<Cell> {
-    if f.id == aeon_sim::CharacterId::Raya {
+    if f.id == aeon_fighter::CharacterId::Raya {
         let mv = f.data().move_def(MoveId::Uppercut)?;
         return match f.action {
             Action::Attack { move_id: MoveId::Uppercut, frame, .. } if mv.is_active(frame) => Some(Cell::UppercutCompact(0)),
             Action::Attack { move_id: MoveId::Uppercut, frame, .. }
-                if frame > mv.last_active() && f.airborne && (f.vel.y >= 0 || f.pos.y > aeon_sim::px(100)) => Some(Cell::UppercutCompact(1)),
+                if frame > mv.last_active() && f.airborne && (f.vel.y >= 0 || f.pos.y > aeon_fighter::px(100)) => Some(Cell::UppercutCompact(1)),
             Action::Jump { air_ok: false, .. } if f.last_move == Some(MoveId::Uppercut)
-                && f.airborne && f.pos.y > aeon_sim::px(100) => Some(Cell::UppercutCompact(1)),
+                && f.airborne && f.pos.y > aeon_fighter::px(100) => Some(Cell::UppercutCompact(1)),
             _ => None,
         };
     }
-    if f.id != aeon_sim::CharacterId::Kogan { return None; }
+    if f.id != aeon_fighter::CharacterId::Kogan { return None; }
     match f.action {
         Action::Attack { move_id: MoveId::Uppercut, frame, .. } => {
             let first = f.data().move_def(MoveId::Uppercut)?.first_active();
             if frame < first + 2 { None }
             else if frame < first + 6 { Some(Cell::UppercutCompact(0)) }
-            else if f.airborne && (f.vel.y >= 0 || f.pos.y > aeon_sim::px(100)) {
+            else if f.airborne && (f.vel.y >= 0 || f.pos.y > aeon_fighter::px(100)) {
                 Some(Cell::UppercutCompact(1))
             } else { None }
         }
         Action::Jump { air_ok: false, .. } if f.last_move == Some(MoveId::Uppercut)
-            && f.airborne && f.pos.y > aeon_sim::px(100) => Some(Cell::UppercutCompact(1)),
+            && f.airborne && f.pos.y > aeon_fighter::px(100) => Some(Cell::UppercutCompact(1)),
         _ => None,
     }
 }
@@ -835,8 +835,8 @@ pub fn movement_cell(f: &Fighter) -> Option<Cell> {
         Action::Prejump { .. } => Some(Cell::Movement(0)),
         Action::Jump { air_ok: false, .. } if f.last_move == Some(MoveId::Uppercut) => None,
         Action::Jump { hop, .. } if f.airborne => {
-            let phase = if f.vel.y > aeon_sim::px(2) { 0 }
-                else if f.vel.y >= -aeon_sim::px(2) { 1 } else { 2 };
+            let phase = if f.vel.y > aeon_fighter::px(2) { 0 }
+                else if f.vel.y >= -aeon_fighter::px(2) { 1 } else { 2 };
             Some(Cell::Movement(if hop { 1 } else { 4 } + phase))
         }
         // Only the first existing 2f full-jump landing tick compresses deeply;
@@ -867,9 +867,9 @@ pub fn utility_cell(f: &Fighter) -> Option<Cell> {
     let mv = f.data().move_def(move_id)?;
     let cell = match move_id {
         MoveId::CommandGrab | MoveId::Throw => {
-            let hold = if move_id == MoveId::Throw { aeon_sim::fighter::THROW_TECH_WINDOW }
-                else { aeon_sim::fighter::COMMAND_GRAB_HOLD };
-            let release = if connected == aeon_sim::Connect::Hit {
+            let hold = if move_id == MoveId::Throw { aeon_fighter::fighter::THROW_TECH_WINDOW }
+                else { aeon_fighter::fighter::COMMAND_GRAB_HOLD };
+            let release = if connected == aeon_fighter::Connect::Hit {
                 mv.first_active() + u16::from(hold)
             } else if move_id == MoveId::Throw { mv.last_active() } else { mv.last_active() + 1 };
             let ready = if move_id == MoveId::Throw {
@@ -889,7 +889,7 @@ pub fn utility_cell(f: &Fighter) -> Option<Cell> {
         }
         _ => return None,
     };
-    Some(if f.id == aeon_sim::CharacterId::Raya && move_id == MoveId::Throw && cell == 1 {
+    Some(if f.id == aeon_fighter::CharacterId::Raya && move_id == MoveId::Throw && cell == 1 {
         Cell::ThrowContact
     } else { Cell::Utility(cell) })
 }
@@ -917,7 +917,7 @@ pub const RAYA_RITUAL: [Spec;8] = [
 ];
 
 pub fn ritual_cell(f: &Fighter) -> Option<Cell> {
-    if f.id != aeon_sim::CharacterId::Raya { return None; }
+    if f.id != aeon_fighter::CharacterId::Raya { return None; }
     let Action::Attack {move_id,frame,..}=f.action else {return None};
     match move_id {
         MoveId::Charge => {
@@ -940,7 +940,7 @@ pub fn ritual_cell(f: &Fighter) -> Option<Cell> {
 
 pub fn ranged_cell(f: &Fighter) -> Option<Cell> {
     let Action::Attack { move_id, frame, .. } = f.action else { return None };
-    if f.id == aeon_sim::CharacterId::Raya {
+    if f.id == aeon_fighter::CharacterId::Raya {
         let base = match move_id { MoveId::ShotA | MoveId::ExB => 0, MoveId::ShotB | MoveId::ExA => 4, _ => return None };
         let mv = f.data().move_def(move_id)?;
         // Release the drawn object exactly when the actual projectile appears.
@@ -974,7 +974,7 @@ pub fn cell_for(f: &Fighter) -> Option<Cell> {
         Action::Attack { move_id: MoveId::Uppercut, frame, .. } => {
             let mv = f.data().move_def(MoveId::Uppercut)?;
             let cell = if frame < mv.first_active() { 0 }
-                else if f.airborne && f.vel.y > aeon_sim::px(2) { 1 }
+                else if f.airborne && f.vel.y > aeon_fighter::px(2) { 1 }
                 else if f.airborne && f.vel.y >= 0 { 2 }
                 else { 3 };
             Some(Cell::Uppercut(cell))
@@ -997,7 +997,7 @@ pub fn cell_for(f: &Fighter) -> Option<Cell> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aeon_sim::{px, CharacterId, Connect, World};
+    use aeon_fighter::{px, CharacterId, Connect, World};
 
     #[test]
     fn recoil_release_uses_four_remaining_frames_and_yields_to_legal_control() {
@@ -1144,7 +1144,7 @@ mod tests {
                 f.last_move = Some(mv.id);
                 for airborne in [false, true] {
                     f.airborne = airborne;
-                    for frame in 0..aeon_sim::fighter::FEINT_RECOVERY {
+                    for frame in 0..aeon_fighter::fighter::FEINT_RECOVERY {
                         f.action = Action::Feint { frame };
                         let cell = feint_cell(&f);
                         assert_eq!(cell.is_some(), mv.feintable);

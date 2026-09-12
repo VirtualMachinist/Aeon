@@ -8,21 +8,21 @@
 //! Regenerate after a retune:
 //!
 //! ```text
-//! AEON_REGEN_DOCS=1 cargo test -p aeon-sim --test frame_data_doc
+//! AEON_REGEN_DOCS=1 cargo test -p aeon-fighter --test frame_data_doc
 //! ```
 
 use std::fmt::Write as _;
 use std::fs;
 use std::path::PathBuf;
 
-use aeon_sim::fighter::{
+use aeon_fighter::fighter::{
     BACKDASH_FRAMES, COMMAND_GRAB_HOLD, HOP_LANDING_RECOVERY, LANDING_RECOVERY, THROW_TECH_FRAMES,
 };
-use aeon_sim::input::{CHARGE_FRAMES, CHORD_WINDOW, HCB_WINDOW, MOTION_WINDOW};
-use aeon_sim::moves::CancelRule;
-use aeon_sim::versus::{INTRO_FRAMES, ROUND_END_FRAMES};
-use aeon_sim::world::DETONATE_FRAMES;
-use aeon_sim::{
+use aeon_fighter::input::{CHARGE_FRAMES, CHORD_WINDOW, HCB_WINDOW, MOTION_WINDOW};
+use aeon_fighter::moves::CancelRule;
+use aeon_fighter::versus::{INTRO_FRAMES, ROUND_END_FRAMES};
+use aeon_fighter::world::DETONATE_FRAMES;
+use aeon_fighter::{
     Character, CharacterId, HitLevel, MoveDef, MoveId, ShotBehavior, ThrowKind,
     CANCEL_LATE_FRAMES, FEINT_RECOVERY, GETUP_FRAMES, KNOCKDOWN_FRAMES, METER_MAX, PREJUMP,
     RC_COST, RC_FREEZE_FRAMES, ROUNDS_TO_WIN, ROUND_TIME, STAGE_W, SUB, THROW_TECH_WINDOW,
@@ -292,7 +292,7 @@ fn body(out: &mut String, id: CharacterId) {
 fn generate() -> String {
     let mut out = String::new();
     writeln!(out, "{BEGIN}").unwrap();
-    writeln!(out, "_Generated from `crates/sim/src/chars` by `tests/frame_data_doc.rs`. Do not edit by hand; retune the code and run `AEON_REGEN_DOCS=1 cargo test -p aeon-sim --test frame_data_doc`._\n").unwrap();
+    writeln!(out, "_Generated from `crates/sim/src/chars` by `tests/frame_data_doc.rs`. Do not edit by hand; retune the code and run `AEON_REGEN_DOCS=1 cargo test -p aeon-fighter --test frame_data_doc`._\n").unwrap();
     writeln!(out, "## Universal\n").unwrap();
     writeln!(out, "| Law | value |").unwrap();
     writeln!(out, "|---|---|").unwrap();
@@ -338,6 +338,6 @@ fn frame_data_doc_matches_code() {
     }
     assert!(
         existing == wanted,
-        "docs/FRAME-DATA.md is stale. Run: AEON_REGEN_DOCS=1 cargo test -p aeon-sim --test frame_data_doc"
+        "docs/FRAME-DATA.md is stale. Run: AEON_REGEN_DOCS=1 cargo test -p aeon-fighter --test frame_data_doc"
     );
 }

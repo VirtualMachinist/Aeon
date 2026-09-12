@@ -1,5 +1,5 @@
 //! Presentation consequence of zero health. Match/simulation state stays untouched.
-use aeon_sim::{Action, CharacterId, Phase, World};
+use aeon_fighter::{Action, CharacterId, Phase, World};
 use crate::sprites::Cell;
 
 #[derive(Clone, Copy)]
@@ -61,7 +61,7 @@ impl Clock {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aeon_sim::{InputFrame, RoundOutcome};
+    use aeon_fighter::{InputFrame, RoundOutcome};
     fn end() -> Phase { Phase::RoundEnd { outcome: RoundOutcome::Winner(0), frame: 20 } }
 
     #[test]

@@ -13,7 +13,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use aeon_sim::input::{stick_to_dir, Btn, Buttons, InputFrame};
+use aeon_fighter::input::{stick_to_dir, Btn, Buttons, InputFrame};
 use gilrs::{Axis, Button, Event, EventType, GamepadId, Gilrs};
 use macroquad::prelude::*;
 

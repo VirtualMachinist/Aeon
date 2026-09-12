@@ -1,7 +1,7 @@
 //! Legal hit, block and Roman Cancel with paused redraws and single ticks.
 //! Capture uses 60 Hz output; paused redraws never call World or Presentation.
 use super::*;
-use aeon_sim::Chord;
+use aeon_fighter::Chord;
 
 #[derive(Clone, Copy, Debug)]
 enum Kind { Hit, Block, Rc }
@@ -98,7 +98,7 @@ pub(super) async fn run(assets: &Assets, args: &[String]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aeon_sim::EventKind;
+    use aeon_fighter::EventKind;
     #[test]
     fn freeze_review_reaches_legal_hit_block_and_rc_in_every_case() {
         assert_eq!(cases().len(), 24);

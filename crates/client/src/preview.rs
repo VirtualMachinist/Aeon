@@ -3,7 +3,7 @@
 use super::{Assets, Presentation};
 use crate::render::{draw_hud, HudOpts, View, INK, LINEN, VW};
 use crate::timing::FixedClock;
-use aeon_sim::{px, Btn, CharacterId, InputFrame, MoveId, World};
+use aeon_fighter::{px, Btn, CharacterId, InputFrame, MoveId, World};
 use macroquad::prelude::*;
 use std::io::Write;
 
@@ -325,7 +325,7 @@ pub async fn run(assets: &Assets) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aeon_sim::EventKind;
+    use aeon_fighter::EventKind;
 
     #[test]
     fn review_sequences_really_connect_and_punish() {
