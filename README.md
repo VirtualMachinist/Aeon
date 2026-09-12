@@ -4,13 +4,15 @@
   <img src="docs/brand/title-tagline-aegis.jpg" alt="Aeon title — Aegis tagline" width="720" />
 </p>
 
+> **Source available. Not open source.** Copyright © Hedronite LLC. View and contribute welcome under a [CLA](CLA.md); commercial rights reserved. Contributor ≠ core team / profit share. Terms: [EULA.md](EULA.md) (draft).
+
 A classical 1v1 2D fighter in Rust. 
 
 Fast paced footsies, heinous oki pressure, high rewards for strong neutral play. 
 
 Let's build an awesome fighting game in rust!
 
-Want to help with characters and competitive feel? See [CONTRIBUTE.md](CONTRIBUTE.md).
+Want to help with characters and competitive feel? See [CONTRIBUTE.md](CONTRIBUTE.md) (CLA required before merge).
 
 - Law: [DESIGN.md](DESIGN.md). Numbers: [FRAME-DATA.md](docs/FRAME-DATA.md), generated from code and checked by a test. Grading: [QA.md](docs/QA.md).
 - Toolchain is pinned to **Rust 1.96.0** by `rust-toolchain.toml`.
@@ -21,10 +23,12 @@ Want to help with characters and competitive feel? See [CONTRIBUTE.md](CONTRIBUT
   <a href="https://rustup.rs"><img src="https://img.shields.io/badge/Rust-1.96-F46623?style=flat&colorA=1A1A1A&logo=rust&logoColor=white" alt="Rust 1.96"></a>
   <a href="https://crates.io/crates/aeon-fighter"><img src="https://img.shields.io/crates/v/aeon-fighter?style=flat&colorA=1A1A1A&colorB=B87333" alt="aeon-fighter on crates.io"></a>
   <a href="https://docs.rs/aeon-fighter"><img src="https://img.shields.io/docsrs/aeon-fighter?style=flat&colorA=1A1A1A&colorB=B87333&label=docs.rs" alt="docs.rs"></a>
-  <a href="Cargo.toml"><img src="https://img.shields.io/badge/License-MIT-B87333?style=flat&colorA=1A1A1A" alt="MIT"></a>
+  <a href="EULA.md"><img src="https://img.shields.io/badge/Source%20available-Proprietary-B87333?style=flat&colorA=1A1A1A" alt="Source available, proprietary"></a>
   <a href="docs/ANIMATION-REVIEW.md"><img src="https://img.shields.io/badge/Animation-69%2F69-00FFFF?style=flat&colorA=1A1A1A" alt="Animation 69/69"></a>
   <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-B87333?style=flat&colorA=1A1A1A" alt="Verified on macOS Apple Silicon">
 </p>
+
+`aeon-fighter` **0.1.0** on crates.io was published under MIT in error. That crate is not relicensed from here. This repository follows the [EULA](EULA.md), not MIT.
 
 ## Animation review milestone
 
@@ -115,7 +119,9 @@ Netcode, audio, camera effects, other bodies, and anything that puts a float in 
 
 The current build has 185 passing tests and verified versus/training launches. Both kits are playable and every state of both bodies moves through anticipation, contact and recovery with impact effects. Full-kit animation, stick feel and competitive balance remain ongoing work. Finish Kogan and Raya before expanding the roster.
 
+`aeon-fighter` **0.1.0** remains on crates.io under the MIT metadata it shipped with. That publish was a mistake. This tree is source-available under a draft proprietary [EULA](EULA.md). Hedronite LLC is not yanking that crate from this change.
+
 [Animation prompts](crates/client/assets/animation/PROMPTS.md) preserve the generated-art provenance.
 
 ---
-_Aeon is a project by VirtualMachinist._
+_Copyright © Hedronite LLC. Aeon is source-available, not open source. [EULA](EULA.md) · [CLA](CLA.md) · [commercial](COMMERCIAL.md)._

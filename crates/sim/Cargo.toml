@@ -2,7 +2,7 @@
 name = "aeon-fighter"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 authors.workspace = true
 description = "Deterministic 60 Hz fighting-game simulation. Integer subpixels; no rendering, no I/O."
 repository = "https://github.com/VirtualMachinist/Aeon"
