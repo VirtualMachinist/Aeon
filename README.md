@@ -16,7 +16,15 @@ Want to help with characters and competitive feel? See [CONTRIBUTE.md](CONTRIBUT
 - Toolchain is pinned to **Rust 1.96.0** by `rust-toolchain.toml`.
 - Verified platform: Apple Silicon macOS. Other platforms have not yet been validated.
 
-![Aeon CI](https://img.shields.io/badge/CI-pass-B87333) ![Animation](https://img.shields.io/badge/Animation-69%2F69-00FFFF)
+<p align="center">
+  <a href="https://hedronite.com"><img src="https://img.shields.io/badge/Hedronite-Site-B87333?style=flat&colorA=1A1A1A" alt="Hedronite"></a>
+  <a href="https://rustup.rs"><img src="https://img.shields.io/badge/Rust-1.96-F46623?style=flat&colorA=1A1A1A&logo=rust&logoColor=white" alt="Rust 1.96"></a>
+  <a href="https://crates.io/crates/aeon-fighter"><img src="https://img.shields.io/crates/v/aeon-fighter?style=flat&colorA=1A1A1A&colorB=B87333" alt="aeon-fighter on crates.io"></a>
+  <a href="https://docs.rs/aeon-fighter"><img src="https://img.shields.io/docsrs/aeon-fighter?style=flat&colorA=1A1A1A&colorB=B87333&label=docs.rs" alt="docs.rs"></a>
+  <a href="Cargo.toml"><img src="https://img.shields.io/badge/License-MIT-B87333?style=flat&colorA=1A1A1A" alt="MIT"></a>
+  <a href="docs/ANIMATION-REVIEW.md"><img src="https://img.shields.io/badge/Animation-69%2F69-00FFFF?style=flat&colorA=1A1A1A" alt="Animation 69/69"></a>
+  <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-B87333?style=flat&colorA=1A1A1A" alt="Verified on macOS Apple Silicon">
+</p>
 
 ## Animation review milestone
 
