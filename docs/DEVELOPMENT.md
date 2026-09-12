@@ -23,7 +23,7 @@ Animation aims for the flow of KOF XIII and Fatal Fury: City of the Wolves, with
 Work on a focused branch from `main`. Record changes to authored numbers and behavior in the relevant design/frame-data documents. For move-data changes, regenerate the tables:
 
 ```sh
-AEON_REGEN_DOCS=1 cargo test -p aeon-sim --test frame_data_doc --locked --offline
+AEON_REGEN_DOCS=1 cargo test -p aeon-fighter --test frame_data_doc --locked --offline
 ```
 
 Run checks appropriate to the change before integrating:

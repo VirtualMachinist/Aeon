@@ -33,9 +33,9 @@ fn sim_has_no_dependencies() {
         .take_while(|l| !l.starts_with('['))
         .filter(|l| !l.trim().is_empty() && !l.trim_start().starts_with('#'))
         .count();
-    assert_eq!(deps, 0, "aeon-sim must stay dependency-free: {manifest}");
+    assert_eq!(deps, 0, "aeon-fighter must stay dependency-free: {manifest}");
     for banned in ["macroquad", "gilrs", "kira", "bevy", "rand", "serde"] {
-        assert!(!manifest.contains(banned), "aeon-sim manifest mentions {banned}");
+        assert!(!manifest.contains(banned), "aeon-fighter manifest mentions {banned}");
     }
 }
 

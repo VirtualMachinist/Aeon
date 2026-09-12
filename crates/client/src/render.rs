@@ -2,7 +2,7 @@
 //! into the window, so castle, a 1080p mini, and a 1280×800 Deck read the
 //! same. The sim is in subpixels; `View` turns them into canvas pixels.
 
-use aeon_sim::{
+use aeon_fighter::{
     Aabb, CharacterId, Fighter, Match, Phase, ProjectileKind, ShotState, World, METER_MAX, STAGE_W,
     SUB,
 };
@@ -438,7 +438,7 @@ fn draw_layer(v: &View, sprites: &SpriteSet, l: &Layer, stand_h: f32, flash: &Fl
 
 // World y points up; the screen points down. A tail points opposite travel
 // in both axes, retaining the established width-based length for level shots.
-fn bullet_tail(velocity: aeon_sim::Vec2i, half_width: f32) -> Vec2 {
+fn bullet_tail(velocity: aeon_fighter::Vec2i, half_width: f32) -> Vec2 {
     vec2(-sub_to_px(velocity.x), sub_to_px(velocity.y)).normalize_or_zero() * half_width * 2.5
 }
 
@@ -667,7 +667,7 @@ fn gauge(v: &View, x: f32, y: f32, f: &Fighter, rtl: bool) {
     }
 }
 
-pub fn draw_input(v: &View, x: f32, y: f32, inp: aeon_sim::InputFrame, rtl: bool) {
+pub fn draw_input(v: &View, x: f32, y: f32, inp: aeon_fighter::InputFrame, rtl: bool) {
     // Numpad direction glyph and the 2×3 button grid.
     let x0 = if rtl { x - 150.0 } else { x };
     v.text(&format!("{}", inp.dir), x0, y + 22.0, 26.0, INK);
@@ -697,10 +697,10 @@ pub fn draw_match_overlay(v: &View, m: &Match, frame: u32) {
         Phase::RoundEnd { outcome, frame: f } => {
             let a = (f as f32 / 15.0).min(1.0);
             let text = match outcome {
-                aeon_sim::RoundOutcome::Winner(i) => format!("{} TAKES THE ROUND", m.world.fighters[i].id.name()),
-                aeon_sim::RoundOutcome::Draw => "DOUBLE KO".to_string(),
+                aeon_fighter::RoundOutcome::Winner(i) => format!("{} TAKES THE ROUND", m.world.fighters[i].id.name()),
+                aeon_fighter::RoundOutcome::Draw => "DOUBLE KO".to_string(),
             };
-            let ko = m.world.time_left == 0 && !matches!(outcome, aeon_sim::RoundOutcome::Draw)
+            let ko = m.world.time_left == 0 && !matches!(outcome, aeon_fighter::RoundOutcome::Draw)
                 && m.world.fighters.iter().all(|f| f.health > 0);
             v.text_center(if ko { "TIME" } else { "K.O." }, VW / 2.0, VH / 2.0 - 30.0, 80.0, Color { a, ..GOLD });
             v.text_center(&text, VW / 2.0, VH / 2.0 + 30.0, 30.0, Color { a, ..LINEN });
@@ -724,20 +724,20 @@ pub fn draw_match_overlay(v: &View, m: &Match, frame: u32) {
 #[cfg(test)]
 mod framing_tests {
     use super::*;
-    use aeon_sim::px;
+    use aeon_fighter::px;
 
     #[test]
     fn bullet_tail_opposes_projected_travel_for_both_facings() {
         for vx in [-6, 6] {
             for vy in [-6, 0, 6] {
-                let tail = bullet_tail(aeon_sim::Vec2i::new(px(vx), px(vy)), 9.0);
+                let tail = bullet_tail(aeon_fighter::Vec2i::new(px(vx), px(vy)), 9.0);
                 let travel = vec2(vx as f32, -vy as f32);
                 assert!(tail.dot(travel) < 0.0);
                 assert!((tail.x * travel.y - tail.y * travel.x).abs() < 0.001);
                 assert!((tail.length() - 22.5).abs() < 0.001);
             }
         }
-        assert_eq!(bullet_tail(aeon_sim::Vec2i::new(0, 0), 9.0), Vec2::ZERO);
+        assert_eq!(bullet_tail(aeon_fighter::Vec2i::new(0, 0), 9.0), Vec2::ZERO);
     }
 
     #[test]

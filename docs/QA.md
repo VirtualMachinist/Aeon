@@ -141,7 +141,7 @@ Each trial is a headless test in `crates/sim/tests/trials.rs` **and** a thing yo
 ## Reviewer protocol
 
 1. Pull or rsync the citadel tree (source only). Do not grade castle `target/` or chat.
-2. Run S2 then S1 then `cargo test -p aeon-sim`. If tests are red, stop; the pass is failed.
+2. Run S2 then S1 then `cargo test -p aeon-fighter`. If tests are red, stop; the pass is failed.
 3. Launch versus. Play trials 1–10 or run `cargo run -p aeon -- --smoke` and read `shots/`. Note which trials were not performed by hand.
 4. Read `docs/FRAME-DATA.md` against `crates/sim/src/chars/{kogan,raya}.rs` (or trust `frame_data_doc_matches_code`, which does that read).
 5. File findings as **blocker** (a gate fails), **tune** (law holds, numbers feel wrong — expected; we tune later unless a feel-target in `DESIGN.md` is violated), **nits**.
