@@ -5,7 +5,7 @@ members = ["crates/sim", "crates/client"]
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
+license-file = "EULA.md"
 authors = ["Evan"]
 description = "AEON — grounded 2D fighter: footsies, weapon tax, and Roman Cancel."
 
