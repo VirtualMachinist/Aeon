@@ -119,8 +119,6 @@ Netcode, audio, camera effects, other bodies, and anything that puts a float in 
 
 The current build has 185 passing tests and verified versus/training launches. Both kits are playable and every state of both bodies moves through anticipation, contact and recovery with impact effects. Full-kit animation, stick feel and competitive balance remain ongoing work. Finish Kogan and Raya before expanding the roster.
 
-`aeon-fighter` **0.1.0** remains on crates.io under the MIT metadata it shipped with. That publish was a mistake. This tree is source-available under a draft proprietary [EULA](EULA.md). Hedronite LLC is not yanking that crate from this change.
-
 [Animation prompts](crates/client/assets/animation/PROMPTS.md) preserve the generated-art provenance.
 
 ---
