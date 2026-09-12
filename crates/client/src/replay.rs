@@ -6,8 +6,8 @@
 
 use std::path::PathBuf;
 
-use aeon_sim::input::{Btn, Buttons, InputFrame};
-use aeon_sim::{CharacterId, DummyMode};
+use aeon_fighter::input::{Btn, Buttons, InputFrame};
+use aeon_fighter::{CharacterId, DummyMode};
 
 #[derive(Clone, Debug, Default)]
 pub struct Replay {

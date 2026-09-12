@@ -90,7 +90,7 @@ Scaling 100 / 80 / 60 / 45 then 35. Natural five-hit routes are legal; evaluate 
 
 ## Sim contract
 
-`aeon-sim` is a pure 60 Hz integer function: `World::tick(&mut self, p1: InputFrame, p2: InputFrame)`. 256 subpixels per pixel. No floats in `World`, no clock, no filesystem, no renderer, input or audio crates (`crates/sim/tests/purity.rs`). Facing-relative numpad input, 16f buffer, 12f motion window (16f for 63214), charge 45f. Back = stand block (High/Mid), down-back = crouch block (Low/Mid), airborne cannot block. Advantage = `hitstun − (active − 1) − recovery` on first-active contact. Kogan's aura is a render-only box and never a hurtbox. `state_hash()` exists for replays and a future rollback layer; the client is macroquad and replaceable.
+`aeon-fighter` is a pure 60 Hz integer function: `World::tick(&mut self, p1: InputFrame, p2: InputFrame)`. 256 subpixels per pixel. No floats in `World`, no clock, no filesystem, no renderer, input or audio crates (`crates/sim/tests/purity.rs`). Facing-relative numpad input, 16f buffer, 12f motion window (16f for 63214), charge 45f. Back = stand block (High/Mid), down-back = crouch block (Low/Mid), airborne cannot block. Advantage = `hitstun − (active − 1) − recovery` on first-active contact. Kogan's aura is a render-only box and never a hurtbox. `state_hash()` exists for replays and a future rollback layer; the client is macroquad and replaceable.
 
 ## Characters
 

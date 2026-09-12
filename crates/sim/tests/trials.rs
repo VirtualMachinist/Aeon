@@ -7,11 +7,11 @@
 
 mod common;
 
-use aeon_sim::fighter::Action;
-use aeon_sim::geom::px;
-use aeon_sim::input::{Btn, Chord, InputFrame};
-use aeon_sim::moves::MoveId;
-use aeon_sim::{CharacterId, DummyMode, EventKind, ProjectileKind, World, RC_COST};
+use aeon_fighter::fighter::Action;
+use aeon_fighter::geom::px;
+use aeon_fighter::input::{Btn, Chord, InputFrame};
+use aeon_fighter::moves::MoveId;
+use aeon_fighter::{CharacterId, DummyMode, EventKind, ProjectileKind, World, RC_COST};
 use common::*;
 
 /// Trial 1 — Jab link. Close P into P on hit. Two hits, not a chain-cancel.
@@ -243,9 +243,9 @@ fn trial_06_oki_triangle() {
     fn getup_frames_left(w: &World) -> u32 {
         match w.fighters[1].action {
             Action::Knockdown { frame } => {
-                (aeon_sim::KNOCKDOWN_FRAMES - frame + aeon_sim::GETUP_FRAMES) as u32
+                (aeon_fighter::KNOCKDOWN_FRAMES - frame + aeon_fighter::GETUP_FRAMES) as u32
             }
-            Action::Getup { frame } => (aeon_sim::GETUP_FRAMES - frame) as u32,
+            Action::Getup { frame } => (aeon_fighter::GETUP_FRAMES - frame) as u32,
             _ => 0,
         }
     }

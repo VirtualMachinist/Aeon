@@ -2,7 +2,7 @@
 //! simulation frames, so hitstop holds a spark on the point of contact and
 //! pause or frame-step freeze it. No camera work: the stage never moves.
 
-use aeon_sim::{Aabb, Action, CharacterId, EventKind, MoveId, ShotState, World, SUB};
+use aeon_fighter::{Aabb, Action, CharacterId, EventKind, MoveId, ShotState, World, SUB};
 use macroquad::prelude::*;
 
 use crate::render::{View, COPPER, CYAN, LINEN, VH, VW};
@@ -495,7 +495,7 @@ fn dust(v: &View, c: Vec2, t: f32, big: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aeon_sim::{Chord, InputFrame};
+    use aeon_fighter::{Chord, InputFrame};
 
     #[test]
     fn body_flash_holds_through_hitstop_then_expires_on_world_ticks() {
@@ -503,11 +503,11 @@ mod tests {
             for blocked in [false, true] {
                 let opponent = if body == CharacterId::Kogan { CharacterId::Raya } else { CharacterId::Kogan };
                 let mut w = World::new(body, opponent);
-                w.fighters[0].pos.x = aeon_sim::px(300);
-                w.fighters[1].pos.x = aeon_sim::px(340);
+                w.fighters[0].pos.x = aeon_fighter::px(300);
+                w.fighters[1].pos.x = aeon_fighter::px(340);
                 let mut effects = Effects::default();
                 for tick in 0..12 {
-                    let a = if tick == 0 { InputFrame::press(aeon_sim::Btn::P) } else { InputFrame::default() };
+                    let a = if tick == 0 { InputFrame::press(aeon_fighter::Btn::P) } else { InputFrame::default() };
                     let b = InputFrame::dir(if blocked { 4 } else { 5 });
                     w.tick(a, b);
                     effects.after_tick(&w);
@@ -581,7 +581,7 @@ mod tests {
             let f = &mut w.fighters[0];
             f.facing_right = facing;
             f.airborne = true;
-            f.pos.y = aeon_sim::px(200);
+            f.pos.y = aeon_fighter::px(200);
             f.start_move(MoveId::AirShot);
             let mut effects = Effects::default();
             for _ in 0..8 {

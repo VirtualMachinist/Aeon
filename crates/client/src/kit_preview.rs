@@ -4,7 +4,7 @@
 use super::{Assets, Presentation};
 use crate::render::{draw_hud, HudOpts, View, INK, LINEN, VW};
 use crate::timing::FixedClock;
-use aeon_sim::{px, Btn, Buttons, CharacterId, InputFrame, MoveId, World, STAGE_W};
+use aeon_fighter::{px, Btn, Buttons, CharacterId, InputFrame, MoveId, World, STAGE_W};
 use macroquad::prelude::*;
 use std::io::Write;
 
@@ -464,7 +464,7 @@ impl Case {
                 && world.fighters[0].action.attacking().is_some_and(|(id, age, _)|
                     id == self.move_id && age + 1 >= u16::from(self.body.data().move_def(id).unwrap().startup));
             let live = world.projectiles.iter().any(|p| p.owner == 0 && (p.live()
-                || matches!(p.state, aeon_sim::ShotState::Planted { armed: false, timer } if timer + 1 >= p.arm_after)));
+                || matches!(p.state, aeon_fighter::ShotState::Planted { armed: false, timer } if timer + 1 >= p.arm_after)));
             inputs[1] = InputFrame::dir(if glyph_release || live { 4 } else { 5 });
         }
 
@@ -476,7 +476,7 @@ impl Case {
                 f.vel.y > 0 && f.pos.y >= px(20)
             } else { f.vel.y <= 0 && f.pos.y <= px(attack_height) };
             let ready = world.hitstop == 0 && timing
-                && matches!(f.action, aeon_sim::Action::Jump { air_ok: true, .. });
+                && matches!(f.action, aeon_fighter::Action::Jump { air_ok: true, .. });
             if ready {
                 inputs[0].buttons = Buttons::one(match self.move_id {
                     MoveId::JP => Btn::P, MoveId::JK => Btn::K, MoveId::JS => Btn::S,
@@ -486,7 +486,7 @@ impl Case {
             let guard = if self.move_id == MoveId::AirShot {
                 world.projectiles.iter().any(|p| p.owner == 0
                     && (p.pos.x - world.fighters[1].pos.x).abs() <= px(50))
-                    || matches!(world.fighters[1].action, aeon_sim::Action::Block { .. })
+                    || matches!(world.fighters[1].action, aeon_fighter::Action::Block { .. })
             } else { ready || f.action.attacking().is_some() };
             inputs[1] = InputFrame::dir(match self.response {
                 Response::StandBlock if guard => 4,
@@ -494,7 +494,7 @@ impl Case {
             });
         }
         if self.saber && world.hitstop == 0 {
-            if let aeon_sim::Action::Attack { move_id, frame: action_frame, .. } = world.fighters[0].action {
+            if let aeon_fighter::Action::Attack { move_id, frame: action_frame, .. } = world.fighters[0].action {
                 let follow = move_id == MoveId::Rekka1 && matches!(self.move_id, MoveId::Rekka2 | MoveId::Rekka3)
                     || move_id == MoveId::Rekka2 && self.move_id == MoveId::Rekka3;
                 let mv = world.fighters[0].data().move_def(move_id).unwrap();
@@ -508,11 +508,11 @@ impl Case {
             // Release the held channel button after canceling; otherwise the
             // next edge would issue an unrelated normal during the return.
             if self.move_id == MoveId::Charge && f.last_move == Some(MoveId::Charge)
-                && !matches!(f.action, aeon_sim::Action::Attack { move_id: MoveId::Charge, .. }) {
+                && !matches!(f.action, aeon_fighter::Action::Attack { move_id: MoveId::Charge, .. }) {
                 inputs[0] = InputFrame::dir(5);
             }
             if world.hitstop == 0 {
-                if let aeon_sim::Action::Attack { move_id, frame: action_frame, .. } = f.action {
+                if let aeon_fighter::Action::Attack { move_id, frame: action_frame, .. } = f.action {
                     let mv = f.data().move_def(move_id).unwrap();
                     let cancel_frame = if early { 0 } else { mv.first_active() - 1 };
                     // A held FL is outside the chord window by late Charge startup.
@@ -522,7 +522,7 @@ impl Case {
                         inputs[0] = InputFrame::dir(5);
                     }
                     if move_id == self.move_id && action_frame == cancel_frame {
-                        inputs[0] = InputFrame::chord(aeon_sim::Chord::Feint);
+                        inputs[0] = InputFrame::chord(aeon_fighter::Chord::Feint);
                     }
                 }
             }
@@ -927,7 +927,7 @@ pub async fn run(assets: &Assets) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aeon_sim::{Action, EventKind};
+    use aeon_fighter::{Action, EventKind};
 
     #[test]
     fn raya_ritual_preview_uses_legal_channel_and_manual_armed_detonation() {
@@ -1017,7 +1017,7 @@ mod tests {
                 assert_eq!(world.fighters[0].gauge, 0, "startup cancel never channels");
             }
             assert_eq!(frames.first(), Some(&0));
-            assert!(frames.len() <= usize::from(aeon_sim::fighter::FEINT_RECOVERY));
+            assert!(frames.len() <= usize::from(aeon_fighter::fighter::FEINT_RECOVERY));
             assert_eq!(frames, (0..frames.len() as u16).collect::<Vec<_>>(), "{case:?}: uninterrupted phase clock until legal landing or return");
             assert!(matches!(world.fighters[0].action, Action::Stand));
             assert!(!world.fighters[0].airborne);
@@ -1153,7 +1153,7 @@ mod tests {
 
     #[test]
     fn air_preview_recognizes_every_loaded_and_empty_cylinder_move() {
-        use aeon_sim::Action;
+        use aeon_fighter::Action;
         let cases = [CharacterId::Kogan, CharacterId::Raya].into_iter().flat_map(air_cases).collect::<Vec<_>>();
         assert_eq!(cases.len(), 416);
         for case in cases {
@@ -1405,7 +1405,7 @@ mod tests {
             match ground {
                 Ground::WalkForward | Ground::WalkBack => assert!(walk >= 48, "{case:?}"),
                 Ground::Crouch => assert!(crouch, "{case:?}"),
-                Ground::BackDash => assert_eq!(backdash, aeon_sim::fighter::BACKDASH_FRAMES as usize, "{case:?}"),
+                Ground::BackDash => assert_eq!(backdash, aeon_fighter::fighter::BACKDASH_FRAMES as usize, "{case:?}"),
                 Ground::RunBlock => assert!(run && blocked, "{case:?}"),
                 Ground::RunJump => assert!(run && jumped && landing == 2, "{case:?}: full jump landing {landing}"),
                 Ground::RunAttack => assert!(run && hit, "{case:?}"),
@@ -1562,7 +1562,7 @@ mod tests {
                 world.tick(p1, p2);
                 if let Some((id, _, connected)) = world.fighters[0].action.attacking() {
                     started.insert(id);
-                    target_contact |= id == case.move_id && connected != aeon_sim::Connect::None;
+                    target_contact |= id == case.move_id && connected != aeon_fighter::Connect::None;
                 }
                 air |= world.fighters[0].airborne;
                 landing |= matches!(world.fighters[0].action, Action::Landing { total: 12, .. });
@@ -1749,7 +1749,7 @@ mod tests {
                 }
                 frozen = Some((world.frame, cells));
                 if let Action::Attack { move_id: MoveId::Throw, frame, connected } = f.action {
-                    let release = if connected == aeon_sim::Connect::Hit { 9 } else { 3 };
+                    let release = if connected == aeon_fighter::Connect::Hit { 9 } else { 3 };
                     let reach = if case.body == CharacterId::Raya { crate::sprites::Cell::ThrowContact } else { crate::sprites::Cell::Utility(1) };
                     assert_eq!(crate::sequences::utility_cell(f) == Some(reach), (2..release).contains(&frame), "{case:?}: reach holds exactly until release");
                 }

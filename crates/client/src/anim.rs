@@ -10,7 +10,7 @@
 use std::collections::VecDeque;
 use std::f32::consts::PI;
 
-use aeon_sim::{Action, CharacterId, Fighter, MoveDef, MoveId, World, SUB};
+use aeon_fighter::{Action, CharacterId, Fighter, MoveDef, MoveId, World, SUB};
 use macroquad::prelude::*;
 
 use crate::sprites::{Cell, Pose, SpriteSet};
@@ -62,8 +62,8 @@ pub struct VictoryClock {
 }
 
 impl VictoryClock {
-    pub fn update(&mut self, w: &World, phase: aeon_sim::Phase) {
-        use aeon_sim::{Phase, RoundOutcome};
+    pub fn update(&mut self, w: &World, phase: aeon_fighter::Phase) {
+        use aeon_fighter::{Phase, RoundOutcome};
         let winner = match phase {
             Phase::RoundEnd { outcome: RoundOutcome::Winner(i), frame: 30.. } => Some(i),
             Phase::MatchOver { winner } => Some(winner),
@@ -359,7 +359,7 @@ pub fn layers(
         if matches!(f.action, Action::Hit { .. } | Action::Block { .. }) {
             let amp = if w.hitstop >= 8 { 2.2 } else { 1.3 };
             m.dx += if w.hitstop.is_multiple_of(2) { amp } else { -amp };
-        } else if f.action.attacking().is_some_and(|(_, _, c)| c != aeon_sim::Connect::None) {
+        } else if f.action.attacking().is_some_and(|(_, _, c)| c != aeon_fighter::Connect::None) {
             m.dx += 1.0;
         }
     }
@@ -505,7 +505,7 @@ fn motion(f: &Fighter, w: &World) -> Motion {
             }
         }
         Action::Prejump { frame, .. } => {
-            let t = *frame as f32 / aeon_sim::PREJUMP as f32;
+            let t = *frame as f32 / aeon_fighter::PREJUMP as f32;
             m.sx = 1.08 - 0.08 * t;
             m.sy = 0.90 + 0.10 * t;
         }
@@ -728,7 +728,7 @@ fn phase(mv: &MoveDef, frame: u16, m: &mut Motion, crouching: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aeon_sim::px;
+    use aeon_fighter::px;
 
     fn set(id: CharacterId) -> SpriteSet {
         SpriteSet::empty(id)
@@ -751,7 +751,7 @@ mod tests {
                     w.fighters[0].action = Action::Attack {
                         move_id,
                         frame,
-                        connected: aeon_sim::Connect::None,
+                        connected: aeon_fighter::Connect::None,
                     };
                     let out = layers(&w, 0, &sprites, &history, &opts);
                     let body = out.last().unwrap();
@@ -852,7 +852,7 @@ mod tests {
         w.fighters[0].action = Action::Attack {
             move_id: MoveId::StP,
             frame: 4,
-            connected: aeon_sim::Connect::None,
+            connected: aeon_fighter::Connect::None,
         };
         let cell = sprites.cell_for(&w.fighters[0], w.frame);
         assert_ne!(cell, Cell::Pose(Pose::Idle));
@@ -949,7 +949,7 @@ mod tests {
     #[test]
     fn ground_phase_clock_freezes_resets_and_yields_to_new_actions() {
         use crate::sequences::{ground_cell, GroundState};
-        use aeon_sim::{Btn, InputFrame};
+        use aeon_fighter::{Btn, InputFrame};
         for body in [CharacterId::Kogan, CharacterId::Raya] {
             let mut w = World::new(body, CharacterId::Kogan);
             let mut history = History::default();
@@ -1100,7 +1100,7 @@ mod tests {
         history.record(&w, [Cell::AirSaber(5), Cell::Pose(Pose::Idle)]);
         assert!(history.feint_descent(&w, 0), "same-frame freeze retains descent");
         for action in [Action::Hit { stun: 8, knockdown: false }, Action::Attack {
-            move_id: MoveId::JS, frame: 0, connected: aeon_sim::Connect::None }, Action::Stand] {
+            move_id: MoveId::JS, frame: 0, connected: aeon_fighter::Connect::None }, Action::Stand] {
             w.fighters[0].action = action;
             assert!(!history.feint_descent(&w, 0), "a new action owns its drawing");
         }
@@ -1124,7 +1124,7 @@ mod tests {
         let mut w = World::new(body, CharacterId::Raya);
         for mv in body.data().moves.iter().filter(|m| m.feintable) {
             for airborne in [false, true] {
-                for frame in 0..aeon_sim::fighter::FEINT_RECOVERY {
+                for frame in 0..aeon_fighter::fighter::FEINT_RECOVERY {
                     w.fighters[0].last_move = Some(mv.id);
                     w.fighters[0].action = Action::Feint { frame };
                     w.fighters[0].airborne = airborne;
@@ -1181,7 +1181,7 @@ mod tests {
 
     #[test]
     fn close_crouch_and_rise_stay_visible_without_hiding_attacks() {
-        use aeon_sim::{Btn, InputFrame};
+        use aeon_fighter::{Btn, InputFrame};
         for body in [CharacterId::Kogan, CharacterId::Raya] {
             for croucher in 0..2 {
                 let mut w = World::new(body, body);
@@ -1246,7 +1246,7 @@ mod tests {
 
     #[test]
     fn victory_clock_waits_for_recovery_freezes_and_resets() {
-        use aeon_sim::{Phase, RoundOutcome};
+        use aeon_fighter::{Phase, RoundOutcome};
         let mut w = World::new(CharacterId::Kogan, CharacterId::Raya);
         let mut clock = VictoryClock::default();
         let end = |frame| Phase::RoundEnd { outcome: RoundOutcome::Winner(0), frame };
@@ -1288,7 +1288,7 @@ mod tests {
         let mut w=World::new(body,CharacterId::Raya);
         let mut history=History::default();
         w.frame=51;
-        w.fighters[0].action=Action::Attack { move_id:MoveId::CrHS,frame:28,connected:aeon_sim::Connect::Hit };
+        w.fighters[0].action=Action::Attack { move_id:MoveId::CrHS,frame:28,connected:aeon_fighter::Connect::Hit };
         history.record(&w,[Cell::CrouchSaber(7),Cell::Pose(Pose::Idle)]);
         w.fighters[0].action=Action::Stand;
         for tick in [52,53] {

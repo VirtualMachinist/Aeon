@@ -2,7 +2,7 @@
 //! repeat through the same renderer after resetting its complete history.
 //! Run in an empty working directory: --replay-review --capture --capture-1x.
 use super::*;
-use aeon_sim::DummyMode;
+use aeon_fighter::DummyMode;
 use std::io::Write;
 
 const TICKS: u32 = 240;

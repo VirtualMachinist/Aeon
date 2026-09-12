@@ -1,6 +1,6 @@
 //! Real knockout, winner hold, next-round and rematch review.
 use super::*;
-use aeon_sim::{Match, Phase};
+use aeon_fighter::{Match, Phase};
 use crate::render::draw_match_overlay;
 
 const DURATION: u32 = 240;
@@ -122,7 +122,7 @@ pub async fn run(assets: &Assets, args: &[String]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aeon_sim::{Action, RoundOutcome};
+    use aeon_fighter::{Action, RoundOutcome};
     #[test]
     fn victory_cases_reach_real_ko_then_hold_next_round_or_rematch() {
         let all = [CharacterId::Kogan,CharacterId::Raya].into_iter().flat_map(cases).collect::<Vec<_>>();assert_eq!(all.len(),32);

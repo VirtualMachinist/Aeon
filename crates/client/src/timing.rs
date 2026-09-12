@@ -1,6 +1,6 @@
 //! Render-rate independent tick scheduling and input delivery.
 //! Strict link windows live in the sim; a fast display must not lose a tap.
-use aeon_sim::{Btn, Buttons, InputFrame, TICK_HZ};
+use aeon_fighter::{Btn, Buttons, InputFrame, TICK_HZ};
 
 const DT: f64 = 1.0 / TICK_HZ as f64;
 

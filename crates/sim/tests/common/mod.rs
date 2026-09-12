@@ -1,11 +1,11 @@
 //! Shared drivers for headless proofs.
 #![allow(dead_code)]
 
-use aeon_sim::fighter::Action;
-use aeon_sim::geom::px;
-use aeon_sim::input::{Btn, Buttons, Chord, InputFrame};
-use aeon_sim::moves::MoveId;
-use aeon_sim::{CharacterId, DummyMode, EventKind, World};
+use aeon_fighter::fighter::Action;
+use aeon_fighter::geom::px;
+use aeon_fighter::input::{Btn, Buttons, Chord, InputFrame};
+use aeon_fighter::moves::MoveId;
+use aeon_fighter::{CharacterId, DummyMode, EventKind, World};
 
 pub fn idle() -> InputFrame {
     InputFrame::default()

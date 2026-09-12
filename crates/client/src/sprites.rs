@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use aeon_sim::{Action, CharacterId, Fighter, MoveId};
+use aeon_fighter::{Action, CharacterId, Fighter, MoveId};
 use macroquad::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -1055,7 +1055,7 @@ pub fn pose_for(f: &Fighter) -> Pose {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aeon_sim::px;
+    use aeon_fighter::px;
 
     #[test]
     fn signature_animation_contact_matches_sim_active_frames() {
@@ -1074,7 +1074,7 @@ mod tests {
                     f.action = Action::Attack {
                         move_id,
                         frame,
-                        connected: aeon_sim::Connect::None,
+                        connected: aeon_fighter::Connect::None,
                     };
                     let cell = animation_cell(&f, 0);
                     if mv.is_active(frame) {
