@@ -1,5 +1,9 @@
 # Contribute to Aeon
 
+Aeon is **source-available, not open source.** Copyright © Hedronite LLC.
+
+A [CLA](CLA.md) is **required before merge**. Contributors grant Hedronite LLC rights to relicense contributions into paid or proprietary builds. CLA / contributor status is **not** core-team membership and is **not** profit share — those are separate commercial contracts ([COMMERCIAL.md](COMMERCIAL.md)). Public terms: [EULA.md](EULA.md) (draft; not legal advice).
+
 Aeon is a classical 1v1 2D fighter in Rust aimed at **competitive play**.
 
 If you love **Samurai Shodown**, **Street Fighter II: Super Turbo**, **Third Strike**, **Street Fighter Alpha**, **The King of Fighters XIII**, **Guilty Gear Accent Core**, and **Garou: Mark of the Wolves** — and you want those instincts in a modern, deterministic Rust sim — you are invited in.
@@ -42,7 +46,7 @@ On Apple Silicon macOS, after the first fetch, `Play-Aeon.command` is the usual 
 - Animation and pose work that preserves identity plates and the [QA](docs/QA.md) / animation review path.
 - Sim or client fixes that keep `crates/sim` pure (integer 60 Hz, no floats in `World`, zero dependencies) and regenerate frame-data docs when numbers change.
 
-Open a focused branch from `main`, keep PRs small, and say what you played and what you checked. Prefer evidence: smoke shots, polish-preview traces, or a short written exchange.
+Open a focused branch from `main`, keep PRs small, and say what you played and what you checked. Prefer evidence: smoke shots, polish-preview traces, or a short written exchange. State in the pull request that you agree to the draft [CLA](CLA.md). Contributions cannot merge without it.
 
 ## Hard edges (please respect)
 
