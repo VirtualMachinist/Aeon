@@ -1,8 +1,15 @@
 [package]
-name = "aeon-sim"
+name = "aeon-fighter"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Deterministic 60Hz fighting-game simulation. No rendering, no I/O."
+authors.workspace = true
+description = "Deterministic 60 Hz fighting-game simulation. Integer subpixels; no rendering, no I/O."
+repository = "https://github.com/VirtualMachinist/Aeon"
+homepage = "https://github.com/VirtualMachinist/Aeon"
+documentation = "https://docs.rs/aeon-fighter"
+readme = "README.md"
+keywords = ["fighting-game", "rollback", "deterministic", "simulation", "netcode"]
+categories = ["game-development", "simulation"]
 
 [dependencies]

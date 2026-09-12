@@ -1,6 +1,6 @@
 //! Legal anti-air and uppercut/RC/air-normal exchanges; no forced airborne state.
 use super::*;
-use aeon_sim::{Connect, RC_FREEZE_FRAMES};
+use aeon_fighter::{Connect, RC_FREEZE_FRAMES};
 
 const DURATION: u32 = 150;
 
@@ -140,7 +140,7 @@ pub async fn run(assets: &Assets, args: &[String]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aeon_sim::{Action, EventKind};
+    use aeon_fighter::{Action, EventKind};
     #[test]
     fn real_jumps_and_rc_inputs_produce_air_hits_and_scaled_juggles() {
         for body in [CharacterId::Kogan, CharacterId::Raya] {

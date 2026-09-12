@@ -1,8 +1,8 @@
 //! September consultation: free run transitions, strict links, and jump flow.
 mod common;
 
-use aeon_sim::fighter::{HOP_LANDING_RECOVERY, LANDING_RECOVERY};
-use aeon_sim::{px, Action, CharacterId, Connect, Fighter, MoveId, World};
+use aeon_fighter::fighter::{HOP_LANDING_RECOVERY, LANDING_RECOVERY};
+use aeon_fighter::{px, Action, CharacterId, Connect, Fighter, MoveId, World};
 use common::*;
 
 const BODIES: [CharacterId; 2] = [CharacterId::Kogan, CharacterId::Raya];
@@ -27,7 +27,7 @@ fn airborne(id: CharacterId, facing: bool, hop: bool) -> World {
 
 #[test]
 fn run_immediately_stops_blocks_crouches_attacks_or_jumps() {
-    use aeon_sim::{Btn, HitLevel};
+    use aeon_fighter::{Btn, HitLevel};
     for id in BODIES {
         for facing in [true, false] {
             for input in [
@@ -72,7 +72,7 @@ fn run_immediately_stops_blocks_crouches_attacks_or_jumps() {
 
 #[test]
 fn air_normals_preserve_travel_and_hop_identity_through_recovery() {
-    use aeon_sim::Btn;
+    use aeon_fighter::Btn;
     for id in BODIES {
         for facing in [true, false] {
             for hop in [true, false] {
@@ -107,7 +107,7 @@ fn air_normals_preserve_travel_and_hop_identity_through_recovery() {
 
 #[test]
 fn hop_landing_accepts_a_ground_button_and_full_jump_owes_recovery() {
-    use aeon_sim::Btn;
+    use aeon_fighter::Btn;
     assert_eq!(HOP_LANDING_RECOVERY, 0);
     for id in BODIES {
         for hop in [true, false] {
@@ -147,7 +147,7 @@ fn uppercuts_keep_their_authored_landing_tax() {
 
 #[test]
 fn hop_touchdown_flash_is_a_ground_normal_without_spending_air_gun_gauge() {
-    use aeon_sim::Btn;
+    use aeon_fighter::Btn;
     let mut w = airborne(CharacterId::Kogan, true, true);
     while w.fighters[0].pos.y + w.fighters[0].vel.y - w.fighters[0].data().gravity > 0 {
         w.tick(idle(), idle());
@@ -179,7 +179,7 @@ fn landing_does_not_erase_air_hitstun() {
 
 #[test]
 fn first_free_frame_accepts_a_link_but_an_early_press_is_not_buffered() {
-    use aeon_sim::Btn;
+    use aeon_fighter::Btn;
     for id in BODIES {
         let end = id.data().move_def(MoveId::StP).unwrap().total_frames();
         for early in [false, true] {
@@ -209,7 +209,7 @@ fn first_free_frame_accepts_a_link_but_an_early_press_is_not_buffered() {
 
 #[test]
 fn wakeup_and_blockstun_expiry_accept_the_current_input() {
-    use aeon_sim::{Btn, GETUP_FRAMES};
+    use aeon_fighter::{Btn, GETUP_FRAMES};
     for id in BODIES {
         for action in [
             Action::Getup {
@@ -234,7 +234,7 @@ fn wakeup_and_blockstun_expiry_accept_the_current_input() {
 
 #[test]
 fn kogan_link_into_full_rekka_is_a_natural_five_hit_route() {
-    use aeon_sim::Btn;
+    use aeon_fighter::Btn;
     let mut w = free(CharacterId::Kogan, CharacterId::Kogan);
     let health = w.fighters[1].health;
     w.tick(press(Btn::P), idle());

@@ -14,8 +14,8 @@ mod sequences;
 mod defeat;
 mod timing;
 
-use aeon_sim::input::{Btn, Chord};
-use aeon_sim::{Action, CharacterId, EventKind, InputFrame, Match, Phase, World};
+use aeon_fighter::input::{Btn, Chord};
+use aeon_fighter::{Action, CharacterId, EventKind, InputFrame, Match, Phase, World};
 use macroquad::prelude::*;
 
 use anim::{History, LayerOpts};
@@ -718,10 +718,10 @@ fn draw_training_hud(v: &View, t: &Training, pads: &Pads) {
     }
 }
 
-fn special_list(c: &aeon_sim::Character) -> Vec<String> {
+fn special_list(c: &aeon_fighter::Character) -> Vec<String> {
     let mut parts = Vec::new();
     for r in &c.specials {
-        if r.move_id.is_rekka() && r.move_id != aeon_sim::MoveId::Rekka1 {
+        if r.move_id.is_rekka() && r.move_id != aeon_fighter::MoveId::Rekka1 {
             continue;
         }
         if let Some(input) = c.input_for(r.move_id) {
@@ -941,7 +941,7 @@ impl Smoke {
                 if m.world.frame >= 300 {
                     self.stage = 1;
                     let mut t = Training::new(CharacterId::Raya, CharacterId::Kogan);
-                    t.world.dummy = aeon_sim::DummyMode::BlockAll;
+                    t.world.dummy = aeon_fighter::DummyMode::BlockAll;
                     return Some(Mode::Training(t));
                 }
             }

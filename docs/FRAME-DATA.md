@@ -2,10 +2,10 @@
 
 Law: `DESIGN.md`. Advantage on first-active contact = `hitstun − (active − 1) − recovery` (same with blockstun).
 
-These are the authored numbers from the September 2 implementation, updated for the September 5 consultation. The tables below the marker are **generated from the move data** in `crates/sim/src/chars/{kogan,raya}.rs` by `crates/sim/tests/frame_data_doc.rs`, and `cargo test -p aeon-sim` fails if they drift from the code. Retune in the code, then:
+These are the authored numbers from the September 2 implementation, updated for the September 5 consultation. The tables below the marker are **generated from the move data** in `crates/sim/src/chars/{kogan,raya}.rs` by `crates/sim/tests/frame_data_doc.rs`, and `cargo test -p aeon-fighter` fails if they drift from the code. Retune in the code, then:
 
 ```
-AEON_REGEN_DOCS=1 cargo test -p aeon-sim --test frame_data_doc
+AEON_REGEN_DOCS=1 cargo test -p aeon-fighter --test frame_data_doc
 ```
 
 Feel-targets these numbers must not violate:
@@ -50,7 +50,7 @@ Feel-targets these numbers must not violate:
 | Knockdown | Hard knockdown 32f down + 24f getup (56f). Downed bodies are strike-invulnerable — no OTG. Sweep, command grab, uppercut, rekka 3, crystal blast and super knock down. |
 
 <!-- generated:begin -->
-_Generated from `crates/sim/src/chars` by `tests/frame_data_doc.rs`. Do not edit by hand; retune the code and run `AEON_REGEN_DOCS=1 cargo test -p aeon-sim --test frame_data_doc`._
+_Generated from `crates/sim/src/chars` by `tests/frame_data_doc.rs`. Do not edit by hand; retune the code and run `AEON_REGEN_DOCS=1 cargo test -p aeon-fighter --test frame_data_doc`._
 
 ## Universal
 

@@ -49,7 +49,7 @@ See [Development guide](docs/DEVELOPMENT.md) for the repository workflow, checks
 ## Layout
 
 ```text
-crates/sim      aeon-sim: deterministic 60 Hz match. Integer subpixels. Zero dependencies.
+crates/sim      aeon-fighter: deterministic 60 Hz match. Integer subpixels. Zero dependencies.
                 No floats in World, no clock, no filesystem, no renderer (tests/purity.rs).
 crates/client   aeon: macroquad + gilrs client. Versus, training, stick remap, replays.
                 sequences.rs selects authored reactions/reversals; anim.rs adds motion; fx.rs draws impact.
